@@ -1,14 +1,4 @@
 <?php
-/**
- * Plugin Name: WP CLI Product Thumbnail Check
- * Plugin URI: https://example.com
- * Description: A WP-CLI command to find WooCommerce products that don't have a thumbnail and move to drafts
- * Version: 1.0.0
- * Author: Your Name
- * Author URI: https://example.com
- * License: GPL-2.0+
- * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
- */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -17,8 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( defined( 'WP_CLI' ) ) {
     WP_CLI::add_command( 'fa:media product-thumbnail-check', 'WP_CLI_Product_Thumbnail_Check' );
 }
-
-
 
 /**
  * Find WooCommerce products that don't have a thumbnail and move them to drafts.
@@ -45,7 +33,7 @@ if ( defined( 'WP_CLI' ) ) {
  */
 
 if (!function_exists('WP_CLI_Product_Thumbnail_Check')) {
-    
+
     function WP_CLI_Product_Thumbnail_Check($args, $assoc_args)
     {
         $order = isset($assoc_args['order']) ? $assoc_args['order'] : 'ASC';
