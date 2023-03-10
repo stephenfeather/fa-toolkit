@@ -44,61 +44,63 @@ if ( defined( 'WP_CLI' ) ) {
  * @return void
  */
 
- function WP_CLI_Product_Thumbnail_Check($args, $assoc_args) {
-
+if (!function_exists('WP_CLI_Product_Thumbnail_Check')) {
     
-    $order = isset( $assoc_args['order'] ) ? $assoc_args['order'] : 'ASC';
-    $vendor = isset( $assoc_args['vendor'] ) ? $assoc_args['vendor'] : '';
-    $result_count = isset( $assoc_args['result_count'] ) ? absint( $assoc_args['result_count'] ) : 100;
+    function WP_CLI_Product_Thumbnail_Check($args, $assoc_args)
+    {
+        $order = isset($assoc_args['order']) ? $assoc_args['order'] : 'ASC';
+        $vendor = isset($assoc_args['vendor']) ? $assoc_args['vendor'] : '';
+        $result_count = isset($assoc_args['result_count']) ? absint($assoc_args['result_count']) : 100;
 
-    $processed_count = 0;
-    $error_count = 0;
+        $processed_count = 0;
+        $error_count = 0;
 
-    $args = array(
-        'post_type' => 'product',
-	    'post_status' => 'publish',
-        'meta_query' => array(
-            'relation' => 'OR',
-            array(
-                'key' => '_thumbnail_id',
-                'compare' => 'NOT EXISTS'
+        $args = array(
+            'post_type' => 'product',
+            'post_status' => 'publish',
+            'meta_query' => array(
+                'relation' => 'OR',
+                array(
+                    'key' => '_thumbnail_id',
+                    'compare' => 'NOT EXISTS'
+                ),
+                array(
+                    'key' => '_thumbnail_id',
+                    'value' => '',
+                    'compare' => '='
+                )
             ),
-            array(
-                'key' => '_thumbnail_id',
-                'value' => '',
-                'compare' => '='
-            )
-        ),
 //            'meta_key' => 'dealer',
 //            'meta_value' => $vendor,
-	    'posts_per_page' => $result_count,
-        'orderby' => 'ID',
-        'order' => $order,
-        'fields' => 'ids',
-    );
+            'posts_per_page' => $result_count,
+            'orderby' => 'ID',
+            'order' => $order,
+            'fields' => 'ids',
+        );
 
-    $query = new WP_Query( $args );
-    if ( $query->have_posts() ) {
-        foreach ( $query->posts as $post_id ) {
-            WP_CLI::debug( 'Product ID ' . $post_id . ' does not have a thumbnail.' );
-            //$status = WP_CLI::runcommand( "post update {$post_id} --post_status=draft --user=1" );
-            // UnPublish the product.
-            $status = wp_update_post(array(
-                'ID'          => $post_id,
-                'post_status' => 'draft',
-            ));
+        $query = new WP_Query($args);
+        if ($query->have_posts()) {
+            foreach ($query->posts as $post_id) {
+                WP_CLI::debug('Product ID ' . $post_id . ' does not have a thumbnail.');
+                //$status = WP_CLI::runcommand( "post update {$post_id} --post_status=draft --user=1" );
+                // UnPublish the product.
+                $status = wp_update_post(array(
+                    'ID'          => $post_id,
+                    'post_status' => 'draft',
+                ));
 
-            if ( $status = 0 ) {
-                WP_CLI::warning("Product {$post_id} NOT moved to drafts.");
-                $error_count++;
-            } else {
-                WP_CLI::success("Product {$post_id} moved to drafts.");
-                $processed_count++;
+                if ($status = 0) {
+                    WP_CLI::warning("Product {$post_id} NOT moved to drafts.");
+                    $error_count++;
+                } else {
+                    WP_CLI::success("Product {$post_id} moved to drafts.");
+                    $processed_count++;
+                }
             }
+        } else {
+            WP_CLI::success('All WooCommerce products have a thumbnail.');
         }
-    } else {
-            WP_CLI::success( 'All WooCommerce products have a thumbnail.' );
-    }
 
-    WP_CLI::line( "{$processed_count} products moved to drafts." );
+        WP_CLI::line("{$processed_count} products moved to drafts.");
+    }
 }
