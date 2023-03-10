@@ -4,12 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 } 
 
-if ( defined( 'WP_CLI' ) ) {
-    WP_CLI::add_command( 'fa:media attach-media-to-draft-products', 'WP_CLI_Attach_Media_to_Draft_Products' );
+if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+    exit;
 }
-    
 
-if (!function_exists( 'WP_CLI_Attach_Media_to_Draft_Products' )) {
+if (!function_exists( 'WP_CLI_attach_media_to_draft_products' )) {
+    
     /**
      * Attach media to draft products based on SKU.
      *
@@ -28,7 +28,7 @@ if (!function_exists( 'WP_CLI_Attach_Media_to_Draft_Products' )) {
      *
      * @when after_wp_load
      */
-    function WP_CLI_Attach_Media_to_Draft_Products($args, $assoc_args)
+    function WP_CLI_attach_media_to_draft_products($args, $assoc_args)
     {
         $suffix = isset($assoc_args['suffix']) ? $assoc_args['suffix'] : null;
         // Get a list of draft product IDs.
@@ -105,6 +105,8 @@ if (!function_exists( 'WP_CLI_Attach_Media_to_Draft_Products' )) {
         WP_CLI::line(sprintf('Products with existing attachments: %d', $matching_attachments));
         WP_CLI::line(sprintf('%d products had attachments added', $num_with_attachments));
     }
+    
+    WP_CLI::add_command( 'fa:media attach-media-to-draft-products', 'WP_CLI_attach_media_to_draft_products' );
 }
 
 if ( !function_exists( 'fa_sku_to_filename' ) ) {
