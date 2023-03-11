@@ -29,6 +29,7 @@ if (!function_exists('WP_CLI_product_thumbnail_check')) {
      *     wp fa:media product-thumbnail-check --vendor=ACME
      *     wp fa:media product-thumbnail-check --result_count=5
      * 
+     * @when after_wp_load
      * @param array $args
      * @param array $assoc_args
      * @return void
@@ -39,7 +40,7 @@ if (!function_exists('WP_CLI_product_thumbnail_check')) {
         $order = isset($assoc_args['order']) ? $assoc_args['order'] : 'ASC';
         $vendor = isset($assoc_args['vendor']) ? $assoc_args['vendor'] : '';
         $result_count = isset($assoc_args['result_count']) ? absint($assoc_args['result_count']) : 100;
-
+ 
         $processed_count = 0;
         $error_count = 0;
 
@@ -58,13 +59,15 @@ if (!function_exists('WP_CLI_product_thumbnail_check')) {
                     'compare' => '='
                 )
             ),
-//            'meta_key' => 'dealer',
-//            'meta_value' => $vendor,
             'posts_per_page' => $result_count,
             'orderby' => 'ID',
             'order' => $order,
             'fields' => 'ids',
         );
+        if ( isset($assoc_args['vendor']) ) {
+            $args['meta_key'] = 'dealer' ;
+            $args['meta_value'] = $vendor;
+        }
 
         $query = new WP_Query($args);
         if ($query->have_posts()) {
