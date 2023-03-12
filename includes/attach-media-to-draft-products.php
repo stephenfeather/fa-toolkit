@@ -48,8 +48,6 @@ if (!function_exists( 'WP_CLI_attach_media_to_draft_products' )) {
             'post_type'      => 'attachment',
             'post_status'    => 'any',
             'post_mime_type' => 'image/jpeg',
-    //    'post_title'     => $filename,
-    //    'fields'         => 'ids,post_title',
             'posts_per_page' => -1,
             'orderby'        => 'post_title',
             'order'          => 'ASC'
@@ -109,7 +107,7 @@ if (!function_exists( 'WP_CLI_attach_media_to_draft_products' )) {
     WP_CLI::add_command( 'fa:media attach-media-to-draft-products', 'WP_CLI_attach_media_to_draft_products' );
 }
 
-if ( !function_exists( 'fa_sku_to_filename' ) ) {
+if ( !function_exists( 'sku_to_filename' ) ) {
     function sku_to_filename($sku, $basename_suffix = '')
     {
         $prefix = substr($sku, 0, 3);
