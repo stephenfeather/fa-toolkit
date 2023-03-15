@@ -8,7 +8,7 @@ if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
     exit;
 } 
 
-if (!function_exists('WP_CLI_product_thumbnail_check')) {
+if ( ! function_exists( 'wp_cli_product_thumbnail_check' ) ) {
     
     /**
      * Find WooCommerce products that don't have a thumbnail and move them to drafts.

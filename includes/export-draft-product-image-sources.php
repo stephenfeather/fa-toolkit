@@ -63,5 +63,5 @@ if ( ! function_exists( 'w_p_c_l_i_export_draft_product_image_sources' ) ) {
 		wp_reset_postdata();
 	}
 
-	WP_CLI::add_command( 'fa:media export-draft-product-image-sources', 'w_p_c_l_i_export_draft_product_image_sources' );
+	WP_CLI::add_command( 'fa:media export-draft-product-image-sources', 'wp_cli_export_draft_product_image_sources' );
 }
