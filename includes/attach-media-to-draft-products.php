@@ -19,18 +19,22 @@ if (!function_exists( 'wp_cli_attach_media_to_draft_products' )) {
      * : Preview which attachments will be attached to which products, but do not make any changes.
      *
      * [--suffix=<suffix>]
-     * : Allows the addition of a suffix for matching
+     * : Allows the addition of a suffix for matching.
      *
+     * [--extension=<ext>]
+     * : Allows modification of the filename extension.
      * ## EXAMPLES
      *
      *     wp fa:media attach-media-to-draft-products
      *     wp fa:media attach-media-to-draft-products --suffix='_1'
+     *     wp fa:media attach-media-to-draft-products --extension=png
      *
      * @when after_wp_load
      */
-    function WP_CLI_attach_media_to_draft_products($args, $assoc_args)
+    function wp_cli_attach_media_to_draft_products($args, $assoc_args)
     {
         $suffix = isset($assoc_args['suffix']) ? $assoc_args['suffix'] : null;
+        $extension = isset($assoc_args['extension']) ? $assoc_args['extension'] : 'jpg';
         // Get a list of draft product IDs.
         WP_CLI::debug("Loading Products..");
         $draft_product_ids = get_posts(array(
@@ -64,7 +68,7 @@ if (!function_exists( 'wp_cli_attach_media_to_draft_products' )) {
             // Get the SKU for the product.
             $sku = get_post_meta($product_id, '_sku', true);
             // Generate a filename to match from the sku
-            $filename_to_match = sku_to_filename($sku, $suffix);
+            $filename_to_match = sku_to_filename($sku, $suffix, $extension);
 
 
             // Get attachment with the same file name as the SKU.
@@ -80,7 +84,8 @@ if (!function_exists( 'wp_cli_attach_media_to_draft_products' )) {
                     $matching_attachments++;
                 } else {
                     if (! isset($assoc_args['dry-run'])) {
-                        update_post_meta($product_id, '_thumbnail_id', $attachment['ID']);
+                        set_post_thumbnail( $product_id, $attachment['ID'] );
+                        //update_post_meta($product_id, '_thumbnail_id', $attachment['ID']);
                         WP_CLI::success(sprintf('Product %d now parent of Attachment %d', $product_id, $attachment['ID']));
                         $num_with_attachments++;
 
@@ -108,12 +113,12 @@ if (!function_exists( 'wp_cli_attach_media_to_draft_products' )) {
 }
 
 if ( !function_exists( 'sku_to_filename' ) ) {
-    function sku_to_filename($sku, $basename_suffix = '')
+    function sku_to_filename($sku, $basename_suffix = '', $extension)
     {
         $prefix = substr($sku, 0, 3);
         if ($prefix === 'FA-') {
             $numeric_part = substr($sku, 3);
-            $image_filename = $numeric_part . $basename_suffix . '.jpg';
+            $image_filename = $numeric_part . $basename_suffix . '.' . $extension;
             return $image_filename;
         } else {
             return false;
@@ -125,6 +130,8 @@ if ( !function_exists( 'find_filename_in_attachment_array' ) ) {
     function find_filename_in_attachment_array($attachment_array = array(), $filename = "", $product_id = "")
     {
         $result = null;
+
+        $extensions = array('.jpg', '.png', '.webp');
         foreach ($attachment_array as $object) {
             if ($object->post_title === $filename) {
                 WP_CLI::debug(sprintf('Matching sku>%s to post_title %s for product: %s attachment: %s', $filename, $object->post_title, $product_id, $object->ID));
