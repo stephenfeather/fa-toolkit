@@ -1,0 +1,24 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"phpsab.executablePathCS": "/Users/stephenfeather/.composer/vendor/bin/phpcs",
+		"phpsab.executablePathCBF": "/Users/stephenfeather/.composer/vendor/bin/phpcbf",
+		"phpsab.fixerEnable": true,
+		"phpsab.snifferMode": "onType",
+		"phpsab.standard": "WordPress",
+		"git.autoStash": true,
+		"git.branchRandomName.dictionary": [
+			"adjectives",
+			"animals",
+			"colors"
+		],
+		"git.showPushSuccessNotification": true,
+		"editor.minimap.autohide": true,
+		"workbench.iconTheme": "vs-minimal",
+		"workbench.editor.highlightModifiedTabs": true
+	}
+}
