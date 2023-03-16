@@ -8,7 +8,7 @@ if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 	exit;
 }
 
-if ( ! function_exists( 'w_p_c_l_i_export_draft_product_image_sources' ) ) {
+if ( ! function_exists( 'wp_cli_export_draft_product_image_sources' ) ) {
 
 	/**
 	 * Export the contents of an Advanced Custom Field called image_source from all products with a draft status to a file.
@@ -20,7 +20,7 @@ if ( ! function_exists( 'w_p_c_l_i_export_draft_product_image_sources' ) ) {
 	 *
 	 * @param array $args Arguments passed to the WP-CLI command.
 	 */
-	function w_p_c_l_i_export_draft_product_image_sources( $args ) {
+	function wp_cli_export_draft_product_image_sources( $args ) {
 		if ( ! class_exists( 'acf' ) ) {
 			WP_CLI::error( 'Advanced Custom Fields is not installed or active.' );
 		}
