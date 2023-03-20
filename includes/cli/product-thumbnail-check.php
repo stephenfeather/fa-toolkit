@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @since 1.0
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }

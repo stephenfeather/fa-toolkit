@@ -1,12 +1,15 @@
 <?php
+
+/**
+ * @since 1.0
+ */
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
  * Add New Relic browser client into the head.
- */ 
-
+ */
 function add_newrelic_to_head() { ?>
 <script type="text/javascript">
 ;window.NREUM||(NREUM={});NREUM.init={distributed_tracing:{enabled:true},privacy:{cookies_enabled:true},ajax:{deny_list:["bam.nr-data.net"]}};
