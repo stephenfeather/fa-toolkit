@@ -20,6 +20,23 @@
 		"editor.minimap.autohide": true,
 		"workbench.iconTheme": "vs-minimal",
 		"workbench.editor.highlightModifiedTabs": true,
-		"php-docblocker.varDescription": ""
+		"php-docblocker.varDescription": "",
+		"php-docblocker.useShortNames": true,
+		"php-docblocker.returnGap": true,
+		"php-docblocker.qualifyClassNames": true,
+		"php-docblocker.alignParams": true,
+		"php-docblocker.alignReturn": true,
+		"phpsab.snifferShowSources": true,
+		"php-docblocker.functionTemplate": {
+			"message": {
+				"gapAfter": true
+			},
+			"param": {
+				"gapBefore": true
+			},
+			"author": {},
+			"since": {},
+			"returns": {}
+		}
 	}
 }
