@@ -3,6 +3,7 @@
  * Loads our includes.
  *
  * @package FA-Toolkit
+ * @since 1.0
  */
 
 // Exit if accessed directly.
@@ -12,7 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Load Site Functions.
 
-require_once plugin_dir_path( __FILE__ ) . '/siteFunctions/functions-fa-newrelic.php';
+require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-newrelic.php';
+require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-attachment-sha256-meta-box.php';
 
 // Only load our CLI utilities if in the CLI.
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
