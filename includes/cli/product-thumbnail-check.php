@@ -97,7 +97,11 @@ if ( ! function_exists( 'wp_cli_product_thumbnail_check' ) ) {
 			WP_CLI::success( 'All WooCommerce products have a thumbnail.' );
 		}
 
-		WP_CLI::line( "{$processed_count} products moved to drafts." );
+		if ( 0 === $processed_count ) {
+			WP_CLI::error( 'No products found to process.' );
+		} else {
+			WP_CLI::success( '{$processed_count} products moved to drafts.' );
+		}
 	}
 
 	WP_CLI::add_command( 'fa:media product-thumbnail-check', 'wp_cli_product_thumbnail_check' );
