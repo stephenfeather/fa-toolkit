@@ -1,5 +1,6 @@
 <?php
 /**
+ * @package FA-Toolkit
  * @since 1.0
  */
 
