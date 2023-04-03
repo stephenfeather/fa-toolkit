@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * @since 1.0
+ */
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 } 
@@ -23,6 +26,9 @@ if (!function_exists( 'wp_cli_attach_media_to_draft_products' )) {
      *
      * [--extension=<ext>]
      * : Allows modification of the filename extension.
+     * 
+     * [--sortorder=<order>]
+     * : Allows user to override default sort order.
      * ## EXAMPLES
      *
      *     wp fa:media attach-media-to-draft-products
@@ -35,6 +41,8 @@ if (!function_exists( 'wp_cli_attach_media_to_draft_products' )) {
     {
         $suffix = isset($assoc_args['suffix']) ? $assoc_args['suffix'] : null;
         $extension = isset($assoc_args['extension']) ? $assoc_args['extension'] : 'jpg';
+        $sortorder = isset($assoc_args['sortorder']) ? $assoc_args['sortorder'] : 'DESC';
+
         // Get a list of draft product IDs.
         WP_CLI::debug("Loading Products..");
         $draft_product_ids = get_posts(array(
@@ -43,7 +51,7 @@ if (!function_exists( 'wp_cli_attach_media_to_draft_products' )) {
             'fields'         => 'ids',
             'posts_per_page' => -1,
             'orderby'        => 'ID',
-            'order'          => 'ASC'
+            'order'          => $sortorder
         ));
 
         // Load all of our attachments into memory
@@ -54,7 +62,7 @@ if (!function_exists( 'wp_cli_attach_media_to_draft_products' )) {
             'post_mime_type' => 'image/jpeg',
             'posts_per_page' => -1,
             'orderby'        => 'post_title',
-            'order'          => 'ASC'
+            'order'          => $sortorder
         ));
 
         // Initialize variables to keep track of the number of products processed and the number of products with attachments.

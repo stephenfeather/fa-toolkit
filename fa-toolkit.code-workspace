@@ -5,8 +5,8 @@
 		}
 	],
 	"settings": {
-		"phpsab.executablePathCS": "/Users/stephenfeather/.composer/vendor/bin/phpcs",
-		"phpsab.executablePathCBF": "/Users/stephenfeather/.composer/vendor/bin/phpcbf",
+		"phpsab.executablePathCS": "/usr/bin/phpcs",
+		"phpsab.executablePathCBF": "/usr/bin/phpcbf",
 		"phpsab.fixerEnable": true,
 		"phpsab.snifferMode": "onType",
 		"phpsab.standard": "WordPress",
@@ -19,6 +19,24 @@
 		"git.showPushSuccessNotification": true,
 		"editor.minimap.autohide": true,
 		"workbench.iconTheme": "vs-minimal",
-		"workbench.editor.highlightModifiedTabs": true
+		"workbench.editor.highlightModifiedTabs": true,
+		"php-docblocker.varDescription": "",
+		"php-docblocker.useShortNames": true,
+		"php-docblocker.returnGap": true,
+		"php-docblocker.qualifyClassNames": true,
+		"php-docblocker.alignParams": true,
+		"php-docblocker.alignReturn": true,
+		"phpsab.snifferShowSources": true,
+		"php-docblocker.functionTemplate": {
+			"message": {
+				"gapAfter": true
+			},
+			"param": {
+				"gapBefore": true
+			},
+			"author": {},
+			"since": {},
+			"returns": {}
+		}
 	}
 }
