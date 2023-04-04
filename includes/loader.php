@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Load Site Functions.
 
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-newrelic.php';
+require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-msclarity.php';
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-attachment-sha256-meta-box.php';
 
 // Only load our CLI utilities if in the CLI.
