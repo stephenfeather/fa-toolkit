@@ -17,7 +17,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 };
 
+define( 'FA_TOOLKIT_PATH', plugin_dir_path( __FILE__ ) );
+define( 'FA_TOOLKIT_URL', plugin_dir_url( __FILE__ ) );
+
 // Load the plugin files.
-require_once plugin_dir_path( __FILE__ ) . 'includes/loader.php';
+require_once FA_TOOLKIT_PATH . 'includes/loader.php';
 
 // Your plugin code goes here.
