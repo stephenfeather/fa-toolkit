@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Add a meta box to the attachment edit page.
+/**  Add a meta box to the attachment edit page. */
 function add_attachment_sha256_hash_meta_box() {
 	add_meta_box(
 		'attachment_sha256_hash_meta_box', // Unique ID.
@@ -23,7 +23,7 @@ function add_attachment_sha256_hash_meta_box() {
 }
 add_action( 'add_meta_boxes_attachment', 'add_attachment_sha256_hash_meta_box' );
 
-// Display the contents of the meta box.
+/** Display the contents of the meta box. */
 function display_attachment_sha256_hash_meta_box( $post ) {
 	// Retrieve the value of the sha256_hash field for the current attachment.
 	$sha256_hash = get_post_meta( $post->ID, 'sha256_hash', true );
@@ -62,7 +62,7 @@ function display_attachment_sha256_hash_meta_box( $post ) {
 	<?php
 }
 
-// Generate SHA256 hash for attachment.
+/** Generate SHA256 hash for attachment. */
 function generate_sha256_hash() {
 	if ( ! isset( $_POST['post_id'] ) ) {
 		wp_send_json_error( 'Invalid post ID.' );
