@@ -9,7 +9,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
-
+/** Send php values into the dom space for use by javascript. */
 function pass_fingerprint_variables() {
 
 	echo '<script>';
@@ -21,4 +21,9 @@ function pass_fingerprint_variables() {
 add_action( 'wp_head', 'pass_fingerprint_variables', 2 );
 
 $src = '/wp-content/plugins/fa-toolkit/assets/scripts/fingerprintjs.js';
-wp_enqueue_script( 'fa-fingerprintjs', $src, array(), '1.0.5', false );
+
+function enqueue_fingerprintjs_properly() {
+	wp_enqueue_script( 'fa-fingerprintjs', $src, array(), '1.0.5', false );
+}
+
+add_action( 'wp_enqueue_scripts', 'enqueue_fingerprintjs_properly' );

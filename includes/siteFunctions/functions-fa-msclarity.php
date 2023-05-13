@@ -11,4 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $src = '/wp-content/plugins/fa-toolkit/assets/scripts/msclarity.js';
-wp_enqueue_script( 'fa-msclarity', $src, array(), '1.0.3', true );
+
+
+function enqueue_msclarity_properly() {
+	wp_enqueue_script( 'fa-msclarity', $src, array(), '1.0.3', true );
+}
+
+add_action( 'wp_enqueue_scripts', 'enqueue_msclarity_properly' );
