@@ -1,6 +1,7 @@
 <?php
-
 /**
+ * Downloads and imports an image for a given product ID, and saves the SHA-1 hash as metadata.
+ *
  * @package FA-Toolkit
  * @since 1.0.1
  */
@@ -92,7 +93,7 @@ if ( ! function_exists( 'wp_cli_fetch_import_product_image' ) ) {
 		WP_CLI::debug( "SHA-256 Hash: {$hash}" );
 
 		// Reject known placeholder files.
-		if ( '75b8b48d7485cee17764f8b70b318136a4779bc38e8522279432cb327e0a448d' == $hash ) {
+		if ( '75b8b48d7485cee17764f8b70b318136a4779bc38e8522279432cb327e0a448d' === $hash ) {
 			WP_CLI::error( "($product_id) Skipping import due to known placeholder hash." );
 		}
 
@@ -237,7 +238,7 @@ copy($temp_image_path, $final_image_path);
 		$randomString = '';
 
 		for ( $i = 0; $i < $n; $i++ ) {
-			$index         = rand( 0, strlen( $characters ) - 1 );
+			$index         = wp_rand( 0, strlen( $characters ) - 1 );
 			$randomString .= $characters[ $index ];
 		}
 

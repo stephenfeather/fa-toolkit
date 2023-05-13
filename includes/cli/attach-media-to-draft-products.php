@@ -1,6 +1,8 @@
 <?php
-
 /**
+ * Attach media to draft products based on SKU.
+ *
+ * @package FA-Toolkit
  * @since 1.0
  */
 if ( ! defined( 'ABSPATH' ) ) {

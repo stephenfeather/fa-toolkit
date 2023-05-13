@@ -1,6 +1,8 @@
 <?php
-
 /**
+ * Find WooCommerce products that don't have a thumbnail and move them to drafts.
+ *
+ * @package FA-Toolkit
  * @since 1.0
  */
 
@@ -25,7 +27,7 @@ if ( ! function_exists( 'wp_cli_product_thumbnail_check' ) ) {
 	 * [--result_count=<result_count>]
 	 * : The number of records to process (default is 20)
 	 *
-	 * [--order=<ASC,DEC>]
+	 * [--order=<ASC,DESC>]
 	 * : Change the order of records
 	 *
 	 * ## EXAMPLES
@@ -100,7 +102,7 @@ if ( ! function_exists( 'wp_cli_product_thumbnail_check' ) ) {
 		if ( 0 === $processed_count ) {
 			WP_CLI::error( 'No products found to process.' );
 		} else {
-			WP_CLI::success( '{$processed_count} products moved to drafts.' );
+			WP_CLI::success( "{$processed_count} products moved to drafts." );
 		}
 	}
 

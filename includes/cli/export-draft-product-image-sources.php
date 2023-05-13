@@ -1,5 +1,7 @@
 <?php
 /**
+ * Export the contents of an Advanced Custom Field called image_source from all products with a draft status to a file.
+ *
  * @package FA-Toolkit
  * @since 1.0
  */
