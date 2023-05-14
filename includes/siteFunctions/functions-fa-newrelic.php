@@ -1,6 +1,7 @@
 <?php
 
 /**
+ * Adds New Relic error tracking to head.
  * @since 1.0
  */
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Add New Relic browser client into the head.
  */
 function add_newrelic_to_head() { ?>
-<script type="text/javascript">
+<script async type="text/javascript">
 ;window.NREUM||(NREUM={});NREUM.init={distributed_tracing:{enabled:true},privacy:{cookies_enabled:true},ajax:{deny_list:["bam.nr-data.net"]}};
 
 ;NREUM.loader_config={accountID:"3485564",trustKey:"3485564",agentID:"1120068245",licenseKey:"NRJS-eca18448f1962ff69b5",applicationID:"1036096031"}
