@@ -13,11 +13,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Load Site Functions.
 
-require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-newrelic.php';
+require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-product-category-counts.php';
+// require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-newrelic.php'; .
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-msclarity.php';
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-attachment-sha256-meta-box.php';
-require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/fucntions-fa-email-decode.php';
-
+require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-email-decode.php';
+require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-passive-listeners.php';
+require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-tagmanager.php';
+require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-fingerprint.php';
 
 // Only load our CLI utilities if in the CLI.
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
