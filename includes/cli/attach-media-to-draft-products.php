@@ -61,7 +61,7 @@ if (!function_exists( 'wp_cli_attach_media_to_draft_products' )) {
         $attachments = get_posts(array(
             'post_type'      => 'attachment',
             'post_status'    => 'any',
-            'post_mime_type' => 'image/jpeg',
+				'post_mime_type' => array( 'image/jpeg', 'image/png' ),
             'posts_per_page' => -1,
             'orderby'        => 'post_title',
             'order'          => $sortorder
