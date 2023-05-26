@@ -1,9 +1,11 @@
 <?php
-
 /**
  * Adds New Relic error tracking to head.
+ *
+ * @package FA-Toolkit
  * @since 1.0
  */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
@@ -21,5 +23,5 @@ window.NREUM||(NREUM={}),__nr_require=function(t,e,n){function r(n){if(!e[n]){va
 </script>
 	<?php
 }
-add_action( 'wp_head', 'add_newrelic_to_head' );
+// add_action( 'wp_head', 'add_newrelic_to_head' );
 
