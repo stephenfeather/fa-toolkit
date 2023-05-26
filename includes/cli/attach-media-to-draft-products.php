@@ -136,8 +136,8 @@ if ( !function_exists( 'find_filename_in_attachment_array' ) ) {
     {
         $result = null;
 
-        $extensions = array('.jpg', '.png', '.webp');
-        foreach ($attachment_array as $object) {
+		$extensions = array( '.jpg', '.png', '.webp', '.jpg.jpg' );
+		foreach ( $attachment_array as $object ) {
             if ($object->post_title === $filename) {
                 WP_CLI::debug(sprintf('Matching sku>%s to post_title %s for product: %s attachment: %s', $filename, $object->post_title, $product_id, $object->ID));
                 $result = $object;
