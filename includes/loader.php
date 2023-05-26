@@ -21,7 +21,8 @@ require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-email-dec
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-passive-listeners.php';
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-tagmanager.php';
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-fingerprint.php';
-
+require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-rest.php';
+require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-show-vendor-on-all-products.php';
 // Only load our CLI utilities if in the CLI.
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 
