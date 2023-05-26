@@ -25,7 +25,7 @@ if ( ! function_exists( 'wp_cli_product_thumbnail_check' ) ) {
 	 * : The vendor name to filter the results by.
 	 *
 	 * [--result_count=<result_count>]
-	 * : The number of records to process (default is 20)
+	 * : The number of records to process (default is 100)
 	 *
 	 * [--order=<ASC,DESC>]
 	 * : Change the order of records
