@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-	exit;
+	return;
 }
 
 if ( ! function_exists( 'wp_cli_product_thumbnail_check' ) ) {
