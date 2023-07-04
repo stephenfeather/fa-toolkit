@@ -60,6 +60,12 @@ function product_categories_page() {
 	?>
 	<div class="wrap">
 		<h1>Product Categories</h1>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="force_recount_product_cat">
+			<?php wp_nonce_field( 'force_recount_product_cat', 'force_recount_product_cat_nonce' ); ?>
+			<p><button class="button button-primary" type="submit">Force Recount</button></p>
+		</form>
+
 		<p>Total Categories: <?php echo esc_html( $total_categories ); ?></p>
 		<p>Total Products: <?php echo esc_html( $total_products ); ?></p>
 		<table class="wp-list-table widefat fixed striped">
@@ -100,12 +106,23 @@ function product_categories_page() {
 				</tr>
 			</thead>
 			<tbody>
-				<?php foreach ( $categories as $category ) : ?>
-					<tr>
-						<td><?php echo esc_html( $category->name ); ?></td>
-						<td><?php echo esc_html( $category->count ); ?></td>
-					</tr>
-				<?php endforeach; ?>
+			<?php foreach ( $categories as $category ) : ?>
+				<?php
+				$lineage       = get_ancestors( $category->term_id, 'product_cat' );
+				$lineage_names = array();
+				foreach ( $lineage as $ancestor_id ) {
+					$ancestor        = get_term( $ancestor_id, 'product_cat' );
+					$lineage_names[] = $ancestor->name;
+				}
+				$lineage_names[] = $category->name;
+				$lineage_string  = implode( ' > ', $lineage_names );
+				?>
+	<tr>
+		<td><?php echo esc_html( $lineage_string ); ?></td>
+		<td><?php echo esc_html( $category->count ); ?></td>
+	</tr>
+<?php endforeach; ?>
+
 			</tbody>
 		</table>
 	</div>
