@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Loads our src/files.
  *
@@ -16,6 +15,6 @@ require_once plugin_dir_path( __FILE__ ) . 'src/Modules/class-pwbulkeditorsettin
 require_once plugin_dir_path( __FILE__ ) . 'src/Modules/class-updraftplussettings.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Modules/class-wpallimportsettings.php';
 
-require_once plugin_dir_path( __FILE__ ) . 'src/Utilities/class-fix-rank-math-schemas.php';
-require_once plugin_dir_path( __FILE__ ) . 'src/Utilities/class-populate-gtins.php';
-require_once plugin_dir_path( __FILE__ ) . 'src/Utilities/class-colortest.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/Utilities/class-fixrankmathschemas.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/Utilities/class-gtins.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/Utilities/class-color-test.php';
