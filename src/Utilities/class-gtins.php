@@ -21,13 +21,13 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 /**
  * Populates _rank_math_gtin_code field with upc_code value in a specific category.
  */
-class PopulateGTINS {
+class GTINS {
 
 	/**
 	 * Register the populateGTINS command.
 	 */
 	public function __construct() {
-		WP_CLI::add_command( 'fa:utilities populateGTINS', array( $this, 'populateGTIN' ) );
+		WP_CLI::add_command( 'fa:utilities populateGTINS', array( $this, 'populate' ) );
 	}
 
 	/**
@@ -45,7 +45,7 @@ class PopulateGTINS {
 	 * @param array $args The command arguments.
 	 * @param array $assoc_args The associative arguments.
 	 */
-	public function populateGTIN( $args, $assoc_args ) {
+	public function populate( $args, $assoc_args ) {
 		$category_id = isset( $args[0] ) ? intval( $args[0] ) : 0;
 
 		if ( ! $category_id ) {
@@ -57,6 +57,7 @@ class PopulateGTINS {
 				'post_type'      => 'product',
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 				'tax_query'      => array(
 					array(
 						'taxonomy' => 'product_cat',
@@ -83,4 +84,4 @@ class PopulateGTINS {
 	}
 }
 
-new PopulateGTINS();
+new GTINS();
