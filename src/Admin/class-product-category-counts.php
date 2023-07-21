@@ -45,25 +45,34 @@ class Product_Category_Counts {
 
 		$nonce_action = 'product_category_counts_sort_action';
 		$nonce_name   = 'product_category_counts_sort_nonce';
+		$categories   = get_terms( 'product_cat' );
 
-		$sort_by    = isset( $_REQUEST['sort_by'] ) && in_array( $_REQUEST['sort_by'], array( 'name', 'count' ), true ) ? sanitize_text_field( wp_unslash( $_REQUEST['sort_by'] ) ) : 'name';
-		$sort_order = isset( $_REQUEST['sort_order'] ) && in_array( $_REQUEST['sort_order'], array( 'asc', 'desc' ), true ) ? sanitize_text_field( wp_unslash( $_REQUEST['sort_order'] ) ) : 'desc';
+		// If we have a nonce, verify it.
+		if ( isset( $_REQUEST[ $nonce_name ] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST[ $nonce_name ] ) ), $nonce_action ) ) {
+			// If we have a nonce, sort the categories.
+			$sort_by    = isset( $_REQUEST['sort_by'] ) && in_array( $_REQUEST['sort_by'], array( 'name', 'count' ), true ) ? sanitize_text_field( wp_unslash( $_REQUEST['sort_by'] ) ) : 'name';
+			$sort_order = isset( $_REQUEST['sort_order'] ) && in_array( $_REQUEST['sort_order'], array( 'asc', 'desc' ), true ) ? sanitize_text_field( wp_unslash( $_REQUEST['sort_order'] ) ) : 'desc';
 
-		// Sort the categories array.
-		if ( 'name' === $sort_by ) {
-			usort(
-				$categories,
-				function ( $a, $b ) use ( $sort_order ) {
-					return 'asc' === $sort_order ? strcasecmp( $a->name, $b->name ) : strcasecmp( $b->name, $a->name );
-				}
-			);
+			// Sort the categories array.
+			if ( 'name' === $sort_by ) {
+				usort(
+					$categories,
+					function ( $a, $b ) use ( $sort_order ) {
+						return 'asc' === $sort_order ? strcasecmp( $a->name, $b->name ) : strcasecmp( $b->name, $a->name );
+					}
+				);
+			} else {
+				usort(
+					$categories,
+					function ( $a, $b ) use ( $sort_order ) {
+						return 'asc' === $sort_order ? $a->count - $b->count : $b->count - $a->count;
+					}
+				);
+			}
 		} else {
-			usort(
-				$categories,
-				function ( $a, $b ) use ( $sort_order ) {
-					return 'asc' === $sort_order ? $a->count - $b->count : $b->count - $a->count;
-				}
-			);
+			// If we don't have a nonce, set the default sort order.
+			$sort_by    = 'name';
+			$sort_order = 'asc';
 		}
 
 		// Get total categories and published product counts.
@@ -92,7 +101,8 @@ class Product_Category_Counts {
 			$lineage_names  = $this->get_category_lineage( $category->term_id );
 			$lineage_string = $this->build_lineage_string( $lineage_names );
 			echo '<tr>';
-			echo '<td>' . esc_html( $lineage_string ) . '</td>';
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<td>' . $lineage_string . '</td>';
 			echo '<td>' . esc_html( $category->count ) . '</td>';
 			echo '</tr>';
 		}
@@ -210,31 +220,45 @@ class Product_Category_Counts {
 	public function create_table_headers( $sort_by, $sort_order, $nonce_action, $nonce_name ) {
 		echo '<thead>';
 		echo '<tr>';
-		echo '<th><a href="' . esc_url(
-			wp_nonce_url(
-				add_query_arg(
-					array(
-						'sort_by'    => 'name',
-						'sort_order' => 'name' === $sort_by && 'asc' === $sort_order ? 'desc' : 'asc',
-					)
+		echo '<th><a href="'
+			. esc_url(
+				wp_nonce_url(
+					add_query_arg(
+						array(
+							'sort_by'    => 'name',
+							'sort_order' => 'name' === $sort_by && 'asc' === $sort_order ? 'desc' : 'asc',
+						)
+					),
+					$nonce_action,
+					$nonce_name
 				)
-			),
-			$nonce_action,
-			$nonce_name
-		) . '">Category Name ' . ( 'name' === $sort_by ? '<span class="dashicons dashicons-arrow-' . ( 'asc' === $sort_order ? 'down' : 'up' ) . '"></span>' : '' ) . '</a></th>';
+			)
+			. '">Category Name '
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			. ( 'name' === $sort_by ? '<span class="dashicons dashicons-arrow-'
+			. ( 'asc' === $sort_order ? 'down' : 'up' )
+			. '"></span>' : '' )
+			. '</a></th>';
 
-		echo '<th><a href="' . esc_url(
-			wp_nonce_url(
-				add_query_arg(
-					array(
-						'sort_by'    => 'count',
-						'sort_order' => 'count' === $sort_by && 'asc' === $sort_order ? 'desc' : 'asc',
-					)
+		echo '<th><a href="'
+			. esc_url(
+				wp_nonce_url(
+					add_query_arg(
+						array(
+							'sort_by'    => 'count',
+							'sort_order' => 'count' === $sort_by && 'asc' === $sort_order ? 'desc' : 'asc',
+						)
+					),
+					$nonce_action,
+					$nonce_name
 				)
-			),
-			$nonce_action,
-			$nonce_name
-		) . '">Number of Products ' . ( 'count' === $sort_by ? '<span class="dashicons dashicons-arrow-' . ( 'asc' === $sort_order ? 'down' : 'up' ) . '"></span>' : '' ) . '</a></th>';
+			)
+			. '">Number of Products '
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			. ( 'count' === $sort_by ? '<span class="dashicons dashicons-arrow-'
+			. ( 'asc' === $sort_order ? 'down' : 'up' )
+			. '"></span>' : '' )
+			. '</a></th>';
 
 		echo '</tr>';
 		echo '</thead>';
