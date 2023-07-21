@@ -10,6 +10,11 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 };
+require_once plugin_dir_path( __FILE__ ) . 'src/Rest/class-importmediaimage.php';
+
+require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-attachment-sha256-meta-box.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-custom-admin-menu.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/Products//class-wordcount.php';
 
 require_once plugin_dir_path( __FILE__ ) . 'src/Modules/class-pwbulkeditorsettings.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Modules/class-updraftplussettings.php';
