@@ -13,8 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Load Site Functions.
 
-require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-product-category-counts.php';
-
 // Only load our CLI utilities if in the CLI.
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once plugin_dir_path( __FILE__ ) . 'cli/class-productthumbnailchecker.php';
