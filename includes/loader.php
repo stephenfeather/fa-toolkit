@@ -14,7 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Load Site Functions.
 
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-product-category-counts.php';
-require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-passive-listeners.php';
 
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-show-vendor-on-all-products.php';
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/class-wordcount.php';
