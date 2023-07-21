@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-product-category-counts.php';
 
 require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/functions-fa-show-vendor-on-all-products.php';
-require_once plugin_dir_path( __FILE__ ) . 'siteFunctions/class-wordcount.php';
+
 // Only load our CLI utilities if in the CLI.
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once plugin_dir_path( __FILE__ ) . 'cli/class-productthumbnailchecker.php';
