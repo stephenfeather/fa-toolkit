@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Feather Arms Toolkit
- * Version: 1.0.4
+ * Version: 1.0.5
  * Description: Collection of WordPress management tools used by Feather Arms.
  * Author: Stephen Feather
  * Author URI: http://stephenfeather.com
@@ -19,6 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'FA_TOOLKIT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FA_TOOLKIT_URL', plugin_dir_url( __FILE__ ) );
+
+require_once FA_TOOLKIT_PATH . 'vendor/autoload.php';
 
 // Load the plugin files.
 require_once FA_TOOLKIT_PATH . 'loader.php';
