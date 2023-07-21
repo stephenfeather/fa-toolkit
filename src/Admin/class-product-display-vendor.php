@@ -6,7 +6,7 @@
  * @since 1.0.6
  */
 
- namespace FAToolkit\Admin;
+namespace FAToolkit\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
@@ -44,8 +44,8 @@ class Product_Display_Vendor {
 	 */
 	public function add_vendor_column_content( $column, $post_id ) {
 		if ( 'vendor' === $column ) {
-            $vendor_url = $this->generate_vendor_url( $post_id );
-			$vendor = get_field( 'dealer', $post_id );
+			$vendor_url = $this->generate_vendor_url( $post_id );
+			$vendor     = get_field( 'dealer', $post_id );
 			echo "<a href='" . esc_url( $vendor_url ) . "' target='_blank' rel='noopener noreferrer'>" . esc_html( $vendor ) . '</a>';
 		}
 	}
