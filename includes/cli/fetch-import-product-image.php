@@ -1,9 +1,11 @@
 <?php
 /**
- * Downloads and imports an image for a given product ID, and saves the SHA-1 hash as metadata.
+ * Downloads and imports an image for a given product ID, and saves the SHA-1256 hash as metadata.
  *
  * @package FA-Toolkit
  * @since 1.0.1
+ * 
+ * TODO: Refactor this into a class.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-	exit;
+	return;
 }
 
 if ( ! function_exists( 'wp_cli_fetch_import_product_image' ) ) {
@@ -24,16 +26,12 @@ if ( ! function_exists( 'wp_cli_fetch_import_product_image' ) ) {
 	 * : The ID of the product to fetch and attach the image to.
 	 *
 	 * [--extension=<ext>]
-	 * : The file extension to be search for.
+	 * : The file extension to be searched for.
 	 *
 	 * ## EXAMPLES
 	 *
-	 * wp fetch-import-product-image 123
+	 * wp fa:media fetch-import-product-image 123
 	 *   Downloads and imports the image for the product with ID 123.
-	 */
-
-	/**
-	 *
 	 */
 	function wp_cli_fetch_import_product_image( $args, $assoc_args ) {
 		global $wp_filesystem;
@@ -41,11 +39,13 @@ if ( ! function_exists( 'wp_cli_fetch_import_product_image' ) ) {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		WP_Filesystem();
 
+		// Suffixes.
+		$suffixes = array( '', '_1', '-1' );
 		// Grab our arguments.
 		list( $product_id ) = $args;
 		$extension          = isset( $assoc_args['extension'] ) ? $assoc_args['extension'] : 'jpg';
 
-		// Verify we had a ID passed.
+		// Verify we had an ID passed.
 		if ( null === $product_id ) {
 			WP_CLI::error( 'Missing Argument: <id>' );
 		}
@@ -56,25 +56,25 @@ if ( ! function_exists( 'wp_cli_fetch_import_product_image' ) ) {
 		}
 
 		// Get the image source ACF field value for the product.
-		$image_source = get_field( 'image_source', $product_id );
+		// $image_source = get_field( 'image_source', $product_id );
 		WP_CLI::debug( "Image Source: {$image_source}" );
 
 		// Verify that an $image_source exists.
 		if ( ! $image_source ) {
 			WP_CLI::debug( "No image_source found for Product {$product_id}." );
-			$image_source = get_dealer_image_url( $product_id, $extension );
+			$image_source = get_dealer_image_url( $product_id, $extension, $suffixes[0] );
 			handle_wp_error( $image_source, $product_id );
 		}
 
 		// Verify we dont already have this image.
 		if ( post_exists( $filename ) ) {
-			WP_CLI::error( "($product_id): {$filename} already exists. Not redownloading." );
+			WP_CLI::error( "({$product_id}): {$filename} already exists. Not redownloading." );
 		}
 
 		// Download the image from the URL.
 		$image_source = str_replace( ' ', '%20', $image_source );
 		WP_CLI::debug( "Cleaned image_source: {$image_source}" );
-		$temp_image_path = download_image( $image_source );
+		$temp_image_path = download_image( $image_source, $product_id );
 		WP_CLI::debug( ' Made it past download?' );
 		// TODO: cloudinary can return a strange 404, that doesnt cause an error. this results in an empty download.
 
@@ -84,6 +84,9 @@ if ( ! function_exists( 'wp_cli_fetch_import_product_image' ) ) {
 		// Remove spaces from filenames.
 		$sanitized_path = str_replace( ' ', '_', $temp_image_path );
 		$sanitized_path = str_replace( '%20', '_', $sanitized_path );
+
+		// Remove double extensions (.jpg.jpg stupid davidsons).
+		$sanitized_path = str_replace( '.jpg.jpg', '.jpg', $sanitized_path );
 		$move_response  = $wp_filesystem->copy( $temp_image_path, $sanitized_path, true );
 		handle_wp_error( $move_response, $product_id );
 		WP_CLI::debug( "Sanitized Path: {$sanitized_path}" );
@@ -93,7 +96,8 @@ if ( ! function_exists( 'wp_cli_fetch_import_product_image' ) ) {
 		WP_CLI::debug( "SHA-256 Hash: {$hash}" );
 
 		// Reject known placeholder files.
-		if ( '75b8b48d7485cee17764f8b70b318136a4779bc38e8522279432cb327e0a448d' === $hash ) {
+		if ( '75b8b48d7485cee17764f8b70b318136a4779bc38e8522279432cb327e0a448d' || '9896278cac434b24892b14c3fb8fb93f5b675fd6fab45c12e73bb43058ff648e' === $hash ) {
+			WP_CLI::log( "$hash for $image_source" );
 			WP_CLI::error( "($product_id) Skipping import due to known placeholder hash." );
 		}
 
@@ -156,14 +160,14 @@ if ( ! function_exists( 'handle_wp_error' ) ) {
 
 if ( ! function_exists( 'download_image' ) ) {
 
-	function download_image( $image_source ) {
+	function download_image( $image_source, $product_id ) {
 		global $wp_filesystem;
 		// Extract the filename and extension from the image URL.
 		$filename  = pathinfo( $image_source, PATHINFO_FILENAME );
 		$extension = pathinfo( $image_source, PATHINFO_EXTENSION );
 		WP_CLI::debug( "filename: {$filename}" );
 		if ( post_exists( $filename ) ) {
-			WP_CLI::error( "($post_id): {$filename} already exists. Not redownloading." );
+			WP_CLI::error( "({$product_id}): {$filename} already exists. Not redownloading." );
 		}
 		// Initialize cURL and set the necessary parameters.
 		$ch = curl_init();
@@ -179,7 +183,7 @@ if ( ! function_exists( 'download_image' ) ) {
 		$response_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
 		WP_CLI::debug( "response_code {$response_code} " );
 		if ( $response_code >= 400 ) {
-			WP_CLI::error( "HTTP Error: {$response_code}. {$image_source}" );
+			WP_CLI::error( "({$product_id}) HTTP Error: {$response_code}. {$image_source}" );
 		}
 
 		$cl = strlen( $image_data );
@@ -200,48 +204,56 @@ if ( ! function_exists( 'download_image' ) ) {
 		// fwrite( $temp_file, $image_data );.
 		if ( $wp_filesystem->put_contents( $temp_image_path, $image_data, FS_CHMOD_FILE ) === false ) {
 			// Failed to write to file, handle error here.
-			WP_CLI::error( 'Failed to write to temp file.' );
+			WP_CLI::error( "({$product_id}) Failed to write to temp file." );
 		} else {
 			WP_CLI::debug( 'Apperently we succcessfully put a file.' );
 		}
 
 		// Rename the temporary file with the correct file extension based on the filename and extension from the image URL.
 		// rename( $temp_image_path, $final_image_path );
-copy($temp_image_path, $final_image_path);
+		copy( $temp_image_path, $final_image_path );
 
 		// Return the path of the downloaded image.
 		return $final_image_path;
 	}
 
-	function get_dealer_image_url( $product_id, $extension ) {
-		$dealer  = strtolower( ( get_field( 'dealer', $product_id ) ) );
+	function get_dealer_image_url( $product_id, $extension, $suffix = '' ) {
+		WP_CLI::debug( "product_id: {$product_id}" );
+		WP_CLI::debug( "suffix: {$suffix}" );
+		$dealer = strtolower( ( get_field( 'dealer', $product_id ) ) );
+		WP_CLI::debug( "Dealer: {$dealer}" );
 		$product = wc_get_product( $product_id );
 		$sku     = $product->get_sku();
-		$url     = '';
+		WP_CLI::debug( "SKU: {$sku}" );
+		$url = '';
 		if ( 'davidsons' === $dealer ) {
-			$url = new WP_Error();
-			$url->add( 'invalid', 'Davidson\'s is so fouled up.' );
+			$sku = strtolower( $sku );
+			// $url = new WP_Error();
+			// $url->add( 'invalid', 'Dfavidson\'s is so fouled up.' );
 
 			// Davidsons
 			// $url = "https://res.cloudinary.com/davidsons-inc/c_lpad,dpr_2.0,h_1536,q_100,w_1536/v1/media/catalog/product/" . substr($sku, 3, 1) . "/" . substr($sku, 4, 1) . "/" . substr($sku, 3) . "." . $extension;.
+			// https://res.cloudinary.com/davidsons-inc/v1/media/catalog/product/s/c/scterdm390dns.jpg.jpg
+			$url = 'https://res.cloudinary.com/davidsons-inc/v1/media/catalog/product/' . substr( $sku, 0, 1 ) . '/' . substr( $sku, 1, 1 ) . '/' . $sku . '.' . $extension;
 		} elseif ( 'cssi' === $dealer ) {
 			// CSSI.
-			$url = 'https://media.chattanoogashooting.com/images/product/' . substr( $sku, 3 ) . '/' . substr( $sku, 3 ) . '.' . $extension;
+			// $url = 'https://media.chattanoogashooting.com/images/product/' . substr( $sku, 3 ) . '/' . substr( $sku, 3 ) . '.' . $extension;
+			$url = 'https://media.chattanoogashooting.com/images/product/' . $sku . '/' . $sku . $suffix . '.' . $extension;
 
 		}
-
+		WP_CLI::debug( "URL: {$url}" );
 		return $url;
 	}
 
 	function getName( $n ) {
-		$characters   = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-		$randomString = '';
+		$characters    = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		$random_string = '';
 
 		for ( $i = 0; $i < $n; $i++ ) {
-			$index         = wp_rand( 0, strlen( $characters ) - 1 );
-			$randomString .= $characters[ $index ];
+			$index          = wp_rand( 0, strlen( $characters ) - 1 );
+			$random_string .= $characters[ $index ];
 		}
 
-		return $randomString;
+		return $random_string;
 	}
 }
