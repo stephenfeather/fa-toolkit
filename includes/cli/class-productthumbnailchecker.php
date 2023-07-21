@@ -6,6 +6,8 @@
  * @since 1.0
  */
 
+namespace FAToolkit\Media;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
