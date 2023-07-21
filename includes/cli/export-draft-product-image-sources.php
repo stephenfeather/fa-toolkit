@@ -6,6 +6,8 @@
  * @since 1.0
  *
  * TODO: Refactor this into a class.
+ * 
+ * TODO: Refactor this into a class.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
