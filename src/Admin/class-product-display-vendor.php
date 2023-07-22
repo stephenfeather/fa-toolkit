@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Product_Display_Vendor {
 
+
 	/**
 	 * Constructor.
 	 */
@@ -59,17 +60,16 @@ class Product_Display_Vendor {
 	public function generate_vendor_url( $post_id ) {
 		$url     = 'https://foobar.baz';
 		$product = wc_get_product( $post_id );
-		$vendor  = get_field( 'vendor', $post_id );
+		$vendor  = get_field( 'dealer', $post_id );
 		$sku     = $product->get_sku();
 		if ( 'CSSI' === $vendor ) {
 			$url = 'https://chattanoogashooting.com/catalog/lookup?propertyKey=sku&valueKey=' . $sku;
-			return $url;
 		}
 
 		if ( 'Davidsons' === $vendor ) {
-			$url = 'https://foobar.com' . $sku;
-			return $url;
+			$url = 'https://www.davidsonsinc.com/catalogsearch/result/?q=' . $sku;
 		}
+
 		return $url;
 	}
 }
