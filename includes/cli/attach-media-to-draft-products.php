@@ -4,6 +4,8 @@
  *
  * @package FA-Toolkit
  * @since 1.0
+ * 
+ * TODO: Refactor this into a class.
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -110,17 +112,17 @@ if ( ! function_exists( 'wp_cli_attach_media_to_draft_products' ) ) {
 						);
 						WP_CLI::debug( sprintf( 'Product ID %s: %s', $product_id, $publish_response ) );
 					} else {
-						WP_CLI::line( sprintf( 'Preview: Attachment %d: (%s) will be attached to Product %d: (%s)', $attachment['ID'], $attachment['post_title'], $product_id, $sku ) );
+						WP_CLI::log( sprintf( 'Preview: Attachment %d: (%s) will be attached to Product %d: (%s)', $attachment['ID'], $attachment['post_title'], $product_id, $sku ) );
 					}
 				}
 			} else {
 				WP_CLI::debug( "No Matching Attachment for {$product_id}!" );
 			}
 		}
-		WP_CLI::line( "Draft Products: {$products_count}" );
-		WP_CLI::line( "Attachments: {$attachments_count}" );
-		WP_CLI::line( sprintf( 'Products with existing attachments: %d', $matching_attachments ) );
-		WP_CLI::line( sprintf( '%d products had attachments added', $num_with_attachments ) );
+		WP_CLI::log( "Draft Products: {$products_count}" );
+		WP_CLI::log( "Attachments: {$attachments_count}" );
+		WP_CLI::log( sprintf( 'Products with existing attachments: %d', $matching_attachments ) );
+		WP_CLI::log( sprintf( '%d products had attachments added', $num_with_attachments ) );
 	}
 
 	WP_CLI::add_command( 'fa:media attach-media-to-draft-products', 'wp_cli_attach_media_to_draft_products' );

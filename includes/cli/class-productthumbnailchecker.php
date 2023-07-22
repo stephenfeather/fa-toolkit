@@ -4,6 +4,8 @@
  *
  * @package FA-Toolkit
  * @since 1.0
+ * 
+ * TODO: Refactor this into a class.
  */
 
 namespace FAToolkit\Media;
@@ -15,6 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 	return;
 }
+
+use \WP_CLI;
 
 /**
  * Class to find WooCommerce products that don't have a thumbnail and move them to drafts.
