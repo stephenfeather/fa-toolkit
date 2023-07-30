@@ -19,6 +19,7 @@ if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 }
 
 use \WP_CLI;
+use \WP_Query;
 
 /**
  * Class to find WooCommerce products that don't have a thumbnail and move them to drafts.
