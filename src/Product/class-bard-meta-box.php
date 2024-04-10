@@ -47,11 +47,11 @@ class Bard_Meta_Box {
 		$sku    = get_post_meta( $post->ID, '_sku', true );
 		$upc    = get_field( 'upc_code', $post->ID );
 		$brands = wp_get_post_terms( $post->ID, 'pwb-brand' );
-		$brand = $brands[0]->name;
+		$brand  = $brands[0]->name;
 
 		// Output the HTML.
 		?>
-        The following information is for a product that exists but we dont have product details and need to write a description. The title also needs to be rewritten to match the manufacturers.<br />
+		The following information is for a product that exists but we dont have product details and need to write a description. The title also needs to be rewritten to match the manufacturers.<br />
 		Title: <?php echo esc_html( $title ); ?><br />
 		SKU: <?php echo esc_html( $sku ); ?><br />
 		UPC: <?php echo esc_html( $upc ); ?></br />
