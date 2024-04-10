@@ -24,5 +24,3 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once plugin_dir_path( __FILE__ ) . 'cli/tools.php';
 	require_once plugin_dir_path( __FILE__ ) . 'cli/class-scrape_product_data_command.php';
 }
-
-// Load our additional includes.
