@@ -111,7 +111,7 @@ class ScrapeProductMedia {
 
 		// Check if the product has a status of draft.
 		if ( 'draft' !== $product->get_status() ) {
-			WP_CLI::warning( "Product ({$product_id}) is published. ({$product->get_status()})" );
+			WP_CLI::warning( "Product ({$product_id}) is already published. ({$product->get_status()})" );
 			if ( ! $override ) {
 				exit;
 			}
@@ -121,7 +121,7 @@ class ScrapeProductMedia {
 
 		// Check if product already has featured image.
 		if ( has_post_thumbnail( $product_id ) ) {
-			WP_CLI::warning( "Product ({$sku}) already has a featured image." );
+			WP_CLI::warning( "Product ({$product_id}) already has a featured image." );
 			if ( ! $override ) {
 				$product->set_status( 'publish' );
 				$product->save();
@@ -131,7 +131,7 @@ class ScrapeProductMedia {
 
 		// Check if product already has gallery media.
 		if ( ! empty( $product->get_gallery_image_ids() ) ) {
-			WP_CLI::warning( "Product ({$sku}) already has media gallery." );
+			WP_CLI::warning( "Product ({$product_id}) already has media gallery." );
 			if ( ! $override ) {
 				exit;
 			}
@@ -143,7 +143,7 @@ class ScrapeProductMedia {
 
 		// Check if the dealer_filter is not empty and does not match the distributor.
 		if ( ! empty( $dealer_filter ) && $dealer_filter !== $distributor ) {
-			WP_CLI::warning( "Product ({$sku}) is not from the specified dealer ({$dealer_filter})." );
+			WP_CLI::warning( "Product ({$product_id}) is not from the specified dealer ({$dealer_filter})." );
 			exit;
 		}
 
@@ -168,12 +168,12 @@ class ScrapeProductMedia {
 		}
 
 		if ( ! $success ) {
-			WP_CLI::error( "Failed to import media for product ({$sku}): {$success}" );
+			WP_CLI::error( "Failed to import media for product ({$product_id}): {$success}" );
 		} else {
 			// Publish the product.
 			$product->set_status( 'publish' );
 			$product->save();
-			WP_CLI::success( "Successfully updated media ({$media_type}) for product ({$sku})" );
+			WP_CLI::success( "Successfully updated media ({$media_type}) for product ({$product_id})" );
 		}
 
 	}
@@ -297,6 +297,11 @@ class ScrapeProductMedia {
 		$remote_basename = basename( $url );
 		$filetype        = wp_check_filetype( $remote_basename, null );
 
+		if ( 'placeholder.jpg' === $remote_basename ) {
+			WP_CLI::warning( "({$product_id}): {$remote_basename} is a placeholder image. Not importing." );
+			return 0;
+		}
+
 		// Verify this attachment is not already in the media library.
 		$existing_post = post_exists( $remote_basename );
 		if ( $existing_post ) {
@@ -321,7 +326,7 @@ class ScrapeProductMedia {
 		// Verify that the file hash is not a known placeholder.
 		$hash = hash_file( 'sha256', $upload['file'] );
 		if ( in_array( $hash, $this->known_placeholder_hashes, true ) ) {
-			WP_CLI::warning( "({$product_id}): {$remote_basename} is a placeholder image. Not redownloading." );
+			WP_CLI::warning( "({$product_id}): {$remote_basename} is a placeholder image. Not importing." );
 			return 0;
 		}
 		// Construct the attachment array.
