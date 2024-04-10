@@ -74,6 +74,7 @@ class ImportMediaImage {
 
 		// Begin splitting references to remote name and local name.
 		$remote_basename = basename( $url );
+		$parameters['title'] = $remote_basename;
 
 		// Check if the file already exists.
 		$existing_attachment = attachment_exists( $remote_basename );
