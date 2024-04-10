@@ -25,8 +25,8 @@ class Custom_Admin_Menu {
 		add_action( 'admin_init', array( $this, 'remove_admin_menu_items' ) );
 
 		// Reorder menu items.
-		add_filter( 'custom_menu_order', array( $this, 'reorder_admin_menu_items' ) );
-		add_filter( 'menu_order', array( $this, 'reorder_admin_menu_items' ), 99, 1 );
+		add_filter( 'custom_menu_order', array( $this, 'reorder_admin_menu_items' ), 999, 1 );
+		add_filter( 'menu_order', array( $this, 'reorder_admin_menu_items' ), 999, 1 );
 
 		// Add menu items.
 		add_action( 'admin_menu', array( $this, 'add_admin_menu_items' ) );
@@ -58,6 +58,7 @@ class Custom_Admin_Menu {
 			'upload.php', // Media.
 			'edit.php?post_type=product-feed', // REX Product Feeds.
 			'edit.php?post_type=blocks', // Blocks.
+			'edit.php?post_type=promotion', // Promotions.
 			'separator1', // --Space--
 			'wc-admin', // WooCommerce.
 			'options-general.php', // Settings.
