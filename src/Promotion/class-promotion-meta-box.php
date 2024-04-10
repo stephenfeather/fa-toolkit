@@ -23,7 +23,7 @@ class Promotion_Meta_Box {
 	 * remove_meta_box( 'commentsdiv', 'product', 'normal' );
 	 * add_meta_box( 'commentsdiv', __( 'Reviews', 'woocommerce' ), 'post_comment_meta_box', 'product', 'normal' );
 	 *
-	 * need to setup sort order of meta boxes see woocommerce class-wc-admin-meta-boxes.php line 154
+	 * Need to setup sort order of meta boxes see woocommerce class-wc-admin-meta-boxes.php line 154
 	 */
 
 
@@ -88,27 +88,27 @@ class Promotion_Meta_Box {
 		}
 
 		// Check if the nonce value is valid.
-		if ( ! isset( $_POST['custom_promotion_nonce'] ) || ! wp_verify_nonce( $_POST['custom_promotion_nonce'], 'custom_promotion_nonce' ) ) {
+		if ( ! isset( $_POST['custom_promotion_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['custom_promotion_nonce'] ) ), 'custom_promotion_nonce' ) ) {
 			return;
 		}
 
 		// Save the custom fields.
 		if ( isset( $_POST['promotion_date_begins'] ) ) {
-			update_post_meta( $promotion_id, 'promotion_date_begins', sanitize_text_field( $_POST['promotion_date_begins'] ) );
+			update_post_meta( $promotion_id, 'promotion_date_begins', sanitize_text_field( wp_unslash( $_POST['promotion_date_begins'] ) ) );
 		}
 
 		if ( isset( $_POST['promotion_date_ends'] ) ) {
-			update_post_meta( $promotion_id, 'promotion_date_ends', sanitize_text_field( $_POST['promotion_date_ends'] ) );
+			update_post_meta( $promotion_id, 'promotion_date_ends', sanitize_text_field( wp_unslash( $_POST['promotion_date_ends'] ) ) );
 		}
 
 		if ( isset( $_POST['promotion_url'] ) ) {
-			update_post_meta( $promotion_id, 'promotion_url', sanitize_text_field( $_POST['promotion_url'] ) );
+			update_post_meta( $promotion_id, 'promotion_url', sanitize_text_field( wp_unslash( $_POST['promotion_url'] ) ) );
 		}
 
 		// Save the description as post_excerpt.
 		if ( isset( $_POST['description'] ) ) {
 			// Update the post excerpt with the provided description.
-			$excerpt = sanitize_textarea_field( $_POST['description'] );
+			$excerpt = sanitize_textarea_field( wp_unslash( $_POST['description'] ) );
 			$post    = array(
 				'ID'           => $promotion_id,
 				'post_excerpt' => $excerpt,
