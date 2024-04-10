@@ -17,8 +17,17 @@ require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-attachment-sha256-me
 require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-custom-admin-menu.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-product-display-vendor.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-product-category-counts.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-admin-meta-boxes.php';
+
+require_once plugin_dir_path( __FILE__ ) . 'src/Media/class-media-fix-ilab-metadata.php';
+
+require_once plugin_dir_path( __FILE__ ) . 'src/Promotion/class-promotion.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/Promotion/class-promotion-meta-box.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/Promotion/class-promotion-posttype.php';
 
 require_once plugin_dir_path( __FILE__ ) . 'src/Product/class-wordcount.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/Product/class-bard-meta-box.php';
+//require_once plugin_dir_path( __FILE__ ) . 'src/Product/class-custom-product-status.php';
 
 require_once plugin_dir_path( __FILE__ ) . 'src/Modules/class-pwbulkeditorsettings.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Modules/class-updraftplussettings.php';
