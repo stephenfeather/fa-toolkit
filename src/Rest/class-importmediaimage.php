@@ -73,7 +73,7 @@ class ImportMediaImage {
 		$url = scrub( $url );
 
 		// Begin splitting references to remote name and local name.
-		$remote_basename = basename( $url );
+		$remote_basename     = basename( $url );
 		$parameters['title'] = $remote_basename;
 
 		// Check if the file already exists.
@@ -153,7 +153,7 @@ class ImportMediaImage {
 			'post_content'   => '',
 			'post_status'    => 'inherit',
 		);
-		$attachment_id = wp_insert_attachment( $attachment, $file['file'] );
+		$attachment_id = wp_insert_attachment( $attachment, $file['file'], $product_id );
 		if ( is_wp_error( $attachment_id ) ) {
 			return new \WP_Error( 'rest_attachment_failed', esc_html__( 'The attachment failed.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}
