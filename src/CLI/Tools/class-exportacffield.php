@@ -1,9 +1,9 @@
 <?php
 /**
- * Add a rest endpoint to remotely add image media from a url.
+ * Adds a WP-CLI command fa:tools export-acf-field.
  *
  * @package FA-Toolkit
- * @since 1.0.5
+ * @since 1.0.8
  */
 
 namespace FAToolkit\Tools;
