@@ -16,6 +16,7 @@ require_once plugin_dir_path( __FILE__ ) . 'src/Rest/class-importmediaimage.php'
 require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-attachment-sha256-meta-box.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-custom-admin-menu.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-product-display-vendor.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-product-display-id.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-product-category-counts.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-admin-meta-boxes.php';
 
