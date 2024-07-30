@@ -37,3 +37,4 @@ require_once plugin_dir_path( __FILE__ ) . 'src/Modules/class-wpallimportsetting
 require_once plugin_dir_path( __FILE__ ) . 'src/Utilities/class-fixrankmathschemas.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Utilities/class-gtins.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Utilities/class-color-test.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/CLI/Tools/class-exportacffield.php';
