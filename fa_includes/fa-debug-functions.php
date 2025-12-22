@@ -56,5 +56,5 @@ function debug_to_console( $data, $context = 'Debug in Console' ) {
 	$output .= 'console.log(' . json_encode( $data ) . ');';
 	$output  = sprintf( '<script>%s</script>', $output );
 
-	echo esc_js( $output );
+	printf( '%s', esc_js( $output ) );
 }

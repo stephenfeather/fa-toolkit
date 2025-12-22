@@ -15,8 +15,8 @@ function fingerprint_add_jscript_checkout() {   ?>
 
 	fpPromise
 		.then(fp => fp.get({tag: {
-			PHPSESSID: '<?php echo esc_html( session_id() ); ?>',
-			userID: '<?php echo esc_html( get_current_user_id() ); ?>'
+			PHPSESSID: '<?php printf( '%s', esc_html( session_id() ) ); ?>',
+			userID: '<?php printf( '%s', esc_html( get_current_user_id() ) ); ?>'
 		}}))
 		.then(result => console.log(result.));
 	</script>

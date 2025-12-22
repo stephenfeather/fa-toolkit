@@ -84,31 +84,31 @@ class Product_Category_Counts {
 		$this->create_css_styles();
 
 		// Outout our pretable content.
-		echo '<div class="wrap">';
-		echo '<h1>Product Category Counts</h1>';
-		echo '<p>Total Categories: ' . esc_html( $total_categories ) . '</p>';
-		echo '<p>Total Published Products: ' . esc_html( $total_published_products ) . '</p>';
-		echo '<p>Total Draft Products: ' . esc_html( $total_draft_products ) . '</p>';
+		printf( '%s', '<div class="wrap">');
+		printf( '%s', '<h1>Product Category Counts</h1>');
+		printf( '<p>Total Categories: %s </p>', esc_html( $total_categories ) );
+		printf( '<p>Total Published Products: %s </p>', esc_html( $total_published_products ) );
+		printf( '<p>Total Draft Products: %s </p>', esc_html( $total_draft_products ) );
 
 		// Output our refresh counts form.
 		$this->create_refresh_counts_form();
 
 		// Output our table.
-		echo '<table class="wp-list-table widefat striped">';
+		printf( '%s', '<table class="wp-list-table widefat striped">' );
 		$this->create_table_headers( $sort_by, $sort_order, $nonce_action, $nonce_name );
-		echo '<tbody>';
+		printf( '%s', '<tbody>' );
 		foreach ( $categories as $category ) {
 			$lineage_names  = $this->get_category_lineage( $category->term_id );
 			$lineage_string = $this->build_lineage_string( $lineage_names );
-			echo '<tr>';
+			printf( '%s', '<tr>');
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			echo '<td>' . $lineage_string . '</td>';
-			echo '<td>' . esc_html( $category->count ) . '</td>';
-			echo '</tr>';
+			printf( '<td>%s</td>', $lineage_string );
+			printf( '<td>%s</td>', esc_html( $category->count ) );
+			printf( '%s', '</tr>' );
 		}
-		echo '</tbody>';
-		echo '</table>';
-		echo '</div>';
+		printf( '%s', '</tbody>' );
+		printf( '%s', '</table>' );
+		printf( '%s', '</div>' );
 	}
 
 	/**
@@ -187,10 +187,10 @@ class Product_Category_Counts {
 	 * @return void
 	 */
 	public function create_css_styles() {
-		echo '<style>';
-		echo '.fa-pc-top { color: #000000; font-weight: bold; }';
-		echo '.parent-category { color: #000000; }';
-		echo '</style>';
+		printf( '%s', '<style>' );
+		printf( '%s', '.fa-pc-top { color: #000000; font-weight: bold; }' );
+		printf( '%s', '.parent-category { color: #000000; }' );
+		printf( '%s', '</style>' );
 	}
 
 	/**
@@ -199,13 +199,13 @@ class Product_Category_Counts {
 	 * @return void
 	 */
 	public function create_refresh_counts_form() {
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		echo '<input type="hidden" name="action" value="force_recount_product_cat">';
+		printf ( '<form method="post" action="%s">', esc_url( admin_url( 'admin-post.php' ) ) );
+		printf( '%s', '<input type="hidden" name="action" value="force_recount_product_cat">' );
 		wp_nonce_field( 'force_recount_product_cat', 'force_recount_product_cat_nonce' );
-		echo '<p>';
-		echo '</p>';
-		echo '<button type="submit">Force Recount</button>';
-		echo '</form>';
+		printf( '%s', '<p>' );
+		printf( '%s', '</p>' );
+		printf( '%s', '<button type="submit">Force Recount</button>' );
+		printf( '%s', '</form>' );
 	}
 
 	/**
@@ -218,8 +218,8 @@ class Product_Category_Counts {
 	 * @return void
 	 */
 	public function create_table_headers( $sort_by, $sort_order, $nonce_action, $nonce_name ) {
-		echo '<thead>';
-		echo '<tr>';
+		printf( '%s', '<thead>' );
+		printf( '%s', '<tr>' );
 		echo '<th><a href="'
 			. esc_url(
 				wp_nonce_url(

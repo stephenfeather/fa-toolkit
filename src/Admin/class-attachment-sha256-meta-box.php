@@ -64,7 +64,7 @@ class Attachment_SHA256_Hash_Meta_Box {
 							dataType: 'json',
 							data: {
 								action: 'generate_sha256_hash',
-								post_id: <?php echo esc_js( $post->ID ); ?>
+								post_id: <?php printf( '%s', esc_js( $post->ID ) ); ?>
 							},
 							success: function(response) {
 								if ( response.success ) {

@@ -50,13 +50,13 @@ class Promotion_Meta_Box {
 		?>
 
 	<label for="promotion_date_begins">Beginning Date:</label>
-	<input id="promotion_date_begins" type="date" name="promotion_date_begins" value="<?php echo esc_attr( $promotion_date_begins ); ?>" />
+	<input id="promotion_date_begins" type="date" name="promotion_date_begins" value="<?php printf( '%s', esc_attr( $promotion_date_begins ) ); ?>" />
 <br />
 	<label for="promotion_date_ends">Ending Date:</label>
-	<input id="promotion_date_ends" type="date" name="promotion_date_ends" value="<?php echo esc_attr( $promotion_date_ends ); ?>" />
+	<input id="promotion_date_ends" type="date" name="promotion_date_ends" value="<?php printf( '%s', esc_attr( $promotion_date_ends ) ); ?>" />
 <br />
 	<label for="promotion_url">Promotion URL:</label>
-	<input id="promotion_url" type="url" name="promotion_url" value="<?php echo esc_attr( $promotion_url ); ?>" />
+	<input id="promotion_url" type="url" name="promotion_url" value="<?php printf('%s', esc_attr( $promotion_url ) ); ?>" />
 
 		<?php
 	}
