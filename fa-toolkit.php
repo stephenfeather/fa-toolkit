@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Feather Arms Toolkit
- * Version: 1.0.7
+ * Version: 1.0.8
  * Description: Collection of WordPress management tools used by Feather Arms.
  * Author: Stephen Feather
  * Author URI: http://stephenfeather.com

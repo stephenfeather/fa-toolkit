@@ -30,15 +30,17 @@ class WooCommerceSettings {
 		add_filter( 'woocommerce_subcategory_count_html', '__return_false' );
 		add_filter( 'woocommerce_background_image_regeneration', '__return_false' );
 		add_filter( 'woocommerce_ship_to_different_address_checked', '__return_true' );
-		$this->customer_data_filter();
+		//$this->customer_data_filter();
 		add_filter( 'woocommerce_states', 'sell_only_states' );
+		add_filter( 'get_terms', 'custom_product_categories_order', 10, 3 );
+        add_filter( 'wc_order_attribution_use_base64_cookies', '__return_true' );
 	}
 
 	/**
 	 * Format customer data.
 	 */
 	public function customer_data_filter() {
-		// Rewrite certain customer data to standard formats during checkout and update from account page
+		// Rewrite certain customer data to standard formats during checkout and update from account page.
 		add_filter( 'woocommerce_process_checkout_field_billing_first_name', 'trim_and_uppercase', 10, 1 );
 		add_filter( 'woocommerce_process_myaccount_field_billing_first_name', 'trim_and_uppercase', 10, 1 );
 		add_filter( 'woocommerce_process_checkout_field_billing_last_name', 'trim_and_uppercase', 10, 1 );
@@ -143,6 +145,54 @@ class WooCommerceSettings {
 
 		return $states;
 	}
+
+	function catalog_only( $state ) {
+
+	}
+
+	function custom_product_categories_order( $terms, $taxonomies, $args ) {
+		if ( isset( $args['taxonomy'] ) && $args['taxonomy'] === 'product_cat' ) {
+			// Define your custom order here. Replace these slugs with your actual product category slugs.
+			$custom_order = array(
+				'firearms',
+				'ammunition',
+				'optics',
+				'game-processing',
+				'suppressors',
+				'muzzleloaders',
+				'reloading',
+				'archery',
+				'gun-parts-tools',
+				'hunting',
+				'shooting',
+				'knives',
+				'apparel',
+				'outdoors',
+			// Add more categories as needed
+			);
+
+			usort(
+				$terms,
+				function ( $a, $b ) use ( $custom_order ) {
+					$pos_a = array_search( $a->slug, $custom_order );
+					$pos_b = array_search( $b->slug, $custom_order );
+
+					if ( $pos_a === false ) {
+						$pos_a = count( $custom_order );
+					}
+					if ( $pos_b === false ) {
+						$pos_b = count( $custom_order );
+					}
+
+					return $pos_a - $pos_b;
+				}
+			);
+		}
+		return $terms;
+	}
+
+
+
 
 
 	function trim_and_uppercase( $value ) {
