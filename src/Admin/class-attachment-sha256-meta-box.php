@@ -49,7 +49,7 @@ class Attachment_SHA256_Hash_Meta_Box {
 		$sha256_hash = get_post_meta( $post->ID, 'sha256_hash', true );
 
 		?>
-		<input type="text" value="<?php echo esc_attr( $sha256_hash ); ?>" readonly="readonly" style="width:100%;">
+		<input type="text" value="<?php printf( '%s', esc_attr( $sha256_hash ) ); ?>" readonly="readonly" style="width:100%;">
 
 		<?php if ( empty( $sha256_hash ) ) : ?>
 			<button id="generate_sha256_hash" type="button">Generate SHA256 Hash</button>
@@ -59,7 +59,7 @@ class Attachment_SHA256_Hash_Meta_Box {
 					$('#generate_sha256_hash').click(function() {
 						$('#generate_sha256_hash_status').text('Generating SHA256 hash...');
 						$.ajax({
-							url: '<?php echo esc_js( admin_url( 'admin-ajax.php' ) ); ?>',
+							url: '<?php printf( '%s', esc_js( admin_url( 'admin-ajax.php' ) ) ); ?>',
 							type: 'POST',
 							dataType: 'json',
 							data: {

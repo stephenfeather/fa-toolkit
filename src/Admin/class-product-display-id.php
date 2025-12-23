@@ -48,7 +48,7 @@ class Product_Display_Id {
 	 */
 	public function add_id_column_content( $column, $post_id ) {
 		if ( 'ID' === $column ) {
-			echo esc_html( $post_id );
+			printf( '%s', esc_html( $post_id ) );
 		}
 	}
 }

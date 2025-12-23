@@ -84,8 +84,8 @@ class Product_Category_Counts {
 		$this->create_css_styles();
 
 		// Outout our pretable content.
-		printf( '%s', '<div class="wrap">');
-		printf( '%s', '<h1>Product Category Counts</h1>');
+		printf( '%s', '<div class="wrap">' );
+		printf( '%s', '<h1>Product Category Counts</h1>' );
 		printf( '<p>Total Categories: %s </p>', esc_html( $total_categories ) );
 		printf( '<p>Total Published Products: %s </p>', esc_html( $total_published_products ) );
 		printf( '<p>Total Draft Products: %s </p>', esc_html( $total_draft_products ) );
@@ -100,7 +100,7 @@ class Product_Category_Counts {
 		foreach ( $categories as $category ) {
 			$lineage_names  = $this->get_category_lineage( $category->term_id );
 			$lineage_string = $this->build_lineage_string( $lineage_names );
-			printf( '%s', '<tr>');
+			printf( '%s', '<tr>' );
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			printf( '<td>%s</td>', $lineage_string );
 			printf( '<td>%s</td>', esc_html( $category->count ) );
@@ -199,7 +199,7 @@ class Product_Category_Counts {
 	 * @return void
 	 */
 	public function create_refresh_counts_form() {
-		printf ( '<form method="post" action="%s">', esc_url( admin_url( 'admin-post.php' ) ) );
+		printf( '<form method="post" action="%s">', esc_url( admin_url( 'admin-post.php' ) ) );
 		printf( '%s', '<input type="hidden" name="action" value="force_recount_product_cat">' );
 		wp_nonce_field( 'force_recount_product_cat', 'force_recount_product_cat_nonce' );
 		printf( '%s', '<p>' );
@@ -218,27 +218,31 @@ class Product_Category_Counts {
 	 * @return void
 	 */
 	public function create_table_headers( $sort_by, $sort_order, $nonce_action, $nonce_name ) {
+		$sort_by_name_url  = wp_nonce_url(
+			add_query_arg(
+				array(
+					'sort_by'    => 'name',
+					'sort_order' => 'name' === $sort_by && 'asc' === $sort_order ? 'desc' : 'asc',
+				)
+			),
+			$nonce_action,
+			$nonce_name
+		);
+		$sort_order_name   = ( 'name' === $sort_by ? '<span class="dashicons dashicons-arrow-' . ( 'asc' === $sort_order ? 'down' : 'up' ) . '"></span>' : '' );
+		$sort_by_count_url = wp_nonce_url(
+			add_query_arg(
+				array(
+					'sort_by'    => 'count',
+					'sort_order' => 'count' === $sort_by && 'asc' === $sort_order ? 'desc' : 'asc',
+				)
+			),
+			$nonce_action,
+			$nonce_name
+		);
 		printf( '%s', '<thead>' );
 		printf( '%s', '<tr>' );
-		echo '<th><a href="'
-			. esc_url(
-				wp_nonce_url(
-					add_query_arg(
-						array(
-							'sort_by'    => 'name',
-							'sort_order' => 'name' === $sort_by && 'asc' === $sort_order ? 'desc' : 'asc',
-						)
-					),
-					$nonce_action,
-					$nonce_name
-				)
-			)
-			. '">Category Name '
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			. ( 'name' === $sort_by ? '<span class="dashicons dashicons-arrow-'
-			. ( 'asc' === $sort_order ? 'down' : 'up' )
-			. '"></span>' : '' )
-			. '</a></th>';
+		printf( '<th><a href="%s">Category Name ', esc_url( $sort_by_name_url ) );
+		printf( '%s</a></th>', esc_html( $sort_order_name ) );
 
 		echo '<th><a href="'
 			. esc_url(
