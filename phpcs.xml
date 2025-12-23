@@ -7,9 +7,6 @@
 	<arg name="colors"/>
 	<arg value="ps"/>
 
-	<!-- PHP compatibility -->
-	<config name="testVersion" value="8.3"/>
-
 	<!-- What to scan -->
 	<file>src</file>
 	<file>includes</file>
@@ -25,16 +22,12 @@
 	<rule ref="WordPress-Extra"/>
 	<rule ref="WordPress-Docs"/>
 
-	<!-- Enforce: output must be escaped; input must be validated/sanitized -->
+	<!-- Enforce: output must be escaped -->
 	<rule ref="WordPress.Security.EscapeOutput"/>
-	<rule ref="WordPress.Security.ValidatedSanitizedInput"/>
 
-	<!-- Strong stance: forbid $_REQUEST usage (force GET or POST) -->
-	<rule ref="WordPress.Security.SuperglobalInputUsage">
-		<properties>
-			<property name="allowed_superglobals" value="_GET,_POST"/>
-		</properties>
-	</rule>
+	<!-- Enforce: input must be validated/sanitized, and nonce checks where applicable -->
+	<rule ref="WordPress.Security.ValidatedSanitizedInput"/>
+	<rule ref="WordPress.Security.NonceVerification"/>
 
 	<!-- Allow direct-access guards in leaf files (still strict elsewhere) -->
 	<rule ref="WordPress.PHP.DiscouragedPHPFunctions.exit">
