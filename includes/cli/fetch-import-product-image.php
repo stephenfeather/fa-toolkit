@@ -16,7 +16,7 @@ if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 	return;
 }
 
-if ( ! function_exists( 'wp_cli_fetch_import_product_image' ) ) {
+if ( function_exists( 'wp_cli_fetch_import_product_image' ) === false ) {
 	/**
 	 * Downloads and imports an image for a given product ID, and saves the SHA-1 hash as metadata.
 	 *
@@ -148,7 +148,7 @@ if ( ! function_exists( 'wp_cli_fetch_import_product_image' ) ) {
 	WP_CLI::add_command( 'fa:media fetch-import-product-image', 'wp_cli_fetch_import_product_image' );
 }
 
-if ( ! function_exists( 'handle_wp_error' ) ) {
+if ( function_exists( 'handle_wp_error' ) === false ) {
 
 	function handle_wp_error( $the_error, $post_id = 0 ) {
 		if ( is_wp_error( $the_error ) ) {
@@ -158,7 +158,7 @@ if ( ! function_exists( 'handle_wp_error' ) ) {
 	}
 }
 
-if ( ! function_exists( 'download_image' ) ) {
+if ( function_exists( 'download_image' ) === false ) {
 
 	function download_image( $image_source, $product_id ) {
 		global $wp_filesystem;

@@ -18,7 +18,7 @@ if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 	return;
 }
 
-if ( ! function_exists( 'wp_cli_export_draft_product_image_sources' ) ) {
+if ( function_exists( 'wp_cli_export_draft_product_image_sources' ) === false ) {
 
 	/**
 	 * Export the contents of an Advanced Custom Field called image_source from all products with a draft status to a file.

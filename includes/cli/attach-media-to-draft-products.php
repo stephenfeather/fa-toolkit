@@ -16,7 +16,7 @@ if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 }
 
 
-if ( ! function_exists( 'wp_cli_attach_media_to_draft_products' ) ) {
+if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 
 	/**
 	 * Attach media to draft products based on SKU.
@@ -129,7 +129,7 @@ if ( ! function_exists( 'wp_cli_attach_media_to_draft_products' ) ) {
 	WP_CLI::add_command( 'fa:media attach-media-to-draft-products', 'wp_cli_attach_media_to_draft_products' );
 }
 
-if ( ! function_exists( 'sku_to_filename' ) ) {
+if ( function_exists( 'sku_to_filename' ) === false ) {
 	function sku_to_filename( $sku, $basename_suffix = '', $extension ) {
 		$image_filename = '';
 		$prefix         = substr( $sku, 0, 3 );
@@ -144,7 +144,7 @@ if ( ! function_exists( 'sku_to_filename' ) ) {
 	}
 }
 
-if ( ! function_exists( 'find_filename_in_attachment_array' ) ) {
+if ( function_exists( 'find_filename_in_attachment_array' ) === false ) {
 	function find_filename_in_attachment_array( $attachment_array = array(), $filename = '', $product_id = '' ) {
 		$result = null;
 

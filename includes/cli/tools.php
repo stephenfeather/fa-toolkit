@@ -13,7 +13,7 @@ if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 	exit;
 }
 
-if ( ! function_exists( 'wp_cli_merge_files' ) ) {
+if ( function_exists( 'wp_cli_merge_files' ) === false ) {
 
 	/**
 	 * Merge the RETAIL-MAP column in a tsv file into a csv file keyed by a column.
@@ -79,7 +79,7 @@ if ( ! function_exists( 'wp_cli_merge_files' ) ) {
 	WP_CLI::add_command( 'fa:tools merge-files', 'wp_cli_merge_files' );
 }
 
-if ( ! function_exists( 'wp_cli_sort_csv_by_column' ) ) {
+if ( function_exists( 'wp_cli_sort_csv_by_column' ) === false ) {
 	function wp_cli_sort_csv_by_column( $args, $assoc_args ) {
 		list( $file_path, $column_index ) = $args;
 		// Open the CSV file for reading.
@@ -107,7 +107,7 @@ if ( ! function_exists( 'wp_cli_sort_csv_by_column' ) ) {
 	WP_CLI::add_command( 'fa:tools sort-csv-by-column', 'wp_cli_sort_csv_by_column' );
 }
 
-if ( ! function_exists( 'wp_cli_sort_tsv_by_column' ) ) {
+if ( function_exists( 'wp_cli_sort_tsv_by_column' ) === false ) {
 	function wp_cli_sort_tsv_by_column( $args, $assoc_args ) {
 		list( $file_path, $column_index ) = $args;
 		// Open the TSV file for reading.
