@@ -21,10 +21,10 @@ class Product_Display_Vendor {
 	/**
 	 * Constructor.
 	 */
-public function __construct() {
-	add_filter( 'manage_edit-product_columns', array( $this, 'add_vendor_column' ), 20 );
-	add_action( 'manage_product_posts_custom_column', array( $this, 'add_vendor_column_content' ), 20, 2 );
-}
+	public function __construct() {
+		add_filter( 'manage_edit-product_columns', array( $this, 'add_vendor_column' ), 20 );
+		add_action( 'manage_product_posts_custom_column', array( $this, 'add_vendor_column_content' ), 20, 2 );
+	}
 
 	/**
 	 * Adds the vendor column to the product list table.
@@ -32,10 +32,10 @@ public function __construct() {
 	 * @param array $columns The existing columns.
 	 * @return array $columns The updated columns.
 	 */
-public function add_vendor_column( $columns ) {
-	$columns['vendor'] = 'Vendor';
-	return $columns;
-}
+	public function add_vendor_column( $columns ) {
+		$columns['vendor'] = 'Vendor';
+		return $columns;
+	}
 
 	/**
 	 * Adds the vendor column content to the product list table.
@@ -43,11 +43,11 @@ public function add_vendor_column( $columns ) {
 	 * @param string $column The column name.
 	 * @param int    $post_id The post ID.
 	 */
-public function add_vendor_column_content( $column, $post_id ) {
-	if ( 'vendor' === $column ) {
-		$vendor_url = $this->generate_vendor_url( $post_id );
-		$vendor     = get_field( 'dealer', $post_id );
-		printf( "<a href='%s' target='_blank' rel='noopener noreferrer'>%s</a>", esc_url( $vendor_url ), esc_html( $vendor ) );
+	public function add_vendor_column_content( $column, $post_id ) {
+		if ( 'vendor' === $column ) {
+			$vendor_url = $this->generate_vendor_url( $post_id );
+			$vendor     = get_field( 'dealer', $post_id );
+			printf( "<a href='%s' target='_blank' rel='noopener noreferrer'>%s</a>", esc_url( $vendor_url ), esc_html( $vendor ) );
 		}
 	}
 
@@ -59,9 +59,9 @@ public function add_vendor_column_content( $column, $post_id ) {
 	 */
 	public function generate_vendor_url( $post_id ) {
 		$url     = 'https:// foobar.baz';
-		$product    = wc_get_product( $post_id );
-		$vendor     = get_field( 'dealer', $post_id );
-		$sku        = $product->get_sku();
+		$product = wc_get_product( $post_id );
+		$vendor  = get_field( 'dealer', $post_id );
+		$sku     = $product->get_sku();
 		if ( 'CSSI' === $vendor ) {
 			$url = 'https://chattanoogashooting.com/catalog/lookup?propertyKey=sku&valueKey=' . $sku;
 		}

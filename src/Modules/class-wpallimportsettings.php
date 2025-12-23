@@ -186,6 +186,15 @@ class WPAllImportSettings {
 		}
 	}
 
+	/**
+	 * Logs missing images discovered during the import process.
+	 *
+	 * @param int   $post_id                The ID of the post being processed.
+	 * @param array $gallery_attachment_ids Attachment IDs associated with the gallery.
+	 * @param array $missing_images         Filenames of images that could not be imported.
+	 *
+	 * @return void
+	 */
 	private function fa_img_import( $post_id, $gallery_attachment_ids, $missing_images ) {
 		global $wp_filesystem;
 		add_custom_tracer( 'fa_img_import' );

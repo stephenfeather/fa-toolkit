@@ -15,7 +15,8 @@ if ( defined( 'ABSPATH' ) === false ) {
 
 require_once plugin_dir_path( __FILE__ ) . 'src/Rest/class-importmediaimage.php';
 
-require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-attachment-sha256-meta-box.php';
+require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-attachment-sha256-hash-meta-box.php';
+
 require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-custom-admin-menu.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-product-display-vendor.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Admin/class-product-display-id.php';
@@ -49,7 +50,7 @@ require_once plugin_dir_path( __FILE__ ) . 'src/User/class-userregistration.php'
 require_once plugin_dir_path( __FILE__ ) . 'src/Site/class-setup.php';
 require_once plugin_dir_path( __FILE__ ) . 'src/Modules/class-querymonitorsettings.php';
 
-//use FAToolkit\Tools\ExportACFField;
-//require __DIR__ . '/vendor/autoload.php';
+// use FAToolkit\Tools\ExportACFField;
+// require __DIR__ . '/vendor/autoload.php';
 
-//new ExportACFField();
+// new ExportACFField();

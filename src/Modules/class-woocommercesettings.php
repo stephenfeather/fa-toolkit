@@ -6,7 +6,7 @@
  * @since 1.0.9
  */
 
- namespace FAToolkit\Modules;
+namespace FAToolkit\Modules;
 
 if ( defined( 'ABSPATH' ) === false ) {
 	exit; // Exit if accessed directly.
@@ -30,10 +30,10 @@ class WooCommerceSettings {
 		add_filter( 'woocommerce_subcategory_count_html', '__return_false' );
 		add_filter( 'woocommerce_background_image_regeneration', '__return_false' );
 		add_filter( 'woocommerce_ship_to_different_address_checked', '__return_true' );
-		//$this->customer_data_filter();
+		// $this->customer_data_filter();
 		add_filter( 'woocommerce_states', 'sell_only_states' );
 		add_filter( 'get_terms', 'custom_product_categories_order', 10, 3 );
-        add_filter( 'wc_order_attribution_use_base64_cookies', '__return_true' );
+		add_filter( 'wc_order_attribution_use_base64_cookies', '__return_true' );
 	}
 
 	/**
@@ -75,7 +75,7 @@ class WooCommerceSettings {
 	/**
 	 * Modify List of US States in checkout drop down.
 	 *
-	 * @param array $states
+	 * @param array $states Existing states grouped by country.
 	 *
 	 * @return array
 	 */
@@ -146,12 +146,26 @@ class WooCommerceSettings {
 		return $states;
 	}
 
+	/**
+	 * Handle catalog-only logic for a given state.
+	 *
+	 * @param string $state Two-letter state code.
+	 */
 	public function catalog_only( $state ) {
 
 	}
 
+	/**
+	 * Reorder WooCommerce product categories according to a predefined list.
+	 *
+	 * @param array $terms      Retrieved terms.
+	 * @param array $taxonomies Requested taxonomies.
+	 * @param array $args       Query arguments.
+	 *
+	 * @return array
+	 */
 	public function custom_product_categories_order( $terms, $taxonomies, $args ) {
-		if ( isset( $args['taxonomy'] ) && $args['taxonomy'] === 'product_cat' ) {
+		if ( isset( $args['taxonomy'] ) && 'product_cat' === $args['taxonomy'] ) {
 			// Define your custom order here. Replace these slugs with your actual product category slugs.
 			$custom_order = array(
 				'firearms',
@@ -168,19 +182,19 @@ class WooCommerceSettings {
 				'knives',
 				'apparel',
 				'outdoors',
-			// Add more categories as needed
+			// Add more categories as needed.
 			);
 
 			usort(
 				$terms,
 				function ( $a, $b ) use ( $custom_order ) {
-					$pos_a = array_search( $a->slug, $custom_order );
-					$pos_b = array_search( $b->slug, $custom_order );
+					$pos_a = array_search( $a->slug, $custom_order, true );
+					$pos_b = array_search( $b->slug, $custom_order, true );
 
-					if ( $pos_a === false ) {
+					if ( false === $pos_a ) {
 						$pos_a = count( $custom_order );
 					}
-					if ( $pos_b === false ) {
+					if ( false === $pos_b ) {
 						$pos_b = count( $custom_order );
 					}
 
@@ -199,22 +213,52 @@ class WooCommerceSettings {
 		return str_replace( 'Oww ', 'OWW ', implode( '.', array_map( 'ucwords', explode( '.', implode( '(', array_map( 'ucwords', explode( '(', implode( '-', array_map( 'ucwords', explode( '-', mb_strtolower( trim( $value ) ) ) ) ) ) ) ) ) ) ) );
 	}
 
+	/**
+	 * Format a place string by trimming and uppercasing.
+	 *
+	 * @param string $value The input value.
+	 * @return string The formatted value.
+	 */
 	private function format_place( $value ) {
 		return trim_and_uppercase( $value );
 	}
 
+	/**
+	 * Format a zipcode string by trimming whitespace.
+	 *
+	 * @param string $value The input value.
+	 * @return string The formatted value.
+	 */
 	private function format_zipcode( $value ) {
 		return trim( $value );
 	}
 
+	/**
+	 * Format a city string by trimming and uppercasing.
+	 *
+	 * @param string $value The input value.
+	 * @return string The formatted value.
+	 */
 	private function format_city( $value ) {
 		return trim_and_uppercase( $value );
 	}
 
+	/**
+	 * Format an email address by trimming whitespace and converting to lowercase.
+	 *
+	 * @param string $value The input email address.
+	 * @return string The formatted email address.
+	 */
 	private function format_mail( $value ) {
 		return mb_strtolower( trim( $value ) );
 	}
 
+	/**
+	 * Format a headquarter string by trimming and uppercasing.
+	 *
+	 * @param string $value The input value.
+	 * @return string The formatted value.
+	 */
 	private function format_headquarter( $value ) {
 		return trim_and_uppercase( $value );
 	}
