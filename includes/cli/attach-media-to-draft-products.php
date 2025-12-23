@@ -7,6 +7,7 @@
  *
  * TODO: Refactor this into a class.
  */
+
 if ( defined( 'ABSPATH' ) === false ) {
 	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
@@ -40,6 +41,9 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 	 *     wp fa:media attach-media-to-draft-products --suffix='_1'
 	 *     wp fa:media attach-media-to-draft-products --extension=png
 	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 *
 	 * @when after_wp_load
 	 */
 	function wp_cli_attach_media_to_draft_products( $args, $assoc_args ) {
@@ -60,7 +64,7 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 			)
 		);
 
-		// Load all of our attachments into memory
+		// Load all of our attachments into memory.
 		WP_CLI::debug( 'Loading Attachments..' );
 		$attachments = get_posts(
 			array(
@@ -83,7 +87,7 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 		foreach ( $draft_product_ids as $product_id ) {
 			// Get the SKU for the product.
 			$sku = get_post_meta( $product_id, '_sku', true );
-			// Generate a filename to match from the sku
+			// Generate a filename to match from the sku.
 			$filename_to_match = sku_to_filename( $sku, $suffix, $extension );
 
 			// Get attachment with the same file name as the SKU.
@@ -100,7 +104,6 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 				} else {
 					if ( isset( $assoc_args['dry-run'] ) === false ) {
 						set_post_thumbnail( $product_id, $attachment['ID'] );
-						// update_post_meta($product_id, '_thumbnail_id', $attachment['ID']);
 						WP_CLI::success( sprintf( 'Product %d now parent of Attachment %d', $product_id, $attachment['ID'] ) );
 						$num_with_attachments++;
 
@@ -130,11 +133,20 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 }
 
 if ( function_exists( 'sku_to_filename' ) === false ) {
+	/**
+	 * Convert SKU to filename format.
+	 *
+	 * @param string $sku             The product SKU.
+	 * @param string $basename_suffix Optional suffix to append to filename.
+	 * @param string $extension       File extension without dot.
+	 *
+	 * @return string The formatted filename.
+	 */
 	function sku_to_filename( $sku, $basename_suffix = '', $extension ) {
 		$image_filename = '';
 		$prefix         = substr( $sku, 0, 3 );
 
-		if ( $prefix === 'FA-' ) {
+		if ( 'FA-' === $prefix ) {
 			$numeric_part   = substr( $sku, 3 );
 			$image_filename = $numeric_part . $basename_suffix . '.' . $extension;
 		} else {
@@ -145,6 +157,15 @@ if ( function_exists( 'sku_to_filename' ) === false ) {
 }
 
 if ( function_exists( 'find_filename_in_attachment_array' ) === false ) {
+	/**
+	 * Find an attachment by filename in an array of attachments.
+	 *
+	 * @param array  $attachment_array Array of attachment objects to search.
+	 * @param string $filename         The filename to match against post_title.
+	 * @param string $product_id       The product ID for debug logging.
+	 *
+	 * @return object|false The matching attachment object or false if not found.
+	 */
 	function find_filename_in_attachment_array( $attachment_array = array(), $filename = '', $product_id = '' ) {
 		$result = null;
 
