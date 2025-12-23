@@ -33,7 +33,7 @@ function add_custom_tracer( $tracer_name ) {
 add_action(
 	'shutdown',
 	function() {
-		if ( WP_DEBUG && current_user_can( 'administrator' ) ) {
+		if ( WP_DEBUG && current_user_can( 'manage_options' ) ) {
 			var_dump_database();
 		}
 	}
