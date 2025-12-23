@@ -11,9 +11,10 @@ if ( defined( 'ABSPATH' ) === false ) {
 	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
-if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-	return;
+if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
+	return; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
+
 
 if ( ! function_exists( 'wp_cli_attach_media_to_draft_products' ) ) {
 

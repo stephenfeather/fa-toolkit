@@ -14,7 +14,7 @@ if ( defined( 'ABSPATH' ) === false ) {
 }
 
 // Dont load if WP_CLI is not defined.
-if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 	return;
 }
 
