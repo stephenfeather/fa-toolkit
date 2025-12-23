@@ -1,5 +1,11 @@
 <?php
 /**
+ * Fingerprint integration helpers for checkout and frontend tracking.
+ *
+ * @package FA_Toolkit
+ */
+
+/**
  * Add fingerprintJS to our checkout page
  *
  * @return void
@@ -23,9 +29,15 @@ function fingerprint_add_jscript_checkout() {   ?>
 	<?php
 }
 
-wp_register_script( 'iife', 'https://fpcdn.io/v3/Oo4CqqyVw0pCzwTpD4Mx/iife.min.js', false );
+wp_register_script( 'iife', 'https://fpcdn.io/v3/Oo4CqqyVw0pCzwTpD4Mx/iife.min.js', array(), '3.0.0', true );
 
 add_action( 'wp_head', 'fingerprint_response_handler' );
+
+/**
+ * Builds the inline FingerprintJS loader script for the site header.
+ *
+ * @return string
+ */
 function fingerprint_response_handler() {
 
 	$script = '<script async id="FingerPrint">';

@@ -1,12 +1,19 @@
 <?php
+/**
+ * Google Tag Manager integration.
+ *
+ * @package FA\Includes
+ */
+
 if ( defined( 'ABSPATH' ) === false ) {
 	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 
 // =========================================================================
-// GOOGLE TAG MANAGER - <head>
-// =========================================================================
+/**
+ * Outputs the Google Tag Manager script in the document head.
+ */
 function add_gtag_to_head() { ?>
 	<!-- Google Tag Manager -->
 	<script defer id='GTM'>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -22,6 +29,11 @@ add_action( 'wp_head', 'add_gtag_to_head' );
 // =========================================================================
 // GOOGLE TAG MANAGER - <body>
 // =========================================================================
+/**
+ * Outputs the Google Tag Manager noscript iframe inside the opening body tag.
+ *
+ * @return void
+ */
 function add_gtag_to_body() {
 	?>
 	<!-- Google Tag Manager (noscript) -->
