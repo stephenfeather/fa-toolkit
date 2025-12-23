@@ -56,7 +56,7 @@ class Promotion_Meta_Box {
 	<input id="promotion_date_ends" type="date" name="promotion_date_ends" value="<?php printf( '%s', esc_attr( $promotion_date_ends ) ); ?>" />
 <br />
 	<label for="promotion_url">Promotion URL:</label>
-	<input id="promotion_url" type="url" name="promotion_url" value="<?php printf('%s', esc_attr( $promotion_url ) ); ?>" />
+	<input id="promotion_url" type="url" name="promotion_url" value="<?php printf( '%s', esc_attr( $promotion_url ) ); ?>" />
 
 		<?php
 	}

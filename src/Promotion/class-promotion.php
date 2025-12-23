@@ -1,4 +1,6 @@
 <?php
+
+
 /**
  * FA Promotions
  *
@@ -33,7 +35,7 @@ class Promotions {
 		'description'   => '', // The promotion description.
 		'date_created'  => null, // The date the promotion was created.
 		'date_modified' => null, // The date the promotion was last modified.
-        'date_begins'   => null, // The date the promotion begins.
+		'date_begins'   => null, // The date the promotion begins.
 		'date_expires'  => null, // The date the promotion expires.
 		'url'           => null, // The URL to the promotion information/redemption page.
 		'product_tags'  => array(), // shares the same taxonomy as products.
@@ -48,10 +50,6 @@ class Promotions {
 	public function __construct( $data = '' ) {
 
 	}
-
-    /**
-     *
-     */
 
 	/** Getters. */
 
