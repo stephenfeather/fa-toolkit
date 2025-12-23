@@ -146,11 +146,11 @@ class WooCommerceSettings {
 		return $states;
 	}
 
-	function catalog_only( $state ) {
+	public function catalog_only( $state ) {
 
 	}
 
-	function custom_product_categories_order( $terms, $taxonomies, $args ) {
+	public function custom_product_categories_order( $terms, $taxonomies, $args ) {
 		if ( isset( $args['taxonomy'] ) && $args['taxonomy'] === 'product_cat' ) {
 			// Define your custom order here. Replace these slugs with your actual product category slugs.
 			$custom_order = array(
@@ -195,27 +195,27 @@ class WooCommerceSettings {
 
 
 
-	function trim_and_uppercase( $value ) {
+	private function trim_and_uppercase( $value ) {
 		return str_replace( 'Oww ', 'OWW ', implode( '.', array_map( 'ucwords', explode( '.', implode( '(', array_map( 'ucwords', explode( '(', implode( '-', array_map( 'ucwords', explode( '-', mb_strtolower( trim( $value ) ) ) ) ) ) ) ) ) ) ) );
 	}
 
-	function format_place( $value ) {
+	private function format_place( $value ) {
 		return trim_and_uppercase( $value );
 	}
 
-	function format_zipcode( $value ) {
+	private function format_zipcode( $value ) {
 		return trim( $value );
 	}
 
-	function format_city( $value ) {
+	private function format_city( $value ) {
 		return trim_and_uppercase( $value );
 	}
 
-	function format_mail( $value ) {
+	private function format_mail( $value ) {
 		return mb_strtolower( trim( $value ) );
 	}
 
-	function format_headquarter( $value ) {
+	private function format_headquarter( $value ) {
 		return trim_and_uppercase( $value );
 	}
 }
