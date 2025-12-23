@@ -60,7 +60,7 @@ if ( function_exists( 'wp_cli_merge_files' ) === false ) {
 					break;
 				}
 			}
-            unset( $tsv_row );
+			unset( $tsv_row );
 		}
 		unset( $row );
 
@@ -80,6 +80,13 @@ if ( function_exists( 'wp_cli_merge_files' ) === false ) {
 }
 
 if ( function_exists( 'wp_cli_sort_csv_by_column' ) === false ) {
+	/**
+	 * Sort a CSV file by the provided column index via WP-CLI.
+	 *
+	 * @param array $args       Command arguments (file path, column index).
+	 * @param array $assoc_args Associative arguments passed to the command (unused).
+	 * @return void
+	 */
 	function wp_cli_sort_csv_by_column( $args, $assoc_args ) {
 		list( $file_path, $column_index ) = $args;
 		// Open the CSV file for reading.
@@ -108,6 +115,13 @@ if ( function_exists( 'wp_cli_sort_csv_by_column' ) === false ) {
 }
 
 if ( function_exists( 'wp_cli_sort_tsv_by_column' ) === false ) {
+	/**
+	 * Sort a TSV file by the provided column index via WP-CLI.
+	 *
+	 * @param array $args       Command arguments (file path, column index).
+	 * @param array $assoc_args Associative arguments passed to the command (unused).
+	 * @return void
+	 */
 	function wp_cli_sort_tsv_by_column( $args, $assoc_args ) {
 		list( $file_path, $column_index ) = $args;
 		// Open the TSV file for reading.

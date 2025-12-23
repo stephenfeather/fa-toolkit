@@ -12,13 +12,16 @@ if ( defined( 'ABSPATH' ) === false ) {
 	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
-if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
+if ( ( defined( 'WP_CLI' ) & WP_CLI ) === false ) {
 	return;
 }
 
 if ( function_exists( 'wp_cli_fetch_import_product_image' ) === false ) {
 	/**
 	 * Downloads and imports an image for a given product ID, and saves the SHA-1 hash as metadata.
+	 *
+	 * @param array $args       Positional arguments passed to the command.
+	 * @param array $assoc_args Associative arguments passed to the command.
 	 *
 	 * ## OPTIONS
 	 *
@@ -56,7 +59,7 @@ if ( function_exists( 'wp_cli_fetch_import_product_image' ) === false ) {
 		}
 
 		// Get the image source ACF field value for the product.
-		// $image_source = get_field( 'image_source', $product_id );
+		// Sample: $image_source = get_field( 'image_source', $product_id );.
 		WP_CLI::debug( "Image Source: {$image_source}" );
 
 		// Verify that an $image_source exists.
@@ -150,6 +153,12 @@ if ( function_exists( 'wp_cli_fetch_import_product_image' ) === false ) {
 
 if ( function_exists( 'handle_wp_error' ) === false ) {
 
+	/**
+	 * Handles WP_Error instances by logging the message and halting execution.
+	 *
+	 * @param mixed $the_error The value to inspect for WP_Error instances.
+	 * @param int   $post_id   Optional. The post ID used for contextual logging.
+	 */
 	function handle_wp_error( $the_error, $post_id = 0 ) {
 		if ( is_wp_error( $the_error ) ) {
 			$error_string = $the_error->get_error_message();
@@ -160,6 +169,14 @@ if ( function_exists( 'handle_wp_error' ) === false ) {
 
 if ( function_exists( 'download_image' ) === false ) {
 
+	/**
+	 * Downloads an image from the given source URL and stores it in a temporary location for sideloading.
+	 *
+	 * @param string $image_source The full URL to the remote image to download.
+	 * @param int    $product_id   Product ID used for contextual logging and error handling.
+	 *
+	 * @return string Absolute path to the downloaded image file.
+	 */
 	function download_image( $image_source, $product_id ) {
 		global $wp_filesystem;
 		// Extract the filename and extension from the image URL.
@@ -193,7 +210,7 @@ if ( function_exists( 'download_image' ) === false ) {
 		curl_close( $ch );
 
 		// Create a temporary filename to save the image data.
-		$temp_image_path = '/tmp/faWeb-' . getName( 5 );
+		$temp_image_path = '/tmp/faWeb-' . get_name( 5 );
 		WP_CLI::debug( "temp image path: {$temp_image_path}" );
 
 		// Set the final image path.
@@ -210,13 +227,21 @@ if ( function_exists( 'download_image' ) === false ) {
 		}
 
 		// Rename the temporary file with the correct file extension based on the filename and extension from the image URL.
-		// rename( $temp_image_path, $final_image_path );
 		copy( $temp_image_path, $final_image_path );
 
 		// Return the path of the downloaded image.
 		return $final_image_path;
 	}
 
+	/**
+	 * Generates the dealer-specific image URL for the provided product and extension.
+	 *
+	 * @param int    $product_id Product ID used to determine the dealer and SKU.
+	 * @param string $extension  File extension for the image file.
+	 * @param string $suffix     Optional filename suffix sometimes required by dealers.
+	 *
+	 * @return string The constructed image URL for the dealer.
+	 */
 	function get_dealer_image_url( $product_id, $extension, $suffix = '' ) {
 		WP_CLI::debug( "product_id: {$product_id}" );
 		WP_CLI::debug( "suffix: {$suffix}" );
@@ -231,13 +256,13 @@ if ( function_exists( 'download_image' ) === false ) {
 			// $url = new WP_Error();
 			// $url->add( 'invalid', 'Dfavidson\'s is so fouled up.' );
 
-			// Davidsons
-			// $url = "https://res.cloudinary.com/davidsons-inc/c_lpad,dpr_2.0,h_1536,q_100,w_1536/v1/media/catalog/product/" . substr($sku, 3, 1) . "/" . substr($sku, 4, 1) . "/" . substr($sku, 3) . "." . $extension;.
-			// https://res.cloudinary.com/davidsons-inc/v1/media/catalog/product/s/c/scterdm390dns.jpg.jpg
+			// Davidsons.
+			// Old sample: $url = "https://res.cloudinary.com/davidsons-inc/c_lpad,dpr_2.0,h_1536,q_100,w_1536/v1/media/catalog/product/" . substr($sku, 3, 1) . "/" . substr($sku, 4, 1) . "/" . substr($sku, 3) . "." . $extension;.
+			// New sample: https://res.cloudinary.com/davidsons-inc/v1/media/catalog/product/s/c/scterdm390dns.jpg.jpg.
 			$url = 'https://res.cloudinary.com/davidsons-inc/v1/media/catalog/product/' . substr( $sku, 0, 1 ) . '/' . substr( $sku, 1, 1 ) . '/' . $sku . '.' . $extension;
 		} elseif ( 'cssi' === $dealer ) {
 			// CSSI.
-			// $url = 'https://media.chattanoogashooting.com/images/product/' . substr( $sku, 3 ) . '/' . substr( $sku, 3 ) . '.' . $extension;
+			// Old sample: $url = 'https://media.chattanoogashooting.com/images/product/' . substr( $sku, 3 ) . '/' . substr( $sku, 3 ) . '.' . $extension;.
 			$url = 'https://media.chattanoogashooting.com/images/product/' . $sku . '/' . $sku . $suffix . '.' . $extension;
 
 		}
@@ -245,11 +270,18 @@ if ( function_exists( 'download_image' ) === false ) {
 		return $url;
 	}
 
-	function getName( $n ) {
+	/**
+	 * Generates a random string of the requested length for temporary filenames.
+	 *
+	 * @param int $length Desired length of the random string.
+	 *
+	 * @return string Random alphanumeric string.
+	 */
+	function get_name( $length ) {
 		$characters    = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		$random_string = '';
 
-		for ( $i = 0; $i < $n; $i++ ) {
+		for ( $i = 0; $i < $length; $i++ ) {
 			$index          = wp_rand( 0, strlen( $characters ) - 1 );
 			$random_string .= $characters[ $index ];
 		}

@@ -54,15 +54,10 @@ if ( function_exists( 'wp_cli_find_media_for_product' ) === false ) {
 
 		$results_array = graded_array_search( $attachments, $basename );
 
-		// var_dump( $results_array );
-
-		// $basename = $basename . '.jpg';
-
 		$attachments_count = count( $attachments );
 		WP_CLI::log( sprintf( 'Finding media for product %d.', $product_id ) );
 		WP_CLI::log( sprintf( 'Product Title: %s', $product->get_name() ) );
 		WP_CLI::log( sprintf( '  Product SKU: %s', $sku ) );
-		// WP_CLI::log( sprintf( '     basename: %s', $basename ) );
 
 		// Do we push the lowest distance into _thumbnail_id?
 		// Do we push the rest into _product_image_gallery?
@@ -89,21 +84,25 @@ if ( function_exists( 'wp_cli_find_media_for_product' ) === false ) {
 
 		$product->set_gallery_image_ids( $gallery_images );
 		$product->save();
-
 	}
 	WP_CLI::add_command( 'fa:media-dev find-media-for-product', 'wp_cli_find_media_for_product' );
 }
 
+/**
+ * Sets the featured image for a WooCommerce product.
+ *
+ * @param WC_Product $product       The product to update.
+ * @param int        $attachment_id The attachment ID to set as the featured image.
+ * @return bool True when the attachment is already the product image.
+ */
 function set_product_image( $product, $attachment_id ) {
 
-	// $is_attached = get_post_meta( $product_id, '_thumbnail_id', true );
 	$image_id = $product->get_image_id();
 	// Verify we dont already have a thumbnail.
 	if ( $product->get_image_id() == $attachment_id ) {
 		WP_CLI::log( sprintf( 'Attachment ID %d is already attached to product ID %d', $product->get_id(), $attachment_id ) );
 		return true;
 	} else {
-		// $success = set_post_thumbnail( $product_id, $attachment_id );
 		WP_CLI::log( 'Setting product image' );
 		$product->set_image_id( $attachment_id );
 		$product->save();
@@ -122,14 +121,14 @@ if ( function_exists( 'graded_array_search' ) === false ) {
 	function graded_array_search( $attachment_array = array(), $basename = '' ) {
 
 		$basename = strtolower( $basename );
-		$result = array();
+		$result   = array();
 		foreach ( $attachment_array as $object ) {
 
 			// Does the title contain the adjusted basename?
 			// Does the title start with the adjusted basename?
 
-// this works for davidsons.
-// need to test with CSSI.
+			// this works for davidsons.
+			// need to test with CSSI.
 			if ( 0 === strpos( $object->post_title, $basename ) ) {
 
 				$cleaned_title = str_replace( '.jpg.jpg', '', $object->post_title );
@@ -203,6 +202,12 @@ function get_cached_posts( $query_args, $expires = HOUR_IN_SECONDS ) {
 	return $post_list;
 }
 
+/**
+ * Prompts the user with a question and returns the normalized answer.
+ *
+ * @param string $question The question text to display in the terminal.
+ * @return string The trimmed, lowercase user response.
+ */
 function ask( $question ) {
 	// Adding space to question and showing it.
 	fwrite( STDOUT, $question . ' ' );

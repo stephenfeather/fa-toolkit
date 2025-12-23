@@ -58,7 +58,7 @@ if ( function_exists( 'wp_cli_export_draft_product_image_sources' ) === false ) 
 			}
 		}
 
-		if ( empty( $output ) === false) {
+		if ( empty( $output ) === false ) {
 			$result = $wp_filesystem->put_contents( $output_file, $output );
 
 			if ( false !== $result ) {
