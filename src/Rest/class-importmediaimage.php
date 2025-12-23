@@ -109,7 +109,6 @@ class ImportMediaImage {
 			'message'       => 'Media imported successfully.',
 			'attachment_id' => $attachment_id,
 		);
-
 	}
 
 	/**
@@ -203,7 +202,6 @@ class ImportMediaImage {
 			);
 		}
 	}
-
 }
 
 new ImportMediaImage();
@@ -235,7 +233,6 @@ function scrub( $url ) {
 	$scrubbed_url = $parts['scheme'] . '://' . $parts['host'] . $parts['path'];
 
 	return $scrubbed_url;
-
 }
 
 /**
