@@ -169,7 +169,7 @@ class ScrapeProductMedia {
 		// Fetch the product_page.
 		$product_page = $this->fetch_product_page( $distributor_product_url );
 
-		// Verify this isnt a soft 404 page from Davidsons
+		// Verify this isnt a soft 404 page from Davidsons.
 		if ( strpos( $product_page, '404 Not Found' ) !== false ) {
 			wp_delete_post( $product_id );
 			WP_CLI::error( "Product doesnt exist at Davidsons for ({$product_id}) Moved to trash." );
@@ -196,7 +196,6 @@ class ScrapeProductMedia {
 			WP_CLI::debug( 'Product Save Status: ' . $_success );
 			WP_CLI::success( "Successfully updated media ({$media_type}) for product ({$product_id})" );
 		}
-
 	}
 
 	/**
@@ -232,7 +231,6 @@ class ScrapeProductMedia {
 			WP_CLI::debug( 'Product Page: ' . $body );
 			return $body;
 		}
-
 	}
 
 	/**
@@ -378,7 +376,6 @@ class ScrapeProductMedia {
 		update_post_meta( $attachment_id, 'sha256_hash', $hash );
 
 		return $attachment_id;
-
 	}
 
 	/**
@@ -407,7 +404,6 @@ class ScrapeProductMedia {
 		$scrubbed_url = $parts['scheme'] . '://' . $parts['host'] . $parts['path'];
 
 		return $scrubbed_url;
-
 	}
 
 	/**
@@ -430,6 +426,14 @@ class ScrapeProductMedia {
 		return $success;
 	}
 
+	/**
+	 * Checks if the product has a placeholder meta flag.
+	 *
+	 * @param int $product_id The product ID.
+	 * @return bool
+	 * @since 1.0.7
+	 * @access private
+	 */
 	private function has_product_placeholder_meta_flag( $product_id ) {
 		return get_post_meta( $product_id, 'product_placeholder', true );
 	}

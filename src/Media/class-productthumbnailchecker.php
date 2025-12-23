@@ -14,12 +14,12 @@ if ( defined( 'ABSPATH' ) === false ) {
 	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
-if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
+if ( ( defined( 'WP_CLI' ) && WP_CLI ) === false ) {
 	return;
 }
 
-use \WP_CLI;
-use \WP_Query;
+use WP_CLI;
+use WP_Query;
 
 /**
  * Class to find WooCommerce products that don't have a thumbnail and move them to drafts.
@@ -66,10 +66,10 @@ class ProductThumbnailChecker {
 		$error_count     = 0;
 
 		$args = array(
-			'post_type'      => 'product',
-			'post_status'    => 'publish',
+			'post_type'     => 'product',
+			'post_status'   => 'publish',
 			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-			'meta_query'     => array(
+			'meta_query'    => array(
 				'relation' => 'OR',
 				array(
 					'key'     => '_thumbnail_id',
@@ -81,12 +81,12 @@ class ProductThumbnailChecker {
 					'compare' => '=',
 				),
 			),
-			//'posts_per_page' => $result_count,
-			'orderby'        => 'ID',
-			'order'          => $order,
-			'fields'         => 'ids',
-			'cache_results'  => false,
-			'nopaging'       => true,
+			// 'posts_per_page' => $result_count,
+			'orderby'       => 'ID',
+			'order'         => $order,
+			'fields'        => 'ids',
+			'cache_results' => false,
+			'nopaging'      => true,
 		);
 		if ( isset( $assoc_args['vendor'] ) ) {
 			$args['meta_key']   = 'dealer'; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
