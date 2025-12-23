@@ -17,7 +17,7 @@ namespace FAToolkit\Utilities;
 
 use \WP_CLI;
 
-if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+if ( defined( 'WP_CLI' ) === false || WP_CLI === false ) {
 	return;
 }
 

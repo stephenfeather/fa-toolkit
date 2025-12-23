@@ -8,7 +8,7 @@
 
 namespace FAToolkit\Admin;
 
-if ( ! defined( 'ABSPATH' ) ) {
+if ( defined( 'ABSPATH' ) === false ) {
 	exit; // Exit if accessed directly.
 }
 

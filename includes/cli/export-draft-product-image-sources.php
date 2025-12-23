@@ -31,7 +31,7 @@ if ( function_exists( 'wp_cli_export_draft_product_image_sources' ) === false ) 
 	 * @param array $args Arguments passed to the WP-CLI command.
 	 */
 	function wp_cli_export_draft_product_image_sources( $args ) {
-		if ( ! class_exists( 'acf' ) ) {
+		if ( class_exists( 'acf' ) === false ) {
 			WP_CLI::error( 'Advanced Custom Fields is not installed or active.' );
 		}
 
@@ -58,7 +58,7 @@ if ( function_exists( 'wp_cli_export_draft_product_image_sources' ) === false ) 
 			}
 		}
 
-		if ( ! empty( $output ) ) {
+		if ( empty( $output ) === false) {
 			$result = $wp_filesystem->put_contents( $output_file, $output );
 
 			if ( false !== $result ) {

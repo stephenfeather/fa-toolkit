@@ -10,7 +10,7 @@
 
 namespace FAToolkit\Promotion;
 
-if ( ! defined( 'ABSPATH' ) ) {
+if ( defined( 'ABSPATH' ) === false ) {
 	exit; // Exit if accessed directly.
 }
 
@@ -50,7 +50,7 @@ class Promotions {
 	}
 
     /**
-     * 
+     *
      */
 
 	/** Getters. */

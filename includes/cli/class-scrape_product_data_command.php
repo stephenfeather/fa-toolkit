@@ -113,10 +113,10 @@ if ( class_exists( 'WP_CLI_Command' ) ) {
 		 */
 		private function import_and_attach_media( $product_id, $featured_image_url, $gallery_urls ) {
 			// if we have a main image, import it and set it as the product featured image.
-			if ( ! empty( $featured_image_url ) ) {
+			if ( empty( $featured_image_url )  === false) {
 				$featured_image_id = $this->import_media( $featured_image_url, $product_id );
 				WP_CLI::debug( 'Featured Image ID: ' . $featured_image_id );
-				if ( ! is_wp_error( $featured_image_id ) ) {
+				if ( is_wp_error( $featured_image_id ) === false ) {
 					$success = set_post_thumbnail( $product_id, $featured_image_id );
 				}
 			} else {
@@ -124,13 +124,13 @@ if ( class_exists( 'WP_CLI_Command' ) ) {
 			}
 
 			// if we have a gallery, import each item and set it as the product gallery.
-			if ( ! empty( $gallery_urls ) && is_array( $gallery_urls ) ) {
+			if ( empty( $gallery_urls ) === false && is_array( $gallery_urls ) === true ) {
 				$gallery_ids = array();
 				foreach ( $gallery_urls as $image ) {
 					$gallery_ids[] = $this->import_media( $image, $product_id );
 				}
 				WP_CLI::debug( 'Gallery IDs: ' . implode( ', ', $gallery_ids ) );
-				if ( ! is_wp_error( $gallery_ids ) ) {
+				if ( is_wp_error( $gallery_ids ) === false ) {
 					$success = update_post_meta( $product_id, '_product_image_gallery', implode( ',', $gallery_ids ) );
 				}
 			}

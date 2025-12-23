@@ -60,7 +60,7 @@ if ( function_exists( 'wp_cli_fetch_import_product_image' ) === false ) {
 		WP_CLI::debug( "Image Source: {$image_source}" );
 
 		// Verify that an $image_source exists.
-		if ( ! $image_source ) {
+		if ( empty( $image_source ) === true ) {
 			WP_CLI::debug( "No image_source found for Product {$product_id}." );
 			$image_source = get_dealer_image_url( $product_id, $extension, $suffixes[0] );
 			handle_wp_error( $image_source, $product_id );

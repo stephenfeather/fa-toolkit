@@ -94,11 +94,11 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 
 				$is_attached = get_post_meta( $product_id, '_thumbnail_id', true );
 
-				if ( ! empty( $is_attached ) && $is_attached == $attachment['ID'] ) {
+				if ( empty( $is_attached ) === false && $is_attached === $attachment['ID'] ) {
 					WP_CLI::debug( sprintf( 'Attachment ID %d is already attached to product ID %d', $product_id, $attachment['ID'] ) );
 					$matching_attachments++;
 				} else {
-					if ( ! isset( $assoc_args['dry-run'] ) ) {
+					if ( isset( $assoc_args['dry-run'] ) === false ) {
 						set_post_thumbnail( $product_id, $attachment['ID'] );
 						// update_post_meta($product_id, '_thumbnail_id', $attachment['ID']);
 						WP_CLI::success( sprintf( 'Product %d now parent of Attachment %d', $product_id, $attachment['ID'] ) );
