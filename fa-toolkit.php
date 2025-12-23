@@ -13,8 +13,8 @@
  */
 
 // Exit if accessed directly.
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+if ( defined( 'ABSPATH' ) === false ) {
+	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 };
 
 add_filter( 'woocommerce_is_purchasable', '__return_true' );

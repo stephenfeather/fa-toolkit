@@ -8,8 +8,8 @@
 
 namespace FAToolkit\Media;
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+if ( defined( 'ABSPATH' ) === false ) {
+	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {

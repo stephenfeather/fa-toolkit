@@ -8,8 +8,8 @@
 
 namespace FAToolkit\Modules;
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+if ( defined( 'ABSPATH' ) === false ) {
+	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 /**
  * WP All Import Settings.

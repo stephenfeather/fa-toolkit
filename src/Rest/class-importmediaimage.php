@@ -10,8 +10,8 @@ namespace FAToolkit\Rest;
 
 use FAToolkit\File;
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+if ( defined( 'ABSPATH' ) === false ) {
+	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 /**

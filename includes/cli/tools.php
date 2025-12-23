@@ -5,8 +5,8 @@
  * @package FA-Toolkit
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+if ( defined( 'ABSPATH' ) === false ) {
+	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
@@ -60,7 +60,9 @@ if ( ! function_exists( 'wp_cli_merge_files' ) ) {
 					break;
 				}
 			}
+            unset( $tsv_row );
 		}
+		unset( $row );
 
 		array_unshift( $header, 'RETAIL-MAP' );
 		array_unshift( $tsv_data[0], $id_column, 'RETAIL-MAP' );

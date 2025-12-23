@@ -8,8 +8,8 @@
 
 namespace FA_Toolkit\Media;
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+if ( defined( 'ABSPATH' ) === false ) {
+	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 };
 
 if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
@@ -18,6 +18,7 @@ if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 
 use WP_CLI;
 use WP_CLI_Command;
+use Exception;
 use MediaCloud\Plugin\Tools\Storage;
 
 /**
@@ -124,12 +125,11 @@ class Media_Fix_Ilab_Metadata {
 		// Loop through the attachments.
 		foreach ( $attachments as $attachment_id ) {
 			update_option( 'fa_toolkit_last_processed_post_id', $attachment_id );
-			//
-				$success = $storage_utilities->fixMetadata( $attachment_id );
-			//} catch ( Exception $e ) {
-				//WP_CLI::warning( 'Error processing attachment ' . $attachment_id . ': ' . $e->getMessage() );
-				//continue; // Continue to the next iteration of the loop.
-			//}
+							$success = $storage_utilities->fixMetadata( $attachment_id );
+			// } catch ( Exception $e ) {
+				// WP_CLI::warning( 'Error processing attachment ' . $attachment_id . ': ' . $e->getMessage() );
+				// continue; // Continue to the next iteration of the loop.
+			// }
 			if ( ! $success ) {
 				WP_CLI::warning( 'Failed to fix metadata for post ID: ' . $attachment_id );
 			} else {

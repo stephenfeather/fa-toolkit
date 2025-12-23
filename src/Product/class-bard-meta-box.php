@@ -8,8 +8,8 @@
 
 namespace FA_Toolkit\Product;
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+if ( defined( 'ABSPATH' ) === false ) {
+	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 };
 
 /**
@@ -52,10 +52,10 @@ class Bard_Meta_Box {
 		// Output the HTML.
 		?>
 		The following information is for a product that exists but we dont have product details and need to write a description. The title also needs to be rewritten to match the manufacturers.<br />
-		Title: <?php echo esc_html( $title ); ?><br />
-		SKU: <?php echo esc_html( $sku ); ?><br />
-		UPC: <?php echo esc_html( $upc ); ?></br />
-		Brand: <?php echo esc_html( $brand ); ?></br />
+		Title: <?php printf( '%s', esc_html( $title ) ); ?><br />
+		SKU: <?php printf( '%s', esc_html( $sku ) ); ?><br />
+		UPC: <?php printf( '%s', esc_html( $upc ) ); ?></br />
+		Brand: <?php printf( '%s', esc_html( $brand ) ); ?></br />
 		<?php
 
 	}

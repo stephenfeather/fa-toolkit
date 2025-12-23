@@ -9,8 +9,8 @@
 
 namespace FAToolkit\Setup;
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly.
+if ( defined( 'ABSPATH' ) === false ) {
+	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 /**
@@ -38,7 +38,7 @@ class SetupBusinessBloomer {
 	 */
 	public function bloomer_echo_product_date() {
 		if ( is_product() ) {
-			echo esc_html( the_modified_date( '', '<span class="single_product_date_published">Updated: ', '</span>', false ) );
+			printf( '%s', esc_html( the_modified_date( '', '<span class="single_product_date_published">Updated: ', '</span>', false ) ) );
 		}
 	}
 
@@ -81,7 +81,7 @@ class SetupBusinessBloomer {
 	 * @param int $order Order.
 	 */
 	public function bbloomer_delivery_weight_display_admin_order_meta( $order ) {
-		echo '<p><strong>Order Weight:</strong> ' . esc_html( get_post_meta( $order->get_id(), '_cart_weight', true ) ) . esc_html( get_option( 'woocommerce_weight_unit' ) ) . '</p>';
+		printf( '<p><strong>Order Weight:</strong> %s %s</p>', esc_html( get_post_meta( $order->get_id(), '_cart_weight', true ) ), esc_html( get_option( 'woocommerce_weight_unit' ) ) );
 	}
 
 

@@ -9,8 +9,8 @@
 namespace FAToolkit\Tools;
 
 // Dont load directly.
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+if ( defined( 'ABSPATH' ) === false ) {
+	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 // Dont load if WP_CLI is not defined.
