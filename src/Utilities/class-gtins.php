@@ -25,7 +25,7 @@ class GTINS {
 	 * Register the populateGTINS command.
 	 */
 	public function __construct() {
-		WP_CLI::add_command( 'fa:utilities populateGTINS', array( $this, 'populate' ) );
+		\WP_CLI::add_command( 'fa:utilities populateGTINS', array( $this, 'populate' ) );
 	}
 
 	/**

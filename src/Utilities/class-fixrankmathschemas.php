@@ -34,7 +34,7 @@ class FixRankMathSchemas {
 	 * @when after_wp_load
 	 */
 	public function __construct() {
-		WP_CLI::add_command( 'fa:utilities fix-rank-math-schemas', array( $this, 'fix_schemas' ) );
+		\WP_CLI::add_command( 'fa:utilities fix-rank-math-schemas', array( $this, 'fix_schemas' ) );
 	}
 
 	/**
