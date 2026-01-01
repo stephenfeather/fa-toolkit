@@ -31,8 +31,8 @@ class WooCommerceSettings {
 		add_filter( 'woocommerce_background_image_regeneration', '__return_false' );
 		add_filter( 'woocommerce_ship_to_different_address_checked', '__return_true' );
 		// $this->customer_data_filter();
-		add_filter( 'woocommerce_states', 'sell_only_states' );
-		add_filter( 'get_terms', 'custom_product_categories_order', 10, 3 );
+		add_filter( 'woocommerce_states', array( $this, 'sell_only_states' ) );
+		add_filter( 'get_terms', array( $this, 'custom_product_categories_order' ), 10, 3 );
 		add_filter( 'wc_order_attribution_use_base64_cookies', '__return_true' );
 	}
 
