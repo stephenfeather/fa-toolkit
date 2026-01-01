@@ -16,11 +16,20 @@ if ( defined( 'ABSPATH' ) === false ) {
  */
 class Fingerprint {
 	/**
-	 * Constructor - registers scripts and hooks.
+	 * Constructor - registers hooks.
 	 */
 	public function __construct() {
-		wp_register_script( 'iife', 'https://fpcdn.io/v3/Oo4CqqyVw0pCzwTpD4Mx/iife.min.js', array(), '3.0.0', true );
+		add_action( 'wp_enqueue_scripts', array( $this, 'register_scripts' ) );
 		add_action( 'wp_head', array( $this, 'response_handler' ) );
+	}
+
+	/**
+	 * Register scripts on the proper WordPress hook.
+	 *
+	 * @return void
+	 */
+	public function register_scripts() {
+		wp_register_script( 'iife', 'https://fpcdn.io/v3/Oo4CqqyVw0pCzwTpD4Mx/iife.min.js', array(), '3.0.0', true );
 	}
 
 	/**
