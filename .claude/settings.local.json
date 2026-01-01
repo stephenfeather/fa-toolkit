@@ -5,7 +5,9 @@
       "Bash(test:*)",
       "Bash(composer install:*)",
       "Bash(fd:*)",
-      "Bash(composer dump-autoload:*)"
+      "Bash(composer dump-autoload:*)",
+      "Bash(grep:*)",
+      "Bash(php -l:*)"
     ]
   }
 }

@@ -21,7 +21,7 @@ class QueryMonitorSettings {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_filter( 'qm/collect/php_error_levels', array( $this, silenceNoisyPlugins ) );
+		add_filter( 'qm/collect/php_error_levels', array( $this, 'silence_noisy_plugins' ) );
 	}
 
 	/**
