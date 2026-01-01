@@ -35,9 +35,13 @@ new \FAToolkit\Admin\Product_Category_Counts();
 new \FAToolkit\Admin\Admin_Meta_Boxes();
 
 // Media
-new \FAToolkit\Media\Media_Fix_Ilab_Metadata();
-new \FAToolkit\Media\ProductThumbnailChecker();
 new \FAToolkit\Media\AutoAttachUploadedMedia();
+
+// Media (WP-CLI dependent - only load if WP-CLI is active)
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	new \FAToolkit\Media\Media_Fix_Ilab_Metadata();
+	new \FAToolkit\Media\ProductThumbnailChecker();
+}
 
 // Promotion
 new \FAToolkit\Promotion\Promotions();

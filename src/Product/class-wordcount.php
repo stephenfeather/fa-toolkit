@@ -21,7 +21,7 @@ class WordCount {
 
 		// Register WP-CLI command.
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			WP_CLI::add_command( 'update_word_count', array( $this, 'update_word_count_command' ) );
+			\WP_CLI::add_command( 'update_word_count', array( $this, 'update_word_count_command' ) );
 		}
 	}
 
