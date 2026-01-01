@@ -15,7 +15,7 @@ if ( class_exists( 'WP_CLI_Command' ) ) {
 	/**
 	 * WP-CLI command for scraping product data from URLs.
 	 */
-	class Scrape_Product_Data_Command extends WP_CLI_Command {
+	class Scrape_Product_Data_Command extends \WP_CLI_Command {
 
 		/**
 		 * Scrapes data from a URL and adds it to the product URL.
