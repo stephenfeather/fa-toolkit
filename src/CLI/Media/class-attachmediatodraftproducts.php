@@ -90,7 +90,7 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 			// Get the SKU for the product.
 			$sku = get_post_meta( $product_id, '_sku', true );
 			// Generate a filename to match from the sku.
-			$filename_to_match = sku_to_filename( $sku, $suffix, $extension );
+			$filename_to_match = sku_to_filename( $sku, $extension, $suffix );
 
 			// Get attachment with the same file name as the SKU.
 			$attachment = find_filename_in_attachment_array( $attachments, $filename_to_match, $product_id );
@@ -139,12 +139,12 @@ if ( function_exists( 'sku_to_filename' ) === false ) {
 	 * Convert SKU to filename format.
 	 *
 	 * @param string $sku             The product SKU.
-	 * @param string $basename_suffix Optional suffix to append to filename.
 	 * @param string $extension       File extension without dot.
+	 * @param string $basename_suffix Optional suffix to append to filename.
 	 *
 	 * @return string The formatted filename.
 	 */
-	function sku_to_filename( $sku, $basename_suffix = '', $extension ) {
+	function sku_to_filename( $sku, $extension, $basename_suffix = '' ) {
 		$image_filename = '';
 		$prefix         = substr( $sku, 0, 3 );
 
