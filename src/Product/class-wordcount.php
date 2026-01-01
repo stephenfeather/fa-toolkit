@@ -68,14 +68,14 @@ class WordCount {
 			while ( $query->have_posts() ) {
 				$query->the_post();
 				$post_id = get_the_ID();
-				WP_CLI::line( 'Updating word count for post ID: ' . $post_id );
+				\WP_CLI::line( 'Updating word count for post ID: ' . $post_id );
 				$this->update_word_count_meta( $post_id );
 			}
 		}
 
 		wp_reset_postdata();
 
-		WP_CLI::success( 'Word count updated successfully.' );
+		\WP_CLI::success( 'Word count updated successfully.' );
 	}
 }
 

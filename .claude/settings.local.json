@@ -9,7 +9,9 @@
       "Bash(grep:*)",
       "Bash(php -l:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(echo:*)",
+      "Bash(done)"
     ]
   }
 }

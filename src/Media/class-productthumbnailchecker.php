@@ -30,7 +30,7 @@ class ProductThumbnailChecker {
 	 * Constructor.
 	 */
 	public function __construct() {
-		WP_CLI::add_command( 'fa:media product-thumbnail-check', array( $this, 'wp_cli_product_thumbnail_check' ) );
+		\WP_CLI::add_command( 'fa:media product-thumbnail-check', array( $this, 'wp_cli_product_thumbnail_check' ) );
 	}
 
 	/**
@@ -96,7 +96,7 @@ class ProductThumbnailChecker {
 		$query = new WP_Query( $args );
 		if ( $query->have_posts() ) {
 			foreach ( $query->posts as $post_id ) {
-				WP_CLI::debug( 'Product ID ' . $post_id . ' does not have a thumbnail.' );
+				\WP_CLI::debug( 'Product ID ' . $post_id . ' does not have a thumbnail.' );
 				$status = wp_update_post(
 					array(
 						'ID'          => $post_id,
@@ -105,10 +105,10 @@ class ProductThumbnailChecker {
 				);
 
 				if ( 0 === $status ) {
-					WP_CLI::warning( "Product {$post_id} NOT moved to drafts." );
+					\WP_CLI::warning( "Product {$post_id} NOT moved to drafts." );
 					$error_count++;
 				} else {
-					WP_CLI::success( "Product {$post_id} moved to drafts." );
+					\WP_CLI::success( "Product {$post_id} moved to drafts." );
 					$processed_count++;
 				}
 			}
