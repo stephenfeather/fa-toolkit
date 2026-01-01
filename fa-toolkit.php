@@ -59,8 +59,8 @@ new \FAToolkit\Modules\WooCommerceSettings();
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	new \FAToolkit\Utilities\FixRankMathSchemas();
 	new \FAToolkit\Utilities\GTINS();
+	new \FAToolkit\Utilities\Color_Test();
 }
-new \FAToolkit\Utilities\Color_Test();
 new \FAToolkit\Utilities\Debug();
 
 // Site
