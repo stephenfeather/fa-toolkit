@@ -65,5 +65,5 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	/**
 	 * Register the color-test command.
 	 */
-	\WP_CLI::add_command( 'color-test', 'Color_Test' );
+	\WP_CLI::add_command( 'color-test', new Color_Test() );
 }
