@@ -7,7 +7,9 @@
       "Bash(fd:*)",
       "Bash(composer dump-autoload:*)",
       "Bash(grep:*)",
-      "Bash(php -l:*)"
+      "Bash(php -l:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

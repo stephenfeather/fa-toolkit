@@ -55,9 +55,11 @@ new \FAToolkit\Modules\WPAllImportSettings();
 new \FAToolkit\Modules\QueryMonitorSettings();
 new \FAToolkit\Modules\WooCommerceSettings();
 
-// Utilities
-new \FAToolkit\Utilities\FixRankMathSchemas();
-new \FAToolkit\Utilities\GTINS();
+// Utilities (WP-CLI dependent classes only load if WP-CLI is active)
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	new \FAToolkit\Utilities\FixRankMathSchemas();
+	new \FAToolkit\Utilities\GTINS();
+}
 new \FAToolkit\Utilities\Color_Test();
 new \FAToolkit\Utilities\Debug();
 
