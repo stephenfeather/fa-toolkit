@@ -30,7 +30,7 @@ require_once FA_TOOLKIT_PATH . 'vendor/autoload.php';
 new \FAToolkit\Admin\Custom_Admin_Menu();
 new \FAToolkit\Admin\Attachment_SHA256_Hash_Meta_Box();
 new \FAToolkit\Admin\Product_Display_Vendor();
-new \FAToolkit\Admin\Product_Display_ID();
+new \FAToolkit\Admin\Product_Display_Id();
 new \FAToolkit\Admin\Product_Category_Counts();
 new \FAToolkit\Admin\Admin_Meta_Boxes();
 
@@ -40,14 +40,13 @@ new \FAToolkit\Media\ProductThumbnailChecker();
 new \FAToolkit\Media\AutoAttachUploadedMedia();
 
 // Promotion
-new \FAToolkit\Promotion\Promotion();
+new \FAToolkit\Promotion\Promotions();
 new \FAToolkit\Promotion\Promotion_Meta_Box();
 new \FAToolkit\Promotion\Promotion_PostType();
 
 // Product
 new \FAToolkit\Product\WordCount();
 new \FAToolkit\Product\Bard_Meta_Box();
-new \FAToolkit\Product\WC_Update_Global_Unique_ID();
 
 // Modules
 new \FAToolkit\Modules\PWBulkEditorSettings();
@@ -58,7 +57,7 @@ new \FAToolkit\Modules\WooCommerceSettings();
 
 // Utilities
 new \FAToolkit\Utilities\FixRankMathSchemas();
-new \FAToolkit\Utilities\GTINs();
+new \FAToolkit\Utilities\GTINS();
 new \FAToolkit\Utilities\Color_Test();
 new \FAToolkit\Utilities\Debug();
 

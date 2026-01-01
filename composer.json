@@ -2,6 +2,9 @@
     "name": "featherarms/fa-toolkit",
     "license": "GPL v3",
     "autoload": {
+        "classmap": [
+            "src/"
+        ],
         "psr-4": {
             "FAToolkit\\": "src/"
         }

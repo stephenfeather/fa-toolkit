@@ -4,7 +4,8 @@
       "Bash(eza:*)",
       "Bash(test:*)",
       "Bash(composer install:*)",
-      "Bash(fd:*)"
+      "Bash(fd:*)",
+      "Bash(composer dump-autoload:*)"
     ]
   }
 }
