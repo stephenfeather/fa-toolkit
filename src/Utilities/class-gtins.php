@@ -47,7 +47,7 @@ class GTINS {
 		$category_id = isset( $args[0] ) ? intval( $args[0] ) : 0;
 
 		if ( ! $category_id ) {
-			WP_CLI::error( 'Invalid category ID.' );
+			\WP_CLI::error( 'Invalid category ID.' );
 		}
 
 		$product_ids = get_posts(
@@ -67,7 +67,7 @@ class GTINS {
 		);
 
 		if ( empty( $product_ids ) ) {
-			WP_CLI::error( 'No products found in the specified category.' );
+			\WP_CLI::error( 'No products found in the specified category.' );
 		}
 
 		foreach ( $product_ids as $product_id ) {
@@ -78,7 +78,7 @@ class GTINS {
 			}
 		}
 
-		WP_CLI::success( 'GTIN codes populated successfully.' );
+		\WP_CLI::success( 'GTIN codes populated successfully.' );
 	}
 }
 
