@@ -6,6 +6,8 @@
  * @since 1.0.4
  */
 
+namespace FAToolkit\Product;
+
 /**
  * Class to update the fa_word_count meta field for products.
  */

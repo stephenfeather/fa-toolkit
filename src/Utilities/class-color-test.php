@@ -10,6 +10,8 @@
  * @since 1.0.4
  */
 
+namespace FAToolkit\Utilities;
+
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	/**
 	 * Test color output using the WP_CLI::colorize() function.

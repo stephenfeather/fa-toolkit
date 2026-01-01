@@ -1,4 +1,16 @@
 <?php
+/**
+ * WP-CLI command for scraping product data.
+ *
+ * @package FA-Toolkit
+ */
+
+namespace FAToolkit\CLI\Commands;
+
+if ( defined( 'ABSPATH' ) === false ) {
+	exit; // Exit if accessed directly.
+}
+
 if ( class_exists( 'WP_CLI_Command' ) ) {
 	/**
 	 * WP-CLI command for scraping product data from URLs.

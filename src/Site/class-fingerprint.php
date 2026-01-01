@@ -1,0 +1,78 @@
+<?php
+/**
+ * Fingerprint integration helpers for checkout and frontend tracking.
+ *
+ * @package FA-Toolkit
+ */
+
+namespace FAToolkit\Site;
+
+if ( defined( 'ABSPATH' ) === false ) {
+	exit; // Exit if accessed directly.
+}
+
+/**
+ * Fingerprint class for FingerprintJS integration.
+ */
+class Fingerprint {
+	/**
+	 * Constructor - registers scripts and hooks.
+	 */
+	public function __construct() {
+		wp_register_script( 'iife', 'https://fpcdn.io/v3/Oo4CqqyVw0pCzwTpD4Mx/iife.min.js', array(), '3.0.0', true );
+		add_action( 'wp_head', array( $this, 'response_handler' ) );
+	}
+
+	/**
+	 * Add fingerprintJS to our checkout page
+	 *
+	 * @return void
+	 */
+	public function add_jscript_checkout() {
+		?>
+		<script id="fingerprint">
+		console.log("Initializing Fingerprint");
+		const fpPromise = import('https://fpcdn.io/v3/Oo4CqqyVw0pCzwTpD4Mx')
+			.then(FingerprintJS => FingerprintJS.load({
+				apiKey: 'Oo4CqqyVw0pCzwTpD4Mx',
+				endpoint: 'https://metrics.featherarms.com'
+			}));
+
+		fpPromise
+			.then(fp => fp.get({tag: {
+				PHPSESSID: '<?php printf( '%s', esc_html( session_id() ) ); ?>',
+				userID: '<?php printf( '%s', esc_html( get_current_user_id() ) ); ?>'
+			}}))
+			.then(result => console.log(result.));
+		</script>
+		<?php
+	}
+
+	/**
+	 * Builds the inline FingerprintJS loader script for the site header.
+	 *
+	 * @return void
+	 */
+	public function response_handler() {
+		$script = '<script async id="FingerPrint">';
+
+		$script .= 'console.log("Initializing Fingerprint");';
+		$script .= 'var fpPromise = FingerprintJS.load({';
+		$script .= 'apiKey: "Oo4CqqyVw0pCzwTpD4Mx", endpoint: "https://metrics.featherarms.com"';
+		$script .= '});';
+
+		$script .= 'fpPromise';
+		$script .= '	.then(function (fp) { return fp.get({tag: {';
+		$script .= '		PHPSESSID: ' . (int) session_id() . ',';
+		$script .= '		userID: ' . (int) get_current_user_id();
+		$script .= '	}}) })';
+		$script .= '.then(function (result) { console.log("Result: " + result) })';
+		$script .= '</script>';
+
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses_post( $script );
+	}
+}
+
+// Instantiate to register hooks.
+new Fingerprint();

@@ -6,7 +6,7 @@
  * @since 1.0.8
  */
 
-namespace FAToolkit\Tools;
+namespace FAToolkit\CLI\Tools;
 
 // Dont load directly.
 if ( defined( 'ABSPATH' ) === false ) {

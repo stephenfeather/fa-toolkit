@@ -5,6 +5,8 @@
  * @package FA-Toolkit
  */
 
+namespace FAToolkit\CLI\Tools;
+
 if ( defined( 'ABSPATH' ) === false ) {
 	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }

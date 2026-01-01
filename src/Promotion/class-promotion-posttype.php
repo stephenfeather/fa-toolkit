@@ -5,7 +5,7 @@
  * @since 1.0.6
  */
 
-namespace FA\Toolkit\Promotion;
+namespace FAToolkit\Promotion;
 
 if ( defined( 'ABSPATH' ) === false ) {
 	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit

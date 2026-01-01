@@ -6,9 +6,9 @@
  * @since 1.0
  *
  * TODO: Refactor this into a class.
- *
- * TODO: Refactor this into a class.
  */
+
+namespace FAToolkit\CLI\Media;
 
 if ( defined( 'ABSPATH' ) === false ) {
 	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit

@@ -8,6 +8,8 @@
 
 namespace FAToolkit\Modules;
 
+use FAToolkit\Utilities\Debug;
+
 if ( defined( 'ABSPATH' ) === false ) {
 	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
@@ -197,8 +199,8 @@ class WPAllImportSettings {
 	 */
 	private function fa_img_import( $post_id, $gallery_attachment_ids, $missing_images ) {
 		global $wp_filesystem;
-		add_custom_tracer( 'fa_img_import' );
-		write_log( $missing_images );
+		Debug::add_custom_tracer( 'fa_img_import' );
+		Debug::write_log( $missing_images );
 		if ( empty( $missing_images ) ) {
 			return;
 		}
@@ -206,7 +208,7 @@ class WPAllImportSettings {
 		$uploads       = wp_upload_dir();
 		$date          = gmdate( 'Y-m-d' );
 		$log_file_name = $uploads['basedir'] . '/' . $date . '_import_missing_images.txt';
-		write_log( $log_file_name );
+		Debug::write_log( $log_file_name );
 		$existing_data = $post_id . ',' . implode( ', ', $missing_images );
 		$wp_filesystem->put_contents( $log_file_name, $existing_data . PHP_EOL, FS_APPEND | LOCK_EX );
 	}

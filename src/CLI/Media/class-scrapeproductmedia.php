@@ -6,7 +6,7 @@
  * @since 1.0.4
  */
 
-namespace FAToolkit\Media;
+namespace FAToolkit\CLI\Media;
 
 if ( defined( 'ABSPATH' ) === false ) {
 	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit

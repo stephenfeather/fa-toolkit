@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(eza:*)",
+      "Bash(test:*)",
+      "Bash(composer install:*)"
+    ]
+  }
+}
