@@ -153,5 +153,5 @@ if ( class_exists( 'WP_CLI_Command' ) ) {
 		}
 	}
 
-	\WP_CLI::add_command( 'scrape_product_data', 'Scrape_Product_Data_Command' );
+	\WP_CLI::add_command( 'scrape_product_data', __NAMESPACE__ . '\Scrape_Product_Data_Command' );
 }

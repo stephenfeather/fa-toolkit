@@ -16,7 +16,8 @@
       "Bash(do)",
       "Bash(if [ -f \"$file\" ])",
       "Bash(then)",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(perl -i -pe:*)"
     ]
   }
 }

@@ -18,7 +18,7 @@ if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 	return;
 }
 
-if ( function_exists( 'wp_cli_find_media_for_product' ) === false ) {
+if ( function_exists( __NAMESPACE__ . '\wp_cli_find_media_for_product' ) === false ) {
 	/**
 	 * Find attachments with names like product SKU
 	 *
@@ -87,7 +87,7 @@ if ( function_exists( 'wp_cli_find_media_for_product' ) === false ) {
 		$product->set_gallery_image_ids( $gallery_images );
 		$product->save();
 	}
-	\WP_CLI::add_command( 'fa:media-dev find-media-for-product', 'wp_cli_find_media_for_product' );
+	\WP_CLI::add_command( 'fa:media-dev find-media-for-product', __NAMESPACE__ . '\wp_cli_find_media_for_product' );
 }
 
 /**

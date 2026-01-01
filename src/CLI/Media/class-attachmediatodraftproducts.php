@@ -131,7 +131,7 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 		\WP_CLI::log( sprintf( '%d products had attachments added', $num_with_attachments ) );
 	}
 
-	\WP_CLI::add_command( 'fa:media attach-media-to-draft-products', 'wp_cli_attach_media_to_draft_products' );
+	\WP_CLI::add_command( 'fa:media attach-media-to-draft-products', __NAMESPACE__ . '\wp_cli_attach_media_to_draft_products' );
 }
 
 if ( function_exists( 'sku_to_filename' ) === false ) {

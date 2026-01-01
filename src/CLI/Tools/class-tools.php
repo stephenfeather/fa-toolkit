@@ -15,7 +15,7 @@ if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 	exit;
 }
 
-if ( function_exists( 'wp_cli_merge_files' ) === false ) {
+if ( function_exists( __NAMESPACE__ . '\wp_cli_merge_files' ) === false ) {
 
 	/**
 	 * Merge the RETAIL-MAP column in a tsv file into a csv file keyed by a column.
@@ -78,10 +78,10 @@ if ( function_exists( 'wp_cli_merge_files' ) === false ) {
 		}
 		fclose( $merged_file );
 	}
-	\WP_CLI::add_command( 'fa:tools merge-files', 'wp_cli_merge_files' );
+	\WP_CLI::add_command( 'fa:tools merge-files', __NAMESPACE__ . '\wp_cli_merge_files' );
 }
 
-if ( function_exists( 'wp_cli_sort_csv_by_column' ) === false ) {
+if ( function_exists( __NAMESPACE__ . '\wp_cli_sort_csv_by_column' ) === false ) {
 	/**
 	 * Sort a CSV file by the provided column index via WP-CLI.
 	 *
@@ -113,10 +113,10 @@ if ( function_exists( 'wp_cli_sort_csv_by_column' ) === false ) {
 		}
 		fclose( $file );
 	}
-	\WP_CLI::add_command( 'fa:tools sort-csv-by-column', 'wp_cli_sort_csv_by_column' );
+	\WP_CLI::add_command( 'fa:tools sort-csv-by-column', __NAMESPACE__ . '\wp_cli_sort_csv_by_column' );
 }
 
-if ( function_exists( 'wp_cli_sort_tsv_by_column' ) === false ) {
+if ( function_exists( __NAMESPACE__ . '\wp_cli_sort_tsv_by_column' ) === false ) {
 	/**
 	 * Sort a TSV file by the provided column index via WP-CLI.
 	 *
@@ -161,5 +161,5 @@ if ( function_exists( 'wp_cli_sort_tsv_by_column' ) === false ) {
 		}
 		fclose( $file );
 	}
-	\WP_CLI::add_command( 'fa:tools sort-tsv-by-column', 'wp_cli_sort_tsv_by_column' );
+	\WP_CLI::add_command( 'fa:tools sort-tsv-by-column', __NAMESPACE__ . '\wp_cli_sort_tsv_by_column' );
 }

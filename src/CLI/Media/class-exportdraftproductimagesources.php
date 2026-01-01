@@ -18,7 +18,7 @@ if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 	return;
 }
 
-if ( function_exists( 'wp_cli_export_draft_product_image_sources' ) === false ) {
+if ( function_exists( __NAMESPACE__ . '\wp_cli_export_draft_product_image_sources' ) === false ) {
 
 	/**
 	 * Export the contents of an Advanced Custom Field called image_source from all products with a draft status to a file.
@@ -73,5 +73,5 @@ if ( function_exists( 'wp_cli_export_draft_product_image_sources' ) === false ) 
 		wp_reset_postdata();
 	}
 
-	\WP_CLI::add_command( 'fa:media export-draft-product-image-sources', 'wp_cli_export_draft_product_image_sources' );
+	\WP_CLI::add_command( 'fa:media export-draft-product-image-sources', __NAMESPACE__ . '\wp_cli_export_draft_product_image_sources' );
 }
