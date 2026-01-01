@@ -37,6 +37,7 @@ new \FAToolkit\Admin\Admin_Meta_Boxes();
 // Media
 new \FAToolkit\Media\Media_Fix_Ilab_Metadata();
 new \FAToolkit\Media\ProductThumbnailChecker();
+new \FAToolkit\Media\AutoAttachUploadedMedia();
 
 // Promotion
 new \FAToolkit\Promotion\Promotion();
