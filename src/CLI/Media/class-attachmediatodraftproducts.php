@@ -54,7 +54,7 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 		$sortorder = isset( $assoc_args['sortorder'] ) ? $assoc_args['sortorder'] : 'DESC';
 
 		// Get a list of draft product IDs.
-		WP_CLI::debug( 'Loading Products..' );
+		\WP_CLI::debug( 'Loading Products..' );
 		$draft_product_ids = get_posts(
 			array(
 				'post_type'      => 'product',
@@ -67,7 +67,7 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 		);
 
 		// Load all of our attachments into memory.
-		WP_CLI::debug( 'Loading Attachments..' );
+		\WP_CLI::debug( 'Loading Attachments..' );
 		$attachments = get_posts(
 			array(
 				'post_type'      => 'attachment',
@@ -101,12 +101,12 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 				$is_attached = get_post_meta( $product_id, '_thumbnail_id', true );
 
 				if ( empty( $is_attached ) === false && $is_attached === $attachment['ID'] ) {
-					WP_CLI::debug( sprintf( 'Attachment ID %d is already attached to product ID %d', $product_id, $attachment['ID'] ) );
+					\WP_CLI::debug( sprintf( 'Attachment ID %d is already attached to product ID %d', $product_id, $attachment['ID'] ) );
 					$matching_attachments++;
 				} else {
 					if ( isset( $assoc_args['dry-run'] ) === false ) {
 						set_post_thumbnail( $product_id, $attachment['ID'] );
-						WP_CLI::success( sprintf( 'Product %d now parent of Attachment %d', $product_id, $attachment['ID'] ) );
+						\WP_CLI::success( sprintf( 'Product %d now parent of Attachment %d', $product_id, $attachment['ID'] ) );
 						$num_with_attachments++;
 
 						// Publish the product.
@@ -116,22 +116,22 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 								'post_status' => 'publish',
 							)
 						);
-						WP_CLI::debug( sprintf( 'Product ID %s: %s', $product_id, $publish_response ) );
+						\WP_CLI::debug( sprintf( 'Product ID %s: %s', $product_id, $publish_response ) );
 					} else {
-						WP_CLI::log( sprintf( 'Preview: Attachment %d: (%s) will be attached to Product %d: (%s)', $attachment['ID'], $attachment['post_title'], $product_id, $sku ) );
+						\WP_CLI::log( sprintf( 'Preview: Attachment %d: (%s) will be attached to Product %d: (%s)', $attachment['ID'], $attachment['post_title'], $product_id, $sku ) );
 					}
 				}
 			} else {
-				WP_CLI::debug( "No Matching Attachment for {$product_id}!" );
+				\WP_CLI::debug( "No Matching Attachment for {$product_id}!" );
 			}
 		}
-		WP_CLI::log( "Draft Products: {$products_count}" );
-		WP_CLI::log( "Attachments: {$attachments_count}" );
-		WP_CLI::log( sprintf( 'Products with existing attachments: %d', $matching_attachments ) );
-		WP_CLI::log( sprintf( '%d products had attachments added', $num_with_attachments ) );
+		\WP_CLI::log( "Draft Products: {$products_count}" );
+		\WP_CLI::log( "Attachments: {$attachments_count}" );
+		\WP_CLI::log( sprintf( 'Products with existing attachments: %d', $matching_attachments ) );
+		\WP_CLI::log( sprintf( '%d products had attachments added', $num_with_attachments ) );
 	}
 
-	WP_CLI::add_command( 'fa:media attach-media-to-draft-products', 'wp_cli_attach_media_to_draft_products' );
+	\WP_CLI::add_command( 'fa:media attach-media-to-draft-products', 'wp_cli_attach_media_to_draft_products' );
 }
 
 if ( function_exists( 'sku_to_filename' ) === false ) {
@@ -174,7 +174,7 @@ if ( function_exists( 'find_filename_in_attachment_array' ) === false ) {
 		$extensions = array( '.jpg', '.png', '.webp', '.jpg.jpg' );
 		foreach ( $attachment_array as $object ) {
 			if ( $object->post_title === $filename ) {
-				WP_CLI::debug( sprintf( 'Matching sku>%s to post_title %s for product: %s attachment: %s', $filename, $object->post_title, $product_id, $object->ID ) );
+				\WP_CLI::debug( sprintf( 'Matching sku>%s to post_title %s for product: %s attachment: %s', $filename, $object->post_title, $product_id, $object->ID ) );
 				$result = $object;
 				break;
 			}

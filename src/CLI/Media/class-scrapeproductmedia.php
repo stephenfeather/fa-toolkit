@@ -106,13 +106,13 @@ class ScrapeProductMedia {
 
 		// Verify the product exists.
 		if ( ! $product ) {
-			WP_CLI::error( "Product ({$product_id}) does not exist." );
+			\WP_CLI::error( "Product ({$product_id}) does not exist." );
 		}
 
 		// Check if the product has a status of draft.
-		WP_CLI::debug( 'Product Status: ' . $product->get_status() );
+		\WP_CLI::debug( 'Product Status: ' . $product->get_status() );
 		if ( 'draft' !== $product->get_status() ) {
-			WP_CLI::warning( "Product ({$product_id}) is already published. ({$product->get_status()})" );
+			\WP_CLI::warning( "Product ({$product_id}) is already published. ({$product->get_status()})" );
 			if ( ! $override ) {
 				exit;
 			}
@@ -120,7 +120,7 @@ class ScrapeProductMedia {
 
 		// Check if the product has been previously tagged as having a placeholder image.
 		if ( $this->has_product_placeholder_meta_flag( $product_id ) ) {
-			WP_CLI::warning( "Product ({$product_id}) has been previously tagged as having a placeholder image." );
+			\WP_CLI::warning( "Product ({$product_id}) has been previously tagged as having a placeholder image." );
 			if ( ! $override ) {
 				exit;
 			}
@@ -131,7 +131,7 @@ class ScrapeProductMedia {
 
 		// Check if product already has featured image.
 		if ( has_post_thumbnail( $product_id ) ) {
-			WP_CLI::warning( "Product ({$product_id}) already has a featured image." );
+			\WP_CLI::warning( "Product ({$product_id}) already has a featured image." );
 			if ( ! $override ) {
 				$product->set_status( 'publish' );
 				$product->save();
@@ -141,7 +141,7 @@ class ScrapeProductMedia {
 
 		// Check if product already has gallery media.
 		if ( ! empty( $product->get_gallery_image_ids() ) ) {
-			WP_CLI::warning( "Product ({$product_id}) already has media gallery." );
+			\WP_CLI::warning( "Product ({$product_id}) already has media gallery." );
 			if ( ! $override ) {
 				$product->set_status( 'publish' );
 				$product->save();
@@ -151,11 +151,11 @@ class ScrapeProductMedia {
 
 		// Get the distributor.
 		$distributor = get_field( 'dealer', $product_id );
-		WP_CLI::debug( 'Distributor: ' . $distributor );
+		\WP_CLI::debug( 'Distributor: ' . $distributor );
 
 		// Check if the dealer_filter is not empty and does not match the distributor.
 		if ( ! empty( $dealer_filter ) && $dealer_filter !== $distributor ) {
-			WP_CLI::warning( "Product ({$product_id}) is not from the specified dealer ({$dealer_filter})." );
+			\WP_CLI::warning( "Product ({$product_id}) is not from the specified dealer ({$dealer_filter})." );
 			exit;
 		}
 
@@ -164,7 +164,7 @@ class ScrapeProductMedia {
 
 		// Generate the distributor_product_url.
 		$distributor_product_url = $this->generate_distributor_product_url( $sku, $distributor_settings );
-		WP_CLI::debug( 'Distributor Product URL: ' . $distributor_product_url );
+		\WP_CLI::debug( 'Distributor Product URL: ' . $distributor_product_url );
 
 		// Fetch the product_page.
 		$product_page = $this->fetch_product_page( $distributor_product_url );
@@ -172,7 +172,7 @@ class ScrapeProductMedia {
 		// Verify this isnt a soft 404 page from Davidsons.
 		if ( strpos( $product_page, '404 Not Found' ) !== false ) {
 			wp_delete_post( $product_id );
-			WP_CLI::error( "Product doesnt exist at Davidsons for ({$product_id}) Moved to trash." );
+			\WP_CLI::error( "Product doesnt exist at Davidsons for ({$product_id}) Moved to trash." );
 		}
 
 		// Scrape the page for media.
@@ -188,13 +188,13 @@ class ScrapeProductMedia {
 		}
 
 		if ( ! $success ) {
-			WP_CLI::error( "Failed to import media for product ({$product_id}): {$success}" );
+			\WP_CLI::error( "Failed to import media for product ({$product_id}): {$success}" );
 		} else {
 			// Publish the product.
 			$product->set_status( 'publish' );
 			$_success = $product->save();
-			WP_CLI::debug( 'Product Save Status: ' . $_success );
-			WP_CLI::success( "Successfully updated media ({$media_type}) for product ({$product_id})" );
+			\WP_CLI::debug( 'Product Save Status: ' . $_success );
+			\WP_CLI::success( "Successfully updated media ({$media_type}) for product ({$product_id})" );
 		}
 	}
 
@@ -209,7 +209,7 @@ class ScrapeProductMedia {
 	 */
 	private function generate_distributor_product_url( $sku, $distributor_settings ) {
 		$url = $distributor_settings['base_url'] . $sku;
-		WP_CLI::debug( 'Distributor Product URL: ' . $url );
+		\WP_CLI::debug( 'Distributor Product URL: ' . $url );
 		return $url;
 	}
 
@@ -225,10 +225,10 @@ class ScrapeProductMedia {
 		$response = wp_remote_get( $url );
 		if ( is_wp_error( $response ) ) {
 			// There was an error in the request.
-			WP_CLI::error( 'Error: ' . esc_html( $response->get_error_message() ) );
+			\WP_CLI::error( 'Error: ' . esc_html( $response->get_error_message() ) );
 		} else {
 			$body = wp_remote_retrieve_body( $response );
-			WP_CLI::debug( 'Product Page: ' . $body );
+			\WP_CLI::debug( 'Product Page: ' . $body );
 			return $body;
 		}
 	}
@@ -261,8 +261,8 @@ class ScrapeProductMedia {
 				}
 			}
 		}
-		WP_CLI::debug( 'Main Image: ' . $main_image );
-		WP_CLI::debug( 'Gallery: ' . implode( ', ', $gallery ) );
+		\WP_CLI::debug( 'Main Image: ' . $main_image );
+		\WP_CLI::debug( 'Gallery: ' . implode( ', ', $gallery ) );
 		return array( $main_image, $gallery );
 	}
 
@@ -280,7 +280,7 @@ class ScrapeProductMedia {
 		// if we have a main image, import it and set it as the product featured image.
 		if ( ! empty( $featured_image_url ) ) {
 			$featured_image_id = $this->import_media( $featured_image_url, $product_id );
-			WP_CLI::debug( 'Featured Image ID: ' . $featured_image_id );
+			\WP_CLI::debug( 'Featured Image ID: ' . $featured_image_id );
 			if ( ! is_wp_error( $featured_image_id ) ) {
 				$success = set_post_thumbnail( $product_id, $featured_image_id );
 			} else {
@@ -296,7 +296,7 @@ class ScrapeProductMedia {
 			foreach ( $gallery_urls as $image ) {
 				$gallery_ids[] = $this->import_media( $image, $product_id );
 			}
-			WP_CLI::debug( 'Gallery IDs: ' . implode( ', ', $gallery_ids ) );
+			\WP_CLI::debug( 'Gallery IDs: ' . implode( ', ', $gallery_ids ) );
 			if ( ! is_wp_error( $gallery_ids ) ) {
 				$success = update_post_meta( $product_id, '_product_image_gallery', implode( ',', $gallery_ids ) );
 			} else {
@@ -316,14 +316,14 @@ class ScrapeProductMedia {
 	 * @access private
 	 */
 	private function import_media( $url, $product_id ) {
-		WP_CLI::debug( 'Importing Media for ' . $product_id . ': ' . $url );
+		\WP_CLI::debug( 'Importing Media for ' . $product_id . ': ' . $url );
 		exit;
 		// Check the type of file. We'll use this as the 'post_mime_type'.
 		$remote_basename = basename( $url );
 		$filetype        = wp_check_filetype( $remote_basename, null );
 
 		if ( 'placeholder.jpg' === $remote_basename ) {
-			WP_CLI::warning( "({$product_id}): {$remote_basename} identified by filename. Not importing." );
+			\WP_CLI::warning( "({$product_id}): {$remote_basename} identified by filename. Not importing." );
 			$this->save_product_placeholder_meta_flag( $product_id );
 			return;
 		}
@@ -331,14 +331,14 @@ class ScrapeProductMedia {
 		// Verify this attachment is not already in the media library.
 		$existing_post = post_exists( $remote_basename );
 		if ( $existing_post ) {
-			WP_CLI::warning( "({$product_id}): {$remote_basename} already exists. Not redownloading." );
+			\WP_CLI::warning( "({$product_id}): {$remote_basename} already exists. Not redownloading." );
 			return $existing_post;
 		}
 		// Get the file.
 		$response = wp_remote_get( $url );
 		if ( is_wp_error( $response ) ) {
 			// There was an error in the request.
-			WP_CLI::error( 'Error: ' . esc_html( $response->get_error_message() ) );
+			\WP_CLI::error( 'Error: ' . esc_html( $response->get_error_message() ) );
 		}
 
 		// Set variables for storage.
@@ -346,13 +346,13 @@ class ScrapeProductMedia {
 
 		if ( ! empty( $upload['error'] ) ) {
 			// There was an error uploading the file.
-			WP_CLI::error( 'Error: ' . esc_html( $upload['error'] ) );
+			\WP_CLI::error( 'Error: ' . esc_html( $upload['error'] ) );
 		}
 
 		// Verify that the file hash is not a known placeholder.
 		$hash = hash_file( 'sha256', $upload['file'] );
 		if ( in_array( $hash, $this->known_placeholder_hashes, true ) ) {
-			WP_CLI::warning( "({$product_id}): {$remote_basename} identified by placeholder hash. Not importing." );
+			\WP_CLI::warning( "({$product_id}): {$remote_basename} identified by placeholder hash. Not importing." );
 			$this->save_product_placeholder_meta_flag( $product_id );
 			return 0;
 		}
@@ -415,13 +415,13 @@ class ScrapeProductMedia {
 	 * @access private
 	 */
 	private function save_product_placeholder_meta_flag( $product_id ) {
-		WP_CLI::debug( 'Setting placeholder flag.' );
+		\WP_CLI::debug( 'Setting placeholder flag.' );
 		$success = update_post_meta( $product_id, 'product_placeholder', true );
 		if ( $success ) {
-			WP_CLI::success( "({$product_id}): Set placeholder flag." );
+			\WP_CLI::success( "({$product_id}): Set placeholder flag." );
 			exit;
 		} else {
-			WP_CLI::error( "({$product_id}): Failed to set placeholder flag." );
+			\WP_CLI::error( "({$product_id}): Failed to set placeholder flag." );
 		}
 		return $success;
 	}
@@ -439,4 +439,4 @@ class ScrapeProductMedia {
 	}
 }
 
-WP_CLI::add_command( 'fa:media scrape-product-media', array( new ScrapeProductMedia(), 'wp_cli_scrape_product_media' ) );
+\WP_CLI::add_command( 'fa:media scrape-product-media', array( new ScrapeProductMedia(), 'wp_cli_scrape_product_media' ) );

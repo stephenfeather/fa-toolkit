@@ -31,7 +31,7 @@ class ExportACFField {
 	 * This class represents a tool for exporting ACF fields.
 	 */
 	public function __construct() {
-		WP_CLI::add_command( 'fa:tools export-acf-field', array( $this, 'export_fields' ) );
+		\WP_CLI::add_command( 'fa:tools export-acf-field', array( $this, 'export_fields' ) );
 	}
 
 
@@ -56,7 +56,7 @@ class ExportACFField {
 		// Prepare CSV data.
 		$csv_data   = array();
 		$csv_data[] = array( 'Product ID', 'ACF Field Value' );
-		// WP_CLI::line( 'Fetching products...' );
+		// \WP_CLI::line( 'Fetching products...' );
 		$products = $this->fetch_all_products();
 		$progress = \WP_CLI\Utils\make_progress_bar( 'Processing products', count( $products ) );
 		foreach ( $products as $product ) {
@@ -70,7 +70,7 @@ class ExportACFField {
 		$progress->finish();
 		// Output CSV data to file.
 		$foo = $this->output_csv_to_file( $csv_data, $acf_field_key );
-		WP_CLI::success( "Exported ACF field values for {{$acf_field_key}}" );
+		\WP_CLI::success( "Exported ACF field values for {{$acf_field_key}}" );
 	}
 
 	/**
@@ -100,7 +100,7 @@ class ExportACFField {
 		$upload_dir = wp_upload_dir();
 		$filename   = 'acf_field_export_' . $acf_field_key . '_' . gmdate( 'Y-m-d_H-i-s' ) . '.csv';
 		$filepath   = $upload_dir['path'] . '/' . $filename;
-		WP_CLI::line( "Exported ACF field values to {$filepath}" );
+		\WP_CLI::line( "Exported ACF field values to {$filepath}" );
 
 		// Open the file for writing.
 		$output = fopen( $filepath, 'w' );

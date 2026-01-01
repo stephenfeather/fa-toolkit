@@ -39,7 +39,7 @@ if ( class_exists( 'WP_CLI_Command' ) ) {
 			$product_id = $args[0];
 			$url        = $args[1];
 
-			WP_CLI::line( 'Scraping data from URL: ' . $url );
+			\WP_CLI::line( 'Scraping data from URL: ' . $url );
 
 			// Perform scraping and data extraction here
 			// You can use libraries like DOMDocument or SimpleHTMLDomParser to parse HTML and extract data.
@@ -73,13 +73,13 @@ if ( class_exists( 'WP_CLI_Command' ) ) {
 			}
 
 			// Output the scraped data.
-			WP_CLI::line( 'Product ID: ' . $product_id );
-			WP_CLI::line( 'Product Title: ' . $product_title );
-			WP_CLI::line( 'Gallery Images:' );
+			\WP_CLI::line( 'Product ID: ' . $product_id );
+			\WP_CLI::line( 'Product Title: ' . $product_title );
+			\WP_CLI::line( 'Gallery Images:' );
 			foreach ( $gallery_image_urls as $image_url ) {
-				WP_CLI::line( $image_url );
+				\WP_CLI::line( $image_url );
 			}
-			WP_CLI::line( 'Post Content: ' . $post_content );
+			\WP_CLI::line( 'Post Content: ' . $post_content );
 
 			// Example code to download images and update product data.
 			$gallery_image_ids = array();
@@ -130,7 +130,7 @@ if ( class_exists( 'WP_CLI_Command' ) ) {
 			// if we have a main image, import it and set it as the product featured image.
 			if ( empty( $featured_image_url ) === false ) {
 				$featured_image_id = $this->import_media( $featured_image_url, $product_id );
-				WP_CLI::debug( 'Featured Image ID: ' . $featured_image_id );
+				\WP_CLI::debug( 'Featured Image ID: ' . $featured_image_id );
 				if ( is_wp_error( $featured_image_id ) === false ) {
 					$success = set_post_thumbnail( $product_id, $featured_image_id );
 				}
@@ -144,7 +144,7 @@ if ( class_exists( 'WP_CLI_Command' ) ) {
 				foreach ( $gallery_urls as $image ) {
 					$gallery_ids[] = $this->import_media( $image, $product_id );
 				}
-				WP_CLI::debug( 'Gallery IDs: ' . implode( ', ', $gallery_ids ) );
+				\WP_CLI::debug( 'Gallery IDs: ' . implode( ', ', $gallery_ids ) );
 				if ( is_wp_error( $gallery_ids ) === false ) {
 					$success = update_post_meta( $product_id, '_product_image_gallery', implode( ',', $gallery_ids ) );
 				}
@@ -153,5 +153,5 @@ if ( class_exists( 'WP_CLI_Command' ) ) {
 		}
 	}
 
-	WP_CLI::add_command( 'scrape_product_data', 'Scrape_Product_Data_Command' );
+	\WP_CLI::add_command( 'scrape_product_data', 'Scrape_Product_Data_Command' );
 }

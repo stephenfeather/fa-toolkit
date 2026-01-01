@@ -32,7 +32,7 @@ if ( function_exists( 'wp_cli_merge_files' ) === false ) {
 	function wp_cli_merge_files( $args, $assoc_args ) {
 		list( $csv_file, $tsv_file, $id_column) = $args;
 		if ( ! $csv_file && ! $tsv_file && ! $id_column ) {
-			WP_CLI::error( 'Missing arguments.' );
+			\WP_CLI::error( 'Missing arguments.' );
 		}
 		$csv_data = array_map( 'str_getcsv', file( $csv_file ) );
 		$tsv_data = array_map( 'str_getcsv', file( $tsv_file ), array_fill( 0, count( file( $tsv_file ) ), "\t" ) );
@@ -78,7 +78,7 @@ if ( function_exists( 'wp_cli_merge_files' ) === false ) {
 		}
 		fclose( $merged_file );
 	}
-	WP_CLI::add_command( 'fa:tools merge-files', 'wp_cli_merge_files' );
+	\WP_CLI::add_command( 'fa:tools merge-files', 'wp_cli_merge_files' );
 }
 
 if ( function_exists( 'wp_cli_sort_csv_by_column' ) === false ) {
@@ -113,7 +113,7 @@ if ( function_exists( 'wp_cli_sort_csv_by_column' ) === false ) {
 		}
 		fclose( $file );
 	}
-	WP_CLI::add_command( 'fa:tools sort-csv-by-column', 'wp_cli_sort_csv_by_column' );
+	\WP_CLI::add_command( 'fa:tools sort-csv-by-column', 'wp_cli_sort_csv_by_column' );
 }
 
 if ( function_exists( 'wp_cli_sort_tsv_by_column' ) === false ) {
@@ -161,5 +161,5 @@ if ( function_exists( 'wp_cli_sort_tsv_by_column' ) === false ) {
 		}
 		fclose( $file );
 	}
-	WP_CLI::add_command( 'fa:tools sort-tsv-by-column', 'wp_cli_sort_tsv_by_column' );
+	\WP_CLI::add_command( 'fa:tools sort-tsv-by-column', 'wp_cli_sort_tsv_by_column' );
 }

@@ -32,7 +32,7 @@ if ( function_exists( 'wp_cli_export_draft_product_image_sources' ) === false ) 
 	 */
 	function wp_cli_export_draft_product_image_sources( $args ) {
 		if ( class_exists( 'acf' ) === false ) {
-			WP_CLI::error( 'Advanced Custom Fields is not installed or active.' );
+			\WP_CLI::error( 'Advanced Custom Fields is not installed or active.' );
 		}
 
 		$output_file = isset( $args[0] ) ? $args[0] : 'draft-product-image-sources.txt';
@@ -51,9 +51,9 @@ if ( function_exists( 'wp_cli_export_draft_product_image_sources' ) === false ) 
 			$output = '';
 		foreach ( $products as $product_id ) {
 			$image_source = get_field( 'image_source', $product_id );
-			WP_CLI::debug( "Image Source for {$product_id}: {$image_source}" );
+			\WP_CLI::debug( "Image Source for {$product_id}: {$image_source}" );
 			if ( $image_source ) {
-				WP_CLI::debug( "Image Source for {$product_id}: " );
+				\WP_CLI::debug( "Image Source for {$product_id}: " );
 				$output .= $image_source . "\n";
 			}
 		}
@@ -62,16 +62,16 @@ if ( function_exists( 'wp_cli_export_draft_product_image_sources' ) === false ) 
 			$result = $wp_filesystem->put_contents( $output_file, $output );
 
 			if ( false !== $result ) {
-				WP_CLI::success( 'Draft product image sources exported to ' . $output_file . '.' );
+				\WP_CLI::success( 'Draft product image sources exported to ' . $output_file . '.' );
 			} else {
-				WP_CLI::error( 'Error exporting draft product image sources to ' . $output_file . '.' );
+				\WP_CLI::error( 'Error exporting draft product image sources to ' . $output_file . '.' );
 			}
 		} else {
-			WP_CLI::error( 'No draft product image sources found.' );
+			\WP_CLI::error( 'No draft product image sources found.' );
 		}
 
 		wp_reset_postdata();
 	}
 
-	WP_CLI::add_command( 'fa:media export-draft-product-image-sources', 'wp_cli_export_draft_product_image_sources' );
+	\WP_CLI::add_command( 'fa:media export-draft-product-image-sources', 'wp_cli_export_draft_product_image_sources' );
 }

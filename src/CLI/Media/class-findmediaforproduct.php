@@ -57,9 +57,9 @@ if ( function_exists( 'wp_cli_find_media_for_product' ) === false ) {
 		$results_array = graded_array_search( $attachments, $basename );
 
 		$attachments_count = count( $attachments );
-		WP_CLI::log( sprintf( 'Finding media for product %d.', $product_id ) );
-		WP_CLI::log( sprintf( 'Product Title: %s', $product->get_name() ) );
-		WP_CLI::log( sprintf( '  Product SKU: %s', $sku ) );
+		\WP_CLI::log( sprintf( 'Finding media for product %d.', $product_id ) );
+		\WP_CLI::log( sprintf( 'Product Title: %s', $product->get_name() ) );
+		\WP_CLI::log( sprintf( '  Product SKU: %s', $sku ) );
 
 		// Do we push the lowest distance into _thumbnail_id?
 		// Do we push the rest into _product_image_gallery?
@@ -70,7 +70,7 @@ if ( function_exists( 'wp_cli_find_media_for_product' ) === false ) {
 
 			if ( 0 === $result['distance'] ) {
 				// Make attachment featured.
-				WP_CLI::log( sprintf( 'Featured Image id: %d.', $result['id'] ) );
+				\WP_CLI::log( sprintf( 'Featured Image id: %d.', $result['id'] ) );
 				set_product_image( $product, $result['id'] );
 			} else {
 				// How do we add/determine for image gallery?
@@ -80,14 +80,14 @@ if ( function_exists( 'wp_cli_find_media_for_product' ) === false ) {
 					// Push the id into the array.
 					array_push( $gallery_images, $result['id'] );
 				}
-				WP_CLI::log( sprintf( 'Possible gallery item: %s.', $result['title'] ) );
+				\WP_CLI::log( sprintf( 'Possible gallery item: %s.', $result['title'] ) );
 			}
 		}
 
 		$product->set_gallery_image_ids( $gallery_images );
 		$product->save();
 	}
-	WP_CLI::add_command( 'fa:media-dev find-media-for-product', 'wp_cli_find_media_for_product' );
+	\WP_CLI::add_command( 'fa:media-dev find-media-for-product', 'wp_cli_find_media_for_product' );
 }
 
 /**
@@ -102,10 +102,10 @@ function set_product_image( $product, $attachment_id ) {
 	$image_id = $product->get_image_id();
 	// Verify we dont already have a thumbnail.
 	if ( $product->get_image_id() == $attachment_id ) {
-		WP_CLI::log( sprintf( 'Attachment ID %d is already attached to product ID %d', $product->get_id(), $attachment_id ) );
+		\WP_CLI::log( sprintf( 'Attachment ID %d is already attached to product ID %d', $product->get_id(), $attachment_id ) );
 		return true;
 	} else {
-		WP_CLI::log( 'Setting product image' );
+		\WP_CLI::log( 'Setting product image' );
 		$product->set_image_id( $attachment_id );
 		$product->save();
 		return $success;
@@ -195,7 +195,7 @@ function get_cached_posts( $query_args, $expires = HOUR_IN_SECONDS ) {
 	$post_list_name = 'get_posts_' . md5( json_encode( $query_args ) );
 
 	if ( false === ( $post_list = get_transient( $post_list_name ) ) ) {
-		WP_CLI::log( 'Cached Missed!' );
+		\WP_CLI::log( 'Cached Missed!' );
 		$post_list = get_posts( $query_args );
 
 		set_transient( $post_list_name, $post_list, $expires );
