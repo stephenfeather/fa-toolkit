@@ -108,7 +108,6 @@ class ExportACFField {
 			fputcsv( $output, $row );
 		}
 		fclose( $output );
-
 	}
 }
 

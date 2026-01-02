@@ -110,7 +110,6 @@ function set_product_image( $product, $attachment_id ) {
 		$product->save();
 		return $success;
 	}
-
 }
 
 if ( function_exists( 'graded_array_search' ) === false ) {

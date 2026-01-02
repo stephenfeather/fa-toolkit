@@ -138,7 +138,6 @@ class Media_Fix_Ilab_Metadata {
 		}
 
 		delete_option( $option_name );
-
 	}
 }
 

@@ -113,7 +113,6 @@ if ( class_exists( 'WP_CLI_Command' ) ) {
 
 			// Associate the gallery images with the product.
 			update_post_meta( $product_id, '_product_image_gallery', implode( ',', $gallery_image_ids ) );
-
 		}
 
 		/**

@@ -83,7 +83,6 @@ class Admin_Meta_Boxes {
 				'advanced' => '',
 			)
 		);
-
 	}
 
 }

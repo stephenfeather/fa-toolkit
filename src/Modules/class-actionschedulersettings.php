@@ -101,7 +101,6 @@ class ActionSchedulerSettings {
 		} else {
 			wp_die();
 		}
-
 	}
 
 	/**

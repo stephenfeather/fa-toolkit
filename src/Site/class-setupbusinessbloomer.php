@@ -26,7 +26,6 @@ class SetupBusinessBloomer {
 		add_filter( 'woocommerce_get_price_html', 'bbloomer_hide_price_if_out_stock_frontend', 9999, 2 );
 		add_action( 'woocommerce_checkout_update_order_meta', 'bbloomer_save_weight_order' );
 		add_action( 'woocommerce_admin_order_data_after_billing_address', 'bbloomer_delivery_weight_display_admin_order_meta', 10, 1 );
-
 	}
 
 	/**

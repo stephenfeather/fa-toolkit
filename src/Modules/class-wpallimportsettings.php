@@ -129,7 +129,6 @@ class WPAllImportSettings {
 
 		// Return the serialized list.
 		return serialize( $value ); // phpcs:ignore
-
 	}
 
 

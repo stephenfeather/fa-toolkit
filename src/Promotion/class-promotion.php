@@ -48,7 +48,6 @@ class Promotions {
 	 * @param string $data The data to be stored.
 	 */
 	public function __construct( $data = '' ) {
-
 	}
 
 	/** Getters. */

@@ -57,7 +57,6 @@ class Bard_Meta_Box {
 		UPC: <?php printf( '%s', esc_html( $upc ) ); ?></br />
 		Brand: <?php printf( '%s', esc_html( $brand ) ); ?></br />
 		<?php
-
 	}
 }
 

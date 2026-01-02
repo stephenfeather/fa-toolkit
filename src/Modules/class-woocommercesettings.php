@@ -152,7 +152,6 @@ class WooCommerceSettings {
 	 * @param string $state Two-letter state code.
 	 */
 	public function catalog_only( $state ) {
-
 	}
 
 	/**
