@@ -94,7 +94,7 @@ class Media_Fix_Ilab_Metadata {
 		$starting_post_id       = absint( $args[0] ) ?? 0;
 		$override               = $assoc_args['override'] ?? false;
 
-		// if ( $override ) {
+		// if ( $override ) {.
 			$x = $starting_post_id;
 		// } else {
 		// $x = $last_processed_post_id;

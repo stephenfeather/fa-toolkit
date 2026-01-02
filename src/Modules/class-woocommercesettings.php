@@ -48,7 +48,7 @@ class WooCommerceSettings {
 		add_filter( 'woocommerce_process_checkout_field_billing_company', 'trim_and_uppercase', 10, 1 );
 		add_filter( 'woocommerce_process_myaccount_field_billing_company', 'trim_and_uppercase', 10, 1 );
 		// add_filter( 'woocommerce_process_checkout_field_billing_vat', 'format_tax', 10, 1 );
-		// add_filter( 'woocommerce_process_myaccount_field_billing_vat', 'format_tax', 10, 1 );
+		// add_filter( 'woocommerce_process_myaccount_field_billing_vat', 'format_tax', 10, 1 ).
 		add_filter( 'woocommerce_process_checkout_field_billing_address_1', 'format_place', 10, 1 );
 		add_filter( 'woocommerce_process_myaccount_field_billing_address_1', 'format_place', 10, 1 );
 		add_filter( 'woocommerce_process_checkout_field_billing_postcode', 'format_zipcode', 10, 1 );
@@ -56,10 +56,10 @@ class WooCommerceSettings {
 		add_filter( 'woocommerce_process_checkout_field_billing_city', 'format_city', 10, 1 );
 		add_filter( 'woocommerce_process_myaccount_field_billing_city', 'format_city', 10, 1 );
 		// add_filter( 'woocommerce_process_checkout_field_billing_phone', 'format_phone_number', 10, 1 );
-		// add_filter( 'woocommerce_process_myaccount_field_billing_phone', 'format_phone_number', 10, 1 );
+		// add_filter( 'woocommerce_process_myaccount_field_billing_phone', 'format_phone_number', 10, 1 ).
 		add_filter( 'woocommerce_process_checkout_field_billing_email', 'format_mail', 10, 1 );
 		add_filter( 'woocommerce_process_myaccount_field_billing_email', 'format_mail', 10, 1 );
-		// add_filter( 'woocommerce_process_checkout_field_billing_birthday', 'format_date', 10, 1 );
+		// add_filter( 'woocommerce_process_checkout_field_billing_birthday', 'format_date', 10, 1 ).
 		add_filter( 'woocommerce_process_checkout_field_shipping_first_name', 'trim_and_uppercase', 10, 1 );
 		add_filter( 'woocommerce_process_myaccount_field_shipping_first_name', 'trim_and_uppercase', 10, 1 );
 		add_filter( 'woocommerce_process_checkout_field_shipping_last_name', 'trim_and_uppercase', 10, 1 );
@@ -67,7 +67,7 @@ class WooCommerceSettings {
 		add_filter( 'woocommerce_process_checkout_field_shipping_address_1', 'format_place', 10, 1 );
 		add_filter( 'woocommerce_process_myaccount_field_shipping_address_1', 'format_place', 10, 1 );
 		// add_filter( 'woocommerce_process_checkout_field_shipping_postcode', 'format_zipcode', 10, 1 );
-		// add_filter( 'woocommerce_process_myaccount_field_shipping_postcode', 'format_zipcode', 10, 1 );
+		// add_filter( 'woocommerce_process_myaccount_field_shipping_postcode', 'format_zipcode', 10, 1 ).
 		add_filter( 'woocommerce_process_checkout_field_shipping_city', 'format_city', 10, 1 );
 		add_filter( 'woocommerce_process_myaccount_field_shipping_city', 'format_city', 10, 1 );
 	}

@@ -26,7 +26,7 @@ class PWBulkEditorSettings {
 		add_filter( 'pwbe_where_clause', array( $this, 'pwbe_where_clause_category_count' ), 10, 6 );
 		// add_filter( 'pwbe_filter_types', array( $this, 'pwbe_filter_types_distributor' ) );
 		// add_filter( 'pwbe_common_joins', array( $this, 'pwbe_common_joins_distributor' ) );
-		// add_filter( 'pwbe_where_clause', array( $this, 'pwbe_where_clause_distributor' ), 10, 6 );
+		// add_filter( 'pwbe_where_clause', array( $this, 'pwbe_where_clause_distributor' ), 10, 6 ).
 	}
 
 	/**

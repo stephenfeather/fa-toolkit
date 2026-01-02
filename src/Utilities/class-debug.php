@@ -99,7 +99,7 @@ class Debug {
 	 */
 	public function shutdown_handler() {
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && current_user_can( 'manage_options' ) ) {
-			self::var_dump_database();
+			# self::var_dump_database();
 		}
 	}
 }

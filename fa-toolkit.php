@@ -26,7 +26,7 @@ require_once FA_TOOLKIT_PATH . 'vendor/autoload.php';
 // Instantiate classes with side-effects (hooks, actions, WP-CLI commands, etc).
 // These classes register their own hooks in constructors.
 
-// Admin
+// Admin.
 new \FAToolkit\Admin\Custom_Admin_Menu();
 new \FAToolkit\Admin\Attachment_SHA256_Hash_Meta_Box();
 new \FAToolkit\Admin\Product_Display_Vendor();
@@ -34,32 +34,32 @@ new \FAToolkit\Admin\Product_Display_Id();
 new \FAToolkit\Admin\Product_Category_Counts();
 new \FAToolkit\Admin\Admin_Meta_Boxes();
 
-// Media
+// Media.
 new \FAToolkit\Media\AutoAttachUploadedMedia();
 
-// Media (WP-CLI dependent - only load if WP-CLI is active)
+// Media (WP-CLI dependent - only load if WP-CLI is active).
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	new \FAToolkit\Media\Media_Fix_Ilab_Metadata();
 	new \FAToolkit\Media\ProductThumbnailChecker();
 }
 
-// Promotion
+// Promotion.
 new \FAToolkit\Promotion\Promotions();
 new \FAToolkit\Promotion\Promotion_Meta_Box();
 new \FAToolkit\Promotion\Promotion_PostType();
 
-// Product
+// Product.
 new \FAToolkit\Product\WordCount();
 new \FAToolkit\Product\Bard_Meta_Box();
 
-// Modules
+// Modules.
 new \FAToolkit\Modules\PWBulkEditorSettings();
 new \FAToolkit\Modules\UpdraftPlusSettings();
 new \FAToolkit\Modules\WPAllImportSettings();
 new \FAToolkit\Modules\QueryMonitorSettings();
 new \FAToolkit\Modules\WooCommerceSettings();
 
-// Utilities (WP-CLI dependent classes only load if WP-CLI is active)
+// Utilities (WP-CLI dependent classes only load if WP-CLI is active).
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	new \FAToolkit\Utilities\FixRankMathSchemas();
 	new \FAToolkit\Utilities\GTINS();
@@ -67,19 +67,19 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 }
 new \FAToolkit\Utilities\Debug();
 
-// Site
+// Site.
 new \FAToolkit\Site\Fingerprint();
 new \FAToolkit\Site\GoogleTagManager();
 new \FAToolkit\Site\SetupBusinessBloomer();
 
-// Rest
+// Rest.
 new \FAToolkit\Rest\ImportMediaImage();
 
-// CLI Commands (only load if WP-CLI is active)
+// CLI Commands (only load if WP-CLI is active).
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	new \FAToolkit\CLI\Tools\ExportACFField();
 	new \FAToolkit\CLI\Media\ScrapeProductMedia();
-	// The remaining CLI files are procedural and register commands globally
+	// The remaining CLI files are procedural and register commands globally.
 	require_once FA_TOOLKIT_PATH . 'src/CLI/Media/class-attachmediatodraftproducts.php';
 	require_once FA_TOOLKIT_PATH . 'src/CLI/Media/class-exportdraftproductimagesources.php';
 	require_once FA_TOOLKIT_PATH . 'src/CLI/Media/class-fetchimportproductimage.php';
