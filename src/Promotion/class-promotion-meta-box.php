@@ -116,5 +116,4 @@ class Promotion_Meta_Box {
 			wp_update_post( $post );
 		}
 	}
-
 }

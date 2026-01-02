@@ -75,7 +75,6 @@ class Custom_Admin_Menu {
 	public function add_admin_menu_items() {
 		// Add menu items.
 	}
-
 }
 
 new Custom_Admin_Menu();

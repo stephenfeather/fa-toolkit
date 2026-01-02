@@ -82,6 +82,4 @@ class SetupBusinessBloomer {
 	public function bbloomer_delivery_weight_display_admin_order_meta( $order ) {
 		printf( '<p><strong>Order Weight:</strong> %s %s</p>', esc_html( get_post_meta( $order->get_id(), '_cart_weight', true ) ), esc_html( get_option( 'woocommerce_weight_unit' ) ) );
 	}
-
-
 }

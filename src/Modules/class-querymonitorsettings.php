@@ -37,5 +37,4 @@ class QueryMonitorSettings {
 		$levels['plugin']['duracelltomi - google - tag - manager'] = ( E_ALL & ~E_NOTICE );
 		return $levels;
 	}
-
 }

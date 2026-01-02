@@ -84,7 +84,6 @@ class Admin_Meta_Boxes {
 			)
 		);
 	}
-
 }
 
 new Admin_Meta_Boxes();

@@ -267,7 +267,6 @@ class Product_Category_Counts {
 		echo '</tr>';
 		echo '</thead>';
 	}
-
 }
 
 new Product_Category_Counts();

@@ -111,6 +111,5 @@ class ActionSchedulerSettings {
 	public function ashp_increase_time_limit() {
 		return 120;
 	}
-
 }
 new ActionSchedulerSettings();

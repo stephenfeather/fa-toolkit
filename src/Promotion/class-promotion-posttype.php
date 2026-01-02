@@ -195,7 +195,6 @@ class Promotion_PostType {
 		$allowed_post_types[] = 'promotion';
 		return $allowed_post_types;
 	}
-
 }
 
 Promotion_PostType::init();

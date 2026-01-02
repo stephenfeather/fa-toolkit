@@ -264,9 +264,6 @@ class PWBulkEditorSettings {
 
 		return $row_sql;
 	}
-
-
-
 }
 
 new PWBulkEditorSettings();
