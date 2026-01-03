@@ -1,5 +1,5 @@
 # FA-Toolkit Test Coverage Initiative
-Updated: 2026-01-03T18:47:42.240Z
+Updated: 2026-01-03T19:15:00.000Z
 
 ## Goal
 
@@ -123,11 +123,19 @@ Backfill unit tests for existing WordPress plugin codebase to achieve 95% code c
     - Note: ProductThumbnailChecker limited by WP_Query architecture (similar to WordCount)
     - Extended bootstrap with WP_CLI constant definition, added debug/warning methods to stub
     - Added `file_exists` to patchwork.json for internal function mocking
+  - [x] **Phase 5:** Promotion module (3 of 4 files complete)
+    - ✅ Promotions: 100% coverage (7/7 lines, 7/7 methods) - 9 tests, 13 assertions
+    - ✅ Promotion_PostType: 100% coverage (99/99 lines, 7/7 methods) - 9 tests, 28 assertions
+    - ✅ Promotion_Meta_Box: 96.88% coverage (31/32 lines, 1/2 methods) - 7 tests, 53 assertions
+    - ⚠️ class-promotion-functions.php: Empty file (0 lines to test)
+    - **Module total: 25 tests, 94 assertions**
+    - **Average coverage: 99.28%** (137/138 lines) 🎯 Exceeds 95% target!
+    - Note: Missing coverage is DOING_AUTOSAVE check (can't mock PHP constants in unit tests)
+    - Added `printf` to patchwork.json for internal function mocking
 
-- Now: **[→] Phase 5:** Promotion module (4 files)
+- Now: **[→] Phase 6:** Modules module (6 files - settings classes)
 
 - Next:
-  - [ ] **Phase 5:** Promotion module (4 files)
   - [ ] **Phase 6:** Modules module (6 files - settings classes)
   - [ ] **Phase 7:** Site module (3 files)
   - [ ] **Phase 8:** Rest module (1 file - REST API endpoint)
@@ -188,6 +196,9 @@ Backfill unit tests for existing WordPress plugin codebase to achieve 95% code c
 - `tests/Media/AutoAttachUploadedMediaTest.php` - 17 tests, 91.23% coverage ✓
 - `tests/Media/Media_Fix_Ilab_MetadataTest.php` - 7 tests, 97.30% coverage ✓
 - `tests/Media/ProductThumbnailCheckerTest.php` - 7 tests, 71.11% coverage ✓
+- `tests/Promotion/PromotionsTest.php` - 9 tests, 100% coverage ✓
+- `tests/Promotion/Promotion_PostTypeTest.php` - 9 tests, 100% coverage ✓
+- `tests/Promotion/Promotion_Meta_BoxTest.php` - 7 tests, 96.88% coverage ✓
 
 ### Branch
 - **Current:** `develop`
@@ -235,47 +246,49 @@ composer check  # (to be configured)
 
 ## Current Session Focus
 
-**Phase 3: Product Module** ✅ **SUCCESSFULLY COMPLETED** (2 of 2 classes)
+**Phase 5: Promotion Module** ✅ **SUCCESSFULLY COMPLETED** (3 of 4 classes)
 
 ### Results Summary:
 
 **Coverage Achieved:**
-- Bard_Meta_Box: 100% (19/19 lines, 3/3 methods) ✅
-- WordCount: 73.91% (17/23 lines, 2/4 methods) ⚠️
-- **Module average: 85.71%** (36/42 lines) - Below 95% target
+- Promotions: 100% (7/7 lines, 7/7 methods) ✅
+- Promotion_PostType: 100% (99/99 lines, 7/7 methods) ✅
+- Promotion_Meta_Box: 96.88% (31/32 lines, 1/2 methods) ✅
+- class-promotion-functions.php: Empty file (0 lines to test)
+- **Module average: 99.28%** (137/138 lines) 🎯 Exceeds 95% target!
 
 **Tests Created:**
-- 10 passing tests total (3 Bard_Meta_Box + 7 WordCount)
-- 38 assertions total (21 + 17)
+- 25 passing tests total (9 Promotions + 9 Promotion_PostType + 7 Promotion_Meta_Box)
+- 94 assertions total (13 + 28 + 53)
 - All tests run successfully with PHPUnit 11
 
 **Key Accomplishments:**
-1. Extended bootstrap.php with global WordPress function mocks for auto-instantiated classes
-2. Added `defined` to patchwork.json for internal function mocking
-3. Created WP_Query stub class in bootstrap.php for testing WordPress queries
-4. Identified and documented source code bug: WP_Query used without global namespace prefix
-5. Created comprehensive tests for meta box rendering and word counting functionality
+1. Added `printf` to patchwork.json for internal function mocking
+2. Tested simple data class with getters/setters (Promotions)
+3. Tested complex static class with WordPress hooks and auto-initialization (Promotion_PostType)
+4. Tested meta box with HTML output and save validation logic (Promotion_Meta_Box)
+5. Documented limitation: can't test DOING_AUTOSAVE constant without runtime extensions
 
 **Technical Patterns Used:**
-- Global `when()` mocks in bootstrap for functions called during class loading
-- Output buffering (`ob_start`/`ob_get_clean`) for testing HTML-generating methods
-- Class aliasing to work around namespace bugs in source code
-- Mockery for complex WordPress object mocking (WP_Post, WP_Term, WP_Query)
+- Testing static methods with Brain Monkey function expectations
+- Output buffering for HTML-generating methods
+- Mocking $_POST superglobal for form save testing
+- Testing WordPress hook registration without mocking auto-initialized code
 
 **Coverage Notes:**
-- WordCount missing coverage: constructor (side effects), WP_Query loop (tight coupling)
-- All business logic methods fully tested (count_words, update_word_count_meta)
-- Infrastructure code difficult to test without refactoring source
+- Only missing line is DOING_AUTOSAVE constant check (PHP constant mocking limitation)
+- All business logic fully tested (meta box rendering, field saving, post type registration)
+- Auto-initialization pattern (line 200 calling init()) covered by class loading
 
 **Overall Progress:**
-- **Phases Complete:** 4 of 11 (36%)
-- **Classes Tested:** 9 of ~36 (25%)
-- **Total Tests:** 63 tests with ~334 assertions
-- **Modules at/above 95%:** 2 of 4 (Utilities: 98.92%, File: 100%)
-- **Modules below 95%:** 2 of 4 (Product: 85.71%, Media: 86.33%)
+- **Phases Complete:** 5 of 11 (45%)
+- **Classes Tested:** 12 of ~36 (33%)
+- **Total Tests:** 88 tests with ~428 assertions
+- **Modules at/above 95%:** 3 of 5 (Utilities: 98.92%, File: 100%, Promotion: 99.28%)
+- **Modules below 95%:** 2 of 5 (Product: 85.71%, Media: 86.33%)
 
 **Next Steps:**
-Ready to proceed to **Phase 5: Promotion Module** (4 files)
+Ready to proceed to **Phase 6: Modules Module** (6 settings classes)
 
 ## Notes
 
@@ -315,3 +328,11 @@ Ready to proceed to **Phase 5: Promotion Module** (4 files)
 - Coverage: AutoAttachUploadedMedia (91.23%), Media_Fix_Ilab_Metadata (97.30%), ProductThumbnailChecker (71.11%)
 - Infrastructure: Extended bootstrap with WP_CLI constant and stub methods, added file_exists to patchwork.json
 - Challenges: ProductThumbnailChecker limited by WP_Query architecture (can't mock query results in unit tests)
+
+### Phase 5 Implementation (2026-01-03T19:00:00 - 19:15:00)
+- Task: Create comprehensive test suites for Promotion module (3 classes, 1 empty file)
+- Summary: Successfully tested 3 of 3 classes with 99.28% average coverage
+- Tests: 25 tests passing, 94 assertions
+- Coverage: Promotions (100%), Promotion_PostType (100%), Promotion_Meta_Box (96.88%)
+- Infrastructure: Added printf to patchwork.json for internal function mocking
+- Challenges: Cannot test DOING_AUTOSAVE constant without runtime extensions (documented limitation)
