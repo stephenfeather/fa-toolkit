@@ -8,6 +8,7 @@
     "hash_equals",
     "defined",
     "file_exists",
-    "printf"
+    "printf",
+    "session_id"
   ]
 }

@@ -1,5 +1,5 @@
 # FA-Toolkit Test Coverage Initiative
-Updated: 2026-01-03T19:47:42.495Z
+Updated: 2026-01-03T20:08:00.000Z
 
 ## Goal
 
@@ -144,11 +144,18 @@ Backfill unit tests for existing WordPress plugin codebase to achieve 95% code c
     - Note: Lower coverage due to significant dead code (private methods never called) in WooCommerceSettings and WPAllImportSettings
     - Note: Hook registration difficult to test with Brain Monkey (ABSPATH checks and callback validation issues)
     - All business logic fully tested where accessible via public methods or reflection
+  - [x] **Phase 7:** Site module (3 of 3 files complete)
+    - ✅ GoogleTagManager: 100% coverage (15/15 lines, 3/3 methods) - 6 tests, 19 assertions
+    - ✅ Fingerprint: 100% coverage (27/27 lines, 4/4 methods) - 8 tests, 41 assertions
+    - ✅ SetupBusinessBloomer: 100% coverage (14/14 lines, 5/5 methods) - 9 tests, 35 assertions
+    - **Module total: 23 tests, 95 assertions**
+    - **Average coverage: 100%** (56/56 lines, 12/12 methods) 🎯 Exceeds 95% target!
+    - Added `session_id` to patchwork.json for internal function mocking
+    - All three classes auto-instantiated at file load (GoogleTagManager, Fingerprint) or used as library (SetupBusinessBloomer)
 
-- Now: **[→] Phase 7:** Site module (3 files)
+- Now: **[→] Phase 8:** Rest module (1 file - REST API endpoint)
 
 - Next:
-  - [ ] **Phase 7:** Site module (3 files)
   - [ ] **Phase 8:** Rest module (1 file - REST API endpoint)
   - [ ] **Phase 9:** Admin module (6 files)
   - [ ] **Phase 10:** CLI module (~9 files - WP-CLI commands)
@@ -163,7 +170,7 @@ Backfill unit tests for existing WordPress plugin codebase to achieve 95% code c
 - Product: 2 files
 - Promotion: 4 files
 - Rest: 1 file
-- Site: TBD
+- Site: 3 files
 - Utilities: 3 of 4 files (Debug deferred)
 
 **Total Estimated:** ~36 PHP classes to test
