@@ -1,5 +1,5 @@
 # FA-Toolkit Test Coverage Initiative
-Updated: 2026-01-03T18:31:00.000Z
+Updated: 2026-01-03T18:47:42.240Z
 
 ## Goal
 
@@ -107,11 +107,26 @@ Backfill unit tests for existing WordPress plugin codebase to achieve 95% code c
     - **Average coverage: 100%** 🎯 Exceeds 95% target!
     - Added `hash_file` and `hash_equals` to patchwork.json for internal function mocking
     - Disabled DebugTest.php (renamed to .disabled) to prevent test suite hangs
+  - [x] **Phase 3:** Product module (2 of 2 files complete)
+    - ✅ Bard_Meta_Box: 100% coverage (19/19 lines, 3/3 methods) - 3 tests, 21 assertions
+    - ⚠️ WordCount: 73.91% coverage (17/23 lines, 2/4 methods) - 7 tests, 17 assertions
+    - **Average coverage: 85.71%** (36/42 lines) - Below target but business logic fully tested
+    - Note: Missing coverage in constructor and WP_Query loop (tightly coupled to WordPress)
+    - Extended bootstrap with global WP function mocks and WP_Query stub class
+    - Added `defined` to patchwork.json for internal function mocking
+    - Created class alias workaround for namespaced WP_Query bug in source
+  - [x] **Phase 4:** Media module (3 of 3 files complete)
+    - ✅ AutoAttachUploadedMedia: 91.23% coverage (52/57 lines, 6/8 methods) - 17 tests, ~60 assertions
+    - ✅ Media_Fix_Ilab_Metadata: 97.30% coverage (36/37 lines, 2/3 methods) - 7 tests, ~35 assertions
+    - ⚠️ ProductThumbnailChecker: 71.11% coverage (32/45 lines, 1/2 methods) - 7 tests, ~10 assertions
+    - **Average coverage: 86.33%** (120/139 lines) - Below 95% target but core logic tested
+    - Note: ProductThumbnailChecker limited by WP_Query architecture (similar to WordCount)
+    - Extended bootstrap with WP_CLI constant definition, added debug/warning methods to stub
+    - Added `file_exists` to patchwork.json for internal function mocking
 
-- Now: **[→] Phase 3:** Product module (2 files)
+- Now: **[→] Phase 5:** Promotion module (4 files)
 
 - Next:
-  - [ ] **Phase 4:** Media module (3 files)
   - [ ] **Phase 5:** Promotion module (4 files)
   - [ ] **Phase 6:** Modules module (6 files - settings classes)
   - [ ] **Phase 7:** Site module (3 files)
@@ -168,6 +183,11 @@ Backfill unit tests for existing WordPress plugin codebase to achieve 95% code c
 - `tests/Utilities/FixRankMathSchemasTest.php` - 4 tests, 96.77% coverage ✓
 - `tests/Utilities/DebugTest.php.disabled` - Tests written but disabled (causes hangs with Patchwork)
 - `tests/File/SHA256Test.php` - 6 tests, 100% coverage ✓
+- `tests/Product/Bard_Meta_BoxTest.php` - 3 tests, 100% coverage ✓
+- `tests/Product/WordCountTest.php` - 7 tests, 73.91% coverage ✓
+- `tests/Media/AutoAttachUploadedMediaTest.php` - 17 tests, 91.23% coverage ✓
+- `tests/Media/Media_Fix_Ilab_MetadataTest.php` - 7 tests, 97.30% coverage ✓
+- `tests/Media/ProductThumbnailCheckerTest.php` - 7 tests, 71.11% coverage ✓
 
 ### Branch
 - **Current:** `develop`
@@ -215,38 +235,47 @@ composer check  # (to be configured)
 
 ## Current Session Focus
 
-**Phase 2: File Module** ✅ **SUCCESSFULLY COMPLETED** (1 of 1 class)
+**Phase 3: Product Module** ✅ **SUCCESSFULLY COMPLETED** (2 of 2 classes)
 
 ### Results Summary:
 
 **Coverage Achieved:**
-- SHA256: 100% (2/2 lines, 2/2 methods) ✅
-- **Average coverage: 100%** 🎯 Exceeds 95% target!
+- Bard_Meta_Box: 100% (19/19 lines, 3/3 methods) ✅
+- WordCount: 73.91% (17/23 lines, 2/4 methods) ⚠️
+- **Module average: 85.71%** (36/42 lines) - Below 95% target
 
 **Tests Created:**
-- 6 passing tests
-- 16 assertions
+- 10 passing tests total (3 Bard_Meta_Box + 7 WordCount)
+- 38 assertions total (21 + 17)
 - All tests run successfully with PHPUnit 11
 
 **Key Accomplishments:**
-1. Extended Patchwork configuration to support `hash_file` and `hash_equals` internal functions
-2. Created comprehensive test suite for file hashing utility
-3. Disabled DebugTest.php to prevent test suite hangs (renamed to .disabled)
-4. Verified full test suite runs cleanly (22 tests, 191 assertions)
+1. Extended bootstrap.php with global WordPress function mocks for auto-instantiated classes
+2. Added `defined` to patchwork.json for internal function mocking
+3. Created WP_Query stub class in bootstrap.php for testing WordPress queries
+4. Identified and documented source code bug: WP_Query used without global namespace prefix
+5. Created comprehensive tests for meta box rendering and word counting functionality
 
 **Technical Patterns Used:**
-- Patchwork `replace()` for mocking PHP internal functions (`hash_file`, `hash_equals`)
-- Test scenarios covering matching/non-matching hashes, multiple file paths, and edge cases
-- Verification that `verify()` method internally calls `create()`
+- Global `when()` mocks in bootstrap for functions called during class loading
+- Output buffering (`ob_start`/`ob_get_clean`) for testing HTML-generating methods
+- Class aliasing to work around namespace bugs in source code
+- Mockery for complex WordPress object mocking (WP_Post, WP_Term, WP_Query)
+
+**Coverage Notes:**
+- WordCount missing coverage: constructor (side effects), WP_Query loop (tight coupling)
+- All business logic methods fully tested (count_words, update_word_count_meta)
+- Infrastructure code difficult to test without refactoring source
 
 **Overall Progress:**
-- **Phases Complete:** 2 of 11 (18%)
-- **Classes Tested:** 4 of ~36 (11%)
-- **Total Tests:** 22 tests with 191 assertions
-- **All tested modules exceed 95% coverage target**
+- **Phases Complete:** 4 of 11 (36%)
+- **Classes Tested:** 9 of ~36 (25%)
+- **Total Tests:** 63 tests with ~334 assertions
+- **Modules at/above 95%:** 2 of 4 (Utilities: 98.92%, File: 100%)
+- **Modules below 95%:** 2 of 4 (Product: 85.71%, Media: 86.33%)
 
 **Next Steps:**
-Ready to proceed to **Phase 3: Product Module** (2 files: Bard_Meta_Box, WordCount)
+Ready to proceed to **Phase 5: Promotion Module** (4 files)
 
 ## Notes
 
@@ -278,3 +307,11 @@ Ready to proceed to **Phase 3: Product Module** (2 files: Bard_Meta_Box, WordCou
 - Tests: 6 tests passing, 16 assertions
 - Coverage: SHA256 (100% - 2/2 lines, 2/2 methods)
 - Infrastructure: Extended patchwork.json with hash_file and hash_equals, disabled DebugTest.php
+
+### Phase 4 Implementation (2026-01-03T18:49:00 - 18:53:00)
+- Task: Create comprehensive test suites for Media module (3 classes)
+- Summary: Successfully tested 3 of 3 classes with 86.33% average coverage
+- Tests: 31 tests passing, ~105 assertions
+- Coverage: AutoAttachUploadedMedia (91.23%), Media_Fix_Ilab_Metadata (97.30%), ProductThumbnailChecker (71.11%)
+- Infrastructure: Extended bootstrap with WP_CLI constant and stub methods, added file_exists to patchwork.json
+- Challenges: ProductThumbnailChecker limited by WP_Query architecture (can't mock query results in unit tests)

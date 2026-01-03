@@ -16,6 +16,64 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 // Initialize Brain Monkey.
 // Brain Monkey provides utilities for mocking WordPress functions and hooks.
 // It uses Patchwork to intercept function calls and Mockery for expectations.
+\Brain\Monkey\setUp();
+
+// Set up default mocks for WordPress functions that are commonly called during class loading.
+// This is necessary because many classes auto-instantiate at the bottom of their files.
+\Brain\Monkey\Functions\when( 'add_action' )->justReturn( true );
+\Brain\Monkey\Functions\when( 'add_filter' )->justReturn( true );
+\Brain\Monkey\Functions\when( '__' )->returnArg();
+\Brain\Monkey\Functions\when( '_e' )->justReturn( null );
+\Brain\Monkey\Functions\when( 'esc_html' )->returnArg();
+\Brain\Monkey\Functions\when( 'esc_html__' )->returnArg();
+\Brain\Monkey\Functions\when( 'add_meta_box' )->justReturn( true );
+\Brain\Monkey\Functions\when( 'update_post_meta' )->justReturn( true );
+\Brain\Monkey\Functions\when( 'defined' )->alias(
+	function ( $name ) {
+		if ( $name === 'ABSPATH' ) {
+			return true;
+		}
+		if ( $name === 'WP_CLI' ) {
+			return true;
+		}
+		return defined( $name );
+	}
+);
+
+// Create a mock WP_Query class for testing WordPress queries.
+if ( ! class_exists( 'WP_Query' ) ) {
+	class WP_Query {
+		private $posts       = array();
+		private $post_index  = 0;
+		private $post_count  = 0;
+
+		public function __construct( $args = array() ) {
+			// Store args for potential verification.
+			$this->query_args = $args;
+		}
+
+		public function have_posts() {
+			return $this->post_index < $this->post_count;
+		}
+
+		public function the_post() {
+			if ( $this->have_posts() ) {
+				$this->post_index++;
+			}
+		}
+
+		public function set_posts( $posts ) {
+			$this->posts      = $posts;
+			$this->post_count = count( $posts );
+			$this->post_index = 0;
+		}
+	}
+}
+
+// Define WP_CLI constant for CLI command testing.
+if ( ! defined( 'WP_CLI' ) ) {
+	define( 'WP_CLI', true );
+}
 
 // Create a mock WP_CLI class for testing WP-CLI commands.
 if ( ! class_exists( 'WP_CLI' ) ) {
@@ -48,6 +106,14 @@ if ( ! class_exists( 'WP_CLI' ) ) {
 
 		public static function log( $message ) {
 			self::$calls[] = array( 'method' => 'log', 'args' => func_get_args() );
+		}
+
+		public static function debug( $message ) {
+			self::$calls[] = array( 'method' => 'debug', 'args' => func_get_args() );
+		}
+
+		public static function warning( $message ) {
+			self::$calls[] = array( 'method' => 'warning', 'args' => func_get_args() );
 		}
 
 		public static function reset_calls() {

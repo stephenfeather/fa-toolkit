@@ -5,6 +5,8 @@
     "extension_loaded",
     "var_dump",
     "hash_file",
-    "hash_equals"
+    "hash_equals",
+    "defined",
+    "file_exists"
   ]
 }
