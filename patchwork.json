@@ -6,9 +6,9 @@
     "var_dump",
     "hash_file",
     "hash_equals",
-    "defined",
     "file_exists",
     "printf",
-    "session_id"
+    "session_id",
+    "filter_var"
   ]
 }

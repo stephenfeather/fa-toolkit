@@ -28,17 +28,6 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 \Brain\Monkey\Functions\when( 'esc_html__' )->returnArg();
 \Brain\Monkey\Functions\when( 'add_meta_box' )->justReturn( true );
 \Brain\Monkey\Functions\when( 'update_post_meta' )->justReturn( true );
-\Brain\Monkey\Functions\when( 'defined' )->alias(
-	function ( $name ) {
-		if ( $name === 'ABSPATH' ) {
-			return true;
-		}
-		if ( $name === 'WP_CLI' ) {
-			return true;
-		}
-		return defined( $name );
-	}
-);
 
 // Create a mock WP_Query class for testing WordPress queries.
 if ( ! class_exists( 'WP_Query' ) ) {
@@ -133,6 +122,62 @@ if ( ! class_exists( 'WP_CLI' ) ) {
 					}
 				)
 			);
+		}
+	}
+}
+
+// Create a mock WP_Error class for testing WordPress errors.
+if ( ! class_exists( 'WP_Error' ) ) {
+	class WP_Error {
+		private $code;
+		private $message;
+		private $data;
+
+		public function __construct( $code = '', $message = '', $data = '' ) {
+			$this->code    = $code;
+			$this->message = $message;
+			$this->data    = $data;
+		}
+
+		public function get_error_code() {
+			return $this->code;
+		}
+
+		public function get_error_message( $code = '' ) {
+			if ( empty( $code ) ) {
+				return $this->message;
+			}
+			return '';
+		}
+
+		public function get_error_data( $code = '' ) {
+			if ( empty( $code ) ) {
+				return $this->data;
+			}
+			return null;
+		}
+	}
+}
+
+// Create a mock WP_REST_Request class for testing REST API endpoints.
+if ( ! class_exists( 'WP_REST_Request' ) ) {
+	class WP_REST_Request {
+		private $params = array();
+
+		public function __construct( $params = array() ) {
+			$this->params = $params;
+		}
+
+		public function get_params() {
+			return $this->params;
+		}
+
+		public function get_param( $key ) {
+			return isset( $this->params[ $key ] ) ? $this->params[ $key ] : null;
+		}
+
+		public function set_param( $key, $value ) {
+			$this->params[ $key ] = $value;
 		}
 	}
 }
