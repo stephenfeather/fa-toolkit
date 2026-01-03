@@ -18,7 +18,31 @@
       "Bash(then)",
       "Bash(fi)",
       "Bash(perl -i -pe:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Skill(onboard)",
+      "Bash(command -v:*)",
+      "Bash(mkdir:*)",
+      "Skill(continuity_ledger)",
+      "Bash(composer require:*)",
+      "Bash(composer test:*)",
+      "Bash(composer test:coverage:*)",
+      "Bash(vendor/bin/phpunit:*)",
+      "Bash(cat:*)",
+      "Bash(php vendor/bin/phpunit:*)",
+      "Bash(php -d display_errors=1 vendor/bin/phpunit:*)",
+      "Bash(php debug-test-runner.php:*)",
+      "Bash(timeout 5 php:*)",
+      "Bash(killall php:*)",
+      "Bash(ls:*)",
+      "Bash(timeout 10 vendor/bin/phpunit:*)",
+      "Skill(commit)",
+      "Bash(bash .claude/scripts/generate-reasoning.sh:*)",
+      "Bash(php -r:*)",
+      "Bash(php:*)",
+      "Bash(bash:*)",
+      "Bash(timeout 30 vendor/bin/phpunit:*)",
+      "Bash(pkill:*)",
+      "Skill(implement_plan)"
     ]
   }
 }

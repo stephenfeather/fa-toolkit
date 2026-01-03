@@ -1,5 +1,5 @@
 # FA-Toolkit Test Coverage Initiative
-Updated: 2026-01-03T20:34:17.633Z
+Updated: 2026-01-03T21:30:00.000Z
 
 ## Goal
 
@@ -187,26 +187,48 @@ Backfill unit tests for existing WordPress plugin codebase to achieve 95% code c
     - Created tests/Admin/README.md documenting issue
     - Attempted test files disabled: Attachment_SHA256_Hash_Meta_BoxTest.php.disabled, Product_Display_IdTest.php.disabled
     - Note: Same limitation as Rest/Debug modules - not all legacy code immediately testable
+  - [x] **Phase 10:** CLI module (0 of 8 files testable)
+    - ⚠️ All 8 classes: 0% coverage - All classes untestable with current approach
+    - **Module total: 0 tests, 0 assertions**
+    - **Average coverage: 0%** ❌ Below 95% target
+    - **Reason for skipping:**
+      - ALL files follow auto-registration pattern that causes Brain Monkey hangs
+      - Commands register via `\WP_CLI::add_command()` at file load
+      - Brain Monkey callback validation hangs when loading command files
+      - Significant source code bugs prevent testing even if auto-registration were fixed
+    - **Files affected (8 total):**
+      - CLI/Tools/class-tools.php: 3 syntax errors (assignment operator misplaced)
+      - CLI/Tools/class-exportacffield.php: auto-instantiation in constructor
+      - CLI/Media/class-findmediaforproduct.php: 3 undefined variables
+      - CLI/Media/class-scrapeproductmedia.php: debug code (exit statement), auto-instantiation
+      - CLI/Media/class-exportdraftproductimagesources.php: undefined variable ($wp_filesystem)
+      - CLI/Media/class-fetchimportproductimage.php: bitwise AND bug, undefined variables, logic error
+      - CLI/Media/class-attachmediatodraftproducts.php: cleanest implementation
+      - CLI/Commands/class-scrapeproductdata.php: missing method, auto-registration
+    - **Recommendation:** Fix source bugs, refactor to lazy registration, consider WP-CLI test framework
+    - Created tests/CLI/README.md documenting all issues comprehensively
+    - Note: Same auto-registration limitation as Admin/Rest modules
 
-- Now: **[→] Phase 10:** CLI module (~9 files)
+- Now: **[→] Phase 11:** Revisit Debug class with integration tests or refactoring
 
 - Next:
-  - [ ] **Phase 10:** CLI module (~9 files - WP-CLI commands)
   - [ ] **Phase 11:** Revisit Debug class with integration tests or refactoring
+  - [ ] Consider integration test strategy for untestable modules (Admin, Rest, CLI)
+  - [ ] Document refactoring recommendations for future development
 
 **File Counts by Module:**
 - Admin: 6 files
-- CLI: ~9 files (complex WP-CLI commands)
+- CLI: 8 files (WP-CLI commands - all untestable)
 - File: 1 file
 - Media: 3 files
 - Modules: 6 files
 - Product: 2 files
-- Promotion: 4 files
+- Promotion: 4 files (1 empty file)
 - Rest: 1 file
 - Site: 3 files
-- Utilities: 3 of 4 files (Debug deferred)
+- Utilities: 4 files (Debug deferred)
 
-**Total Estimated:** ~36 PHP classes to test
+**Total Actual:** 35 PHP classes to test
 
 ## Open Questions
 
@@ -263,6 +285,7 @@ Backfill unit tests for existing WordPress plugin codebase to achieve 95% code c
 - `tests/Admin/README.md` - Documentation of Admin module testing limitations
 - `tests/Admin/Attachment_SHA256_Hash_Meta_BoxTest.php.disabled` - Untestable (auto-instantiation)
 - `tests/Admin/Product_Display_IdTest.php.disabled` - Untestable (auto-instantiation)
+- `tests/CLI/README.md` - Documentation of CLI module testing limitations (8 files with bugs)
 
 ### Branch
 - **Current:** `develop`
@@ -310,52 +333,57 @@ composer check  # (to be configured)
 
 ## Current Session Focus
 
-**Phase 9: Admin Module** ✅ **COMPLETED** (0 of 6 files testable)
+**Phase 10: CLI Module** ✅ **COMPLETED** (0 of 8 files testable)
 
 ### Results Summary:
 
 **Coverage Achieved:**
-- All 6 classes: 0% coverage - ALL classes deemed untestable ❌
+- All 8 files: 0% coverage - ALL files deemed untestable ❌
 - **Module total: 0 tests, 0 assertions**
 - **Average coverage: 0%** ❌ Below 95% target
 
 **Files Analyzed:**
-1. Attachment_SHA256_Hash_Meta_Box (test attempted, disabled)
-2. Product_Display_Id (test attempted, disabled)
-3. Product_Display_Vendor (analysis only)
-4. Product_Category_Counts (analysis only)
-5. Custom_Admin_Menu (analysis only)
-6. Admin_Meta_Boxes (analysis only)
+1. CLI/Tools/class-tools.php (function-based, 3 commands, 3 syntax errors)
+2. CLI/Tools/class-exportacffield.php (class-based, auto-instantiation)
+3. CLI/Media/class-findmediaforproduct.php (function-based, 3 undefined variables)
+4. CLI/Media/class-scrapeproductmedia.php (class-based, debug code + auto-instantiation)
+5. CLI/Media/class-exportdraftproductimagesources.php (function-based, undefined $wp_filesystem)
+6. CLI/Media/class-fetchimportproductimage.php (function-based, bitwise AND bug + logic errors)
+7. CLI/Media/class-attachmediatodraftproducts.php (function-based, cleanest implementation)
+8. CLI/Commands/class-scrapeproductdata.php (class-based, missing method)
 
 **Key Findings:**
-- ALL Admin module files share identical problematic pattern:
-  - Auto-instantiate at file load (e.g., `new Admin_Meta_Boxes();`)
-  - Register hooks in constructor with object method callbacks
-  - Brain Monkey callback validation hangs when loading these classes
-- ReflectionClass::newInstanceWithoutConstructor() ineffective (auto-instantiation executes first)
-- Additional issues: missing methods (Attachment), debug code (Product_Display_Id)
+- ALL CLI module files share auto-registration pattern:
+  - Commands register via `\WP_CLI::add_command()` at file load
+  - Brain Monkey callback validation hangs when loading these files
+  - Cannot test without loading the files (auto-registration executes first)
+- Significant source code bugs across multiple files:
+  - **Syntax errors**: Assignment operators in wrong position (class-tools.php lines 100, 134, 143)
+  - **Undefined variables**: $success, $matches, $fails, $filename, $wp_filesystem
+  - **Logic errors**: Bitwise AND instead of logical AND, incorrect hash comparison
+  - **Debug code**: exit statement in middle of method (class-scrapeproductmedia.php line 320)
+  - **Missing methods**: import_media() called but not defined
+- Same fundamental limitation as Admin/Rest modules
 
 **Artifacts Created:**
-- tests/Admin/README.md - Comprehensive documentation of testing limitations
-- Attachment_SHA256_Hash_Meta_BoxTest.php.disabled - Attempted test file
-- Product_Display_IdTest.php.disabled - Attempted test file
+- tests/CLI/README.md - Comprehensive documentation of all issues, bugs, and testing limitations
 
 **Lessons Learned:**
-- Brain Monkey unit testing approach incompatible with auto-instantiated classes
-- This pattern affects 3 modules now: Admin (6 files), Rest (1 file), Utilities/Debug (1 file)
-- Total untestable files: 8 of ~36 classes (22%)
-- Refactoring recommendation: Remove auto-instantiation, use initialization hooks
+- Auto-registration pattern now affects 4 modules: CLI (8 files), Admin (6 files), Rest (1 file), Utilities/Debug (1 file)
+- Total untestable files: 16 of 35 classes (46%)
+- Brain Monkey pure unit testing approach reaches its limits with legacy auto-registration code
+- Source code quality issues compound testability problems
 
 **Overall Progress:**
-- **Phases Complete:** 9 of 11 (82%)
-- **Classes Tested:** 18 of ~36 (50%)
-- **Classes Skipped (Untestable):** 8 (Admin: 6, Rest: 1, Debug: 1)
-- **Total Tests:** 116 tests with ~506 assertions (unchanged)
-- **Modules at/above 95%:** 4 of 9 (Utilities: 98.92%, File: 100%, Promotion: 99.28%, Site: 100%)
-- **Modules below 95%:** 5 of 9 (Product: 85.71%, Media: 86.33%, Modules: 65.09%, Rest: 0%, Admin: 0%)
+- **Phases Complete:** 10 of 11 (91%)
+- **Classes Tested:** 18 of 35 (51%)
+- **Classes Skipped (Untestable):** 16 (CLI: 8, Admin: 6, Rest: 1, Debug: 1)
+- **Total Tests:** 116 tests with ~506 assertions (unchanged from Phase 9)
+- **Modules at/above 95%:** 4 of 10 (Utilities: 98.92%, File: 100%, Promotion: 99.28%, Site: 100%)
+- **Modules below 95%:** 6 of 10 (Product: 85.71%, Media: 86.33%, Modules: 65.09%, Rest: 0%, Admin: 0%, CLI: 0%)
 
 **Next Steps:**
-Ready to proceed to **Phase 10: CLI Module** (~9 files - WP-CLI commands)
+Ready to proceed to **Phase 11: Revisit Debug class** or consider integration testing strategy for untestable modules
 
 ## Notes
 
