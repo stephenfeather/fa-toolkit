@@ -5,3 +5,10 @@ composer.lock
 
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
+
+# Continuous Claude cache (local only)
+.claude/cache/
+
+# PHPUnit coverage and cache
+coverage/
+.phpunit.cache/

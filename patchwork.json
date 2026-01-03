@@ -1,0 +1,10 @@
+{
+  "redefinable-internals": [
+    "error_log",
+    "print_r",
+    "extension_loaded",
+    "var_dump",
+    "hash_file",
+    "hash_equals"
+  ]
+}
