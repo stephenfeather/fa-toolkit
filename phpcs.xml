@@ -9,13 +9,15 @@
 
 	<!-- What to scan -->
 	<file>src</file>
-	<file>includes</file>
 
 	<!-- Ignore vendor/build artifacts -->
 	<exclude-pattern>vendor/*</exclude-pattern>
 	<exclude-pattern>node_modules/*</exclude-pattern>
 	<exclude-pattern>dist/*</exclude-pattern>
 	<exclude-pattern>build/*</exclude-pattern>
+
+	<!-- Ignore test files - test code has different standards than production -->
+	<exclude-pattern>tests/*</exclude-pattern>
 
 	<!-- Standards -->
 	<rule ref="WordPress-Core"/>
@@ -31,12 +33,11 @@
 
 	<!-- Allow direct-access guards in leaf files (still strict elsewhere) -->
 	<rule ref="WordPress.PHP.DiscouragedPHPFunctions.exit">
-		<exclude-pattern>*/includes/*.php</exclude-pattern>
 		<exclude-pattern>*/src/*.php</exclude-pattern>
 	</rule>
 
 	<!-- CLI code may legitimately output raw CLI text; keep strict in web paths -->
 	<rule ref="WordPress.Security.EscapeOutput.OutputNotEscaped">
-		<exclude-pattern>includes/cli/*</exclude-pattern>
+		<exclude-pattern>src/CLI/*</exclude-pattern>
 	</rule>
 </ruleset>
