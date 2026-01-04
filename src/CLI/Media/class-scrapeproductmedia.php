@@ -105,7 +105,7 @@ class ScrapeProductMedia {
 		$product = wc_get_product( $product_id );
 
 		// Verify the product exists.
-		if ( false ===$product ) {
+		if ( false === $product ) {
 			\WP_CLI::error( "Product ({$product_id}) does not exist." );
 		}
 
@@ -113,7 +113,7 @@ class ScrapeProductMedia {
 		\WP_CLI::debug( 'Product Status: ' . $product->get_status() );
 		if ( 'draft' !== $product->get_status() ) {
 			\WP_CLI::warning( "Product ({$product_id}) is already published. ({$product->get_status()})" );
-			if ( false ===$override ) {
+			if ( false === $override ) {
 				die( 'Security (fhi4d6): File addressed directly.' );
 			}
 		}
@@ -140,7 +140,7 @@ class ScrapeProductMedia {
 		}
 
 		// Check if product already has gallery media.
-		if ( ! empty( $product->get_gallery_image_ids() ) ) {
+		if ( true !== empty( $product->get_gallery_image_ids() ) ) {
 			\WP_CLI::warning( "Product ({$product_id}) already has media gallery." );
 			if ( false === $override ) {
 				$product->set_status( 'publish' );
