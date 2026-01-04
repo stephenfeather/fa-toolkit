@@ -330,7 +330,7 @@ class ScrapeProductMedia {
 
 		// Verify this attachment is not already in the media library.
 		$existing_post = post_exists( $remote_basename );
-		if ( true ===$existing_post ) {
+		if ( true === $existing_post ) {
 			\WP_CLI::warning( "({$product_id}): {$remote_basename} already exists. Not redownloading." );
 			return $existing_post;
 		}
@@ -351,7 +351,7 @@ class ScrapeProductMedia {
 
 		// Verify that the file hash is not a known placeholder.
 		$hash = hash_file( 'sha256', $upload['file'] );
-		if ( true ===in_array( $hash, $this->known_placeholder_hashes, true ) ) {
+		if ( true === in_array( $hash, $this->known_placeholder_hashes, true ) ) {
 			\WP_CLI::warning( "({$product_id}): {$remote_basename} identified by placeholder hash. Not importing." );
 			$this->save_product_placeholder_meta_flag( $product_id );
 			return 0;
