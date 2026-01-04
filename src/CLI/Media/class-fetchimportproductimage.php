@@ -255,8 +255,6 @@ if ( function_exists( 'download_image' ) === false ) {
 		$url = '';
 		if ( 'davidsons' === $dealer ) {
 			$sku = strtolower( $sku );
-			// $url = new WP_Error();
-			// $url->add( 'invalid', 'Dfavidson\'s is so fouled up.' );
 
 			// Davidsons.
 			// Old sample: $url = "https://res.cloudinary.com/davidsons-inc/c_lpad,dpr_2.0,h_1536,q_100,w_1536/v1/media/catalog/product/" . substr($sku, 3, 1) . "/" . substr($sku, 4, 1) . "/" . substr($sku, 3) . "." . $extension;.

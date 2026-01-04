@@ -56,7 +56,6 @@ class ExportACFField {
 		// Prepare CSV data.
 		$csv_data   = array();
 		$csv_data[] = array( 'Product ID', 'ACF Field Value' );
-		// \WP_CLI::line( 'Fetching products...' );
 		$products = $this->fetch_all_products();
 		$progress = \WP_CLI\Utils\make_progress_bar( 'Processing products', count( $products ) );
 		foreach ( $products as $product ) {

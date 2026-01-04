@@ -24,9 +24,6 @@ class PWBulkEditorSettings {
 		add_filter( 'pwbe_filter_types', array( $this, 'pwbe_filter_types_category_count' ) );
 		add_filter( 'pwbe_common_joins', array( $this, 'pwbe_common_joins_category_count' ) );
 		add_filter( 'pwbe_where_clause', array( $this, 'pwbe_where_clause_category_count' ), 10, 6 );
-		// add_filter( 'pwbe_filter_types', array( $this, 'pwbe_filter_types_distributor' ) );
-		// add_filter( 'pwbe_common_joins', array( $this, 'pwbe_common_joins_distributor' ) );
-		// add_filter( 'pwbe_where_clause', array( $this, 'pwbe_where_clause_distributor' ), 10, 6 ).
 	}
 
 	/**
@@ -207,59 +204,6 @@ class PWBulkEditorSettings {
 		if ( 'category_count' === $field_name ) {
 			$sql_builder = new PWBE_SQL_Builder();
 			$row_sql     = $sql_builder->numeric_search( 'category_counts.category_count', $filter_type, $field_value, $field_value2 );
-		}
-
-		return $row_sql;
-	}
-
-	/**
-	 * PWBE Filter Types.
-	 *
-	 * @param array $filter_types Filter Types.
-	 * @return array
-	 */
-	public function pwbe_filter_types_distributor( $filter_types ) {
-		$filter_types['distributor'] = array(
-			'name' => __( 'Distributor', 'woocommerce' ),
-			'type' => 'text',
-		);
-
-		return $filter_types;
-	}
-
-	/**
-	 * PWBE Common Joins.
-	 *
-	 * @param string $common_joins Common Joins.
-	 * @return string
-	 */
-	public function pwbe_common_joins_distributor( $common_joins ) {
-		global $wpdb;
-
-		$common_joins .= "
-        LEFT JOIN
-            {$wpdb->postmeta} AS meta__distributer ON (meta__distributer.post_id = post.ID AND meta__distributer.meta_key = 'dealer')
-    ";
-
-		return $common_joins;
-	}
-
-	/**
-	 * PWBE Where Clause.
-	 *
-	 * @param string $row_sql      Row SQL.
-	 * @param string $field_name   Field Name.
-	 * @param string $filter_type  Filter Type.
-	 * @param string $field_value  Field Value.
-	 * @param string $field_value2 Field Value 2.
-	 * @param string $group_type   Group Type.
-	 * @return string
-	 */
-	public function pwbe_where_clause_distributor( $row_sql, $field_name, $filter_type, $field_value, $field_value2, $group_type ) {
-
-		if ( 'distributor' === $field_name ) {
-			$sql_builder = new PWBE_SQL_Builder();
-			$row_sql     = $sql_builder->string_search( 'meta__distributer.' . $field_name, $filter_type, $field_value, $field_value2 );
 		}
 
 		return $row_sql;
