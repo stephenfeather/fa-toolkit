@@ -12,7 +12,7 @@
 
 namespace FAToolkit\Utilities;
 
-if ( defined( 'WP_CLI' ) && WP_CLI ) {
+if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
 	/**
 	 * Test color output using the \WP_CLI::colorize() function.
 	 */

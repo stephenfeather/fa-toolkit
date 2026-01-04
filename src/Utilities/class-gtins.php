@@ -12,7 +12,7 @@
 
 namespace FAToolkit\Utilities;
 
-if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+if ( false === defined( 'WP_CLI' ) || false === WP_CLI ) {
 	return;
 }
 
@@ -46,7 +46,7 @@ class GTINS {
 	public function populate( $args, $assoc_args ) {
 		$category_id = isset( $args[0] ) ? intval( $args[0] ) : 0;
 
-		if ( ! $category_id ) {
+		if ( true === empty( $category_id ) ) {
 			\WP_CLI::error( 'Invalid category ID.' );
 		}
 
@@ -66,14 +66,14 @@ class GTINS {
 			)
 		);
 
-		if ( empty( $product_ids ) ) {
+		if ( true === empty( $product_ids ) ) {
 			\WP_CLI::error( 'No products found in the specified category.' );
 		}
 
 		foreach ( $product_ids as $product_id ) {
 			$upc_code = get_post_meta( $product_id, 'upc_code', true );
 
-			if ( ! empty( $upc_code ) ) {
+			if ( false === empty( $upc_code ) ) {
 				update_post_meta( $product_id, '_rank_math_gtin_code', $upc_code );
 			}
 		}

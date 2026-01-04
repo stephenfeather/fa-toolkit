@@ -15,7 +15,7 @@
 
 namespace FAToolkit\Utilities;
 
-if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+if ( false === defined( 'WP_CLI' ) || false === WP_CLI ) {
 	return;
 }
 
@@ -62,7 +62,7 @@ class FixRankMathSchemas {
 			delete_post_meta( $product_id, 'rank_math_rich_snippet' );
 			$delete_schema_status = $this->delete_schema( $product_id );
 			// Run delete_schema function.
-			if ( $delete_schema_status ) {
+			if ( true === $delete_schema_status ) {
 				++$deleted_count;
 			} else {
 				++$failed_count;

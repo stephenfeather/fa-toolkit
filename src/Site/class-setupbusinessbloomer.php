@@ -36,7 +36,7 @@ class SetupBusinessBloomer {
 	 * @donate $9     https://businessbloomer.com/bloomer-armada/
 	 */
 	public function bloomer_echo_product_date() {
-		if ( is_product() ) {
+		if ( true === is_product() ) {
 			printf( '%s', esc_html( the_modified_date( '', '<span class="single_product_date_published">Updated: ', '</span>', false ) ) );
 		}
 	}
@@ -50,10 +50,10 @@ class SetupBusinessBloomer {
 	 * @param object $product Product.
 	 */
 	public function bbloomer_hide_price_if_out_stock_frontend( $price, $product ) {
-		if ( is_admin() ) {
+		if ( true === is_admin() ) {
 			return $price; // BAIL IF BACKEND.
 		}
-		if ( ! $product->is_in_stock() ) {
+		if ( false ===  $product->is_in_stock() ) {
 			$price = apply_filters( 'woocommerce_empty_price_html', '', $product );
 		}
 		return $price;
