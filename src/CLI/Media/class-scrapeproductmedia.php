@@ -114,7 +114,7 @@ class ScrapeProductMedia {
 		if ( 'draft' !== $product->get_status() ) {
 			\WP_CLI::warning( "Product ({$product_id}) is already published. ({$product->get_status()})" );
 			if ( false === $override ) {
-				die( 'Security (fhi4d6): File addressed directly.' );
+				die(); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 			}
 		}
 
@@ -122,7 +122,7 @@ class ScrapeProductMedia {
 		if ( $this->has_product_placeholder_meta_flag( $product_id ) ) {
 			\WP_CLI::warning( "Product ({$product_id}) has been previously tagged as having a placeholder image." );
 			if ( false === $override ) {
-				die( 'Security (fhi4d6): File addressed directly.' );
+				die(); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 			}
 		}
 
@@ -130,12 +130,12 @@ class ScrapeProductMedia {
 		$sku = $product->get_sku();
 
 		// Check if product already has featured image.
-		if ( has_post_thumbnail( $product_id ) ) {
+		if ( true ===has_post_thumbnail( $product_id ) ) {
 			\WP_CLI::warning( "Product ({$product_id}) already has a featured image." );
 			if ( false === $override ) {
 				$product->set_status( 'publish' );
 				$product->save();
-				die( 'Security (fhi4d6): File addressed directly.' );
+				die(); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 			}
 		}
 
@@ -145,7 +145,7 @@ class ScrapeProductMedia {
 			if ( false === $override ) {
 				$product->set_status( 'publish' );
 				$product->save();
-				die( 'Security (fhi4d6): File addressed directly.' );
+				die(); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 			}
 		}
 
@@ -156,7 +156,7 @@ class ScrapeProductMedia {
 		// Check if the dealer_filter is not empty and does not match the distributor.
 		if ( false === empty( $dealer_filter ) && $dealer_filter !== $distributor ) {
 			\WP_CLI::warning( "Product ({$product_id}) is not from the specified dealer ({$dealer_filter})." );
-			die( 'Security (fhi4d6): File addressed directly.' );
+			die(); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 		}
 
 		// Get the distributor_settings.
@@ -317,7 +317,7 @@ class ScrapeProductMedia {
 	 */
 	private function import_media( $url, $product_id ) {
 		\WP_CLI::debug( 'Importing Media for ' . $product_id . ': ' . $url );
-		die( 'Security (fhi4d6): File addressed directly.' );
+		die(); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 		// Check the type of file. We'll use this as the 'post_mime_type'.
 		$remote_basename = basename( $url );
 		$filetype        = wp_check_filetype( $remote_basename, null );
@@ -419,7 +419,7 @@ class ScrapeProductMedia {
 		$success = update_post_meta( $product_id, 'product_placeholder', true );
 		if ( true === $success ) {
 			\WP_CLI::success( "({$product_id}): Set placeholder flag." );
-			die( 'Security (fhi4d6): File addressed directly.' );
+			die(); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 		} else {
 			\WP_CLI::error( "({$product_id}): Failed to set placeholder flag." );
 		}
