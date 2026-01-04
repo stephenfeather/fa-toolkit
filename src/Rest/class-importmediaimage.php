@@ -123,14 +123,12 @@ class ImportMediaImage {
 		if ( true === is_wp_error( $response ) ) {
 			return new \WP_Error( 'rest_download_failed', esc_html__( 'The download failed.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}
-		$file_path = wp_upload_dir()['path'] . '/' . clean_filename( $remote_basename );
-		$file_name = basename( $file_path );
-
+		$file_path      = wp_upload_dir()['path'] . '/' . clean_filename( $remote_basename );
+		$file_name      = basename( $file_path );
 		$info           = pathinfo( $file_path );
 		$file_name_base = $info['filename'];
 		$file_ext       = $info['extension'];
-
-		$file = wp_upload_bits( $file_name, null, wp_remote_retrieve_body( $response ) );
+		$file           = wp_upload_bits( $file_name, null, wp_remote_retrieve_body( $response ) );
 		if ( true === $file['error'] ) {
 			return new \WP_Error( 'rest_upload_failed', esc_html__( 'The upload failed.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}
@@ -152,7 +150,7 @@ class ImportMediaImage {
 			'post_content'   => '',
 			'post_status'    => 'inherit',
 		);
-		$product_id    = null; // Attach to no product.
+		$product_id    = 0; // Attach to no product.
 		$attachment_id = wp_insert_attachment( $attachment, $file['file'], $product_id );
 		if ( true === is_wp_error( $attachment_id ) ) {
 			return new \WP_Error( 'rest_attachment_failed', esc_html__( 'The attachment failed.', 'my-text-domain' ), array( 'status' => 400 ) );
