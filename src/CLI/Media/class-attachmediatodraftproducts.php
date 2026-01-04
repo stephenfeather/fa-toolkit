@@ -19,7 +19,7 @@ if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 }
 
 
-if ( true ===function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
+if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 
 	/**
 	 * Attach media to draft products based on SKU.
