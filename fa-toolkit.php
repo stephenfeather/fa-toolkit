@@ -15,13 +15,16 @@
 // Exit if accessed directly.
 if ( defined( 'ABSPATH' ) === false ) {
 	die( 'Security (fhi4d6): File addressed directly.' );// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
-};
+}
 
 add_filter( 'woocommerce_is_purchasable', '__return_true' );
 define( 'FA_TOOLKIT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FA_TOOLKIT_URL', plugin_dir_url( __FILE__ ) );
 
-require_once FA_TOOLKIT_PATH . 'vendor/autoload.php';
+// Autoload classes via Composer.
+if ( true ===is_readable( __DIR__ . '/vendor/autoload.php' ) ) {
+	require_once __DIR__ . '/vendor/autoload.php';
+}
 
 // Instantiate classes with side-effects (hooks, actions, WP-CLI commands, etc).
 // These classes register their own hooks in constructors.
@@ -60,7 +63,7 @@ new \FAToolkit\Modules\QueryMonitorSettings();
 new \FAToolkit\Modules\WooCommerceSettings();
 
 // Utilities (WP-CLI dependent classes only load if WP-CLI is active).
-if ( false === defined( 'WP_CLI' ) && false === WP_CLI ) {
+if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
 	new \FAToolkit\Utilities\FixRankMathSchemas();
 	new \FAToolkit\Utilities\GTINS();
 	new \FAToolkit\Utilities\Color_Test();
@@ -76,14 +79,14 @@ new \FAToolkit\Site\SetupBusinessBloomer();
 new \FAToolkit\Rest\ImportMediaImage();
 
 // CLI Commands (only load if WP-CLI is active).
-if ( false === defined( 'WP_CLI' ) && false === WP_CLI ) {
+if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
 	new \FAToolkit\CLI\Tools\ExportACFField();
 	new \FAToolkit\CLI\Media\ScrapeProductMedia();
 	// The remaining CLI files are procedural and register commands globally.
-	require_once FA_TOOLKIT_PATH . 'src/CLI/Media/class-attachmediatodraftproducts.php';
-	require_once FA_TOOLKIT_PATH . 'src/CLI/Media/class-exportdraftproductimagesources.php';
-	require_once FA_TOOLKIT_PATH . 'src/CLI/Media/class-fetchimportproductimage.php';
-	require_once FA_TOOLKIT_PATH . 'src/CLI/Media/class-findmediaforproduct.php';
-	require_once FA_TOOLKIT_PATH . 'src/CLI/Commands/class-scrapeproductdata.php';
-	require_once FA_TOOLKIT_PATH . 'src/CLI/Tools/class-tools.php';
+	require_once __DIR__ . 'src/CLI/Media/class-attachmediatodraftproducts.php';
+	require_once __DIR__ . 'src/CLI/Media/class-exportdraftproductimagesources.php';
+	require_once __DIR__ . 'src/CLI/Media/class-fetchimportproductimage.php';
+	require_once __DIR__ . 'src/CLI/Media/class-findmediaforproduct.php';
+	require_once __DIR__ . 'src/CLI/Commands/class-scrapeproductdata.php';
+	require_once __DIR__ . 'src/CLI/Tools/class-tools.php';
 }
