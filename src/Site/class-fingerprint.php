@@ -8,7 +8,7 @@
 namespace FAToolkit\Site;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // Exit if accessed directly.
+	die( 'Security (fhi4d6): File addressed directly.' ); // Exit if accessed directly.
 }
 
 /**

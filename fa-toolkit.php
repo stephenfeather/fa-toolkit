@@ -14,7 +14,7 @@
 
 // Exit if accessed directly.
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+	die( 'Security (fhi4d6): File addressed directly.' );// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 };
 
 add_filter( 'woocommerce_is_purchasable', '__return_true' );
@@ -60,7 +60,7 @@ new \FAToolkit\Modules\QueryMonitorSettings();
 new \FAToolkit\Modules\WooCommerceSettings();
 
 // Utilities (WP-CLI dependent classes only load if WP-CLI is active).
-if ( defined( 'WP_CLI' ) && WP_CLI ) {
+if ( false ===defined( 'WP_CLI' ) && false ===WP_CLI ) {
 	new \FAToolkit\Utilities\FixRankMathSchemas();
 	new \FAToolkit\Utilities\GTINS();
 	new \FAToolkit\Utilities\Color_Test();
@@ -76,7 +76,7 @@ new \FAToolkit\Site\SetupBusinessBloomer();
 new \FAToolkit\Rest\ImportMediaImage();
 
 // CLI Commands (only load if WP-CLI is active).
-if ( defined( 'WP_CLI' ) && WP_CLI ) {
+if ( false ===defined( 'WP_CLI' ) && false ===WP_CLI ) {
 	new \FAToolkit\CLI\Tools\ExportACFField();
 	new \FAToolkit\CLI\Media\ScrapeProductMedia();
 	// The remaining CLI files are procedural and register commands globally.

@@ -88,5 +88,6 @@
         "zip",
         "zlib",
         "wordpress"
-    ]
+	],
+	"phpsab.executablePathCBF": "/Users/stephenfeather/.composer/vendor/bin/phpcbf"
 }

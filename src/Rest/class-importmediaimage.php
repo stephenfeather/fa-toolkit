@@ -10,8 +10,8 @@ namespace FAToolkit\Rest;
 
 use FAToolkit\File;
 
-if ( defined( 'ABSPATH' ) === false ) {
-	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+if ( false === defined( 'ABSPATH' ) ) {
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 /**
@@ -48,7 +48,7 @@ class ImportMediaImage {
 	 */
 	public function import_media_image_permission() {
 		// Restrict endpoint to only users who have the edit_posts capability.
-		if ( ! current_user_can( 'upload_files' ) ) {
+		if ( false === current_user_can( 'upload_files' ) ) {
 			return new WP_Error( 'rest_forbidden', esc_html__( 'Your are not permitted to upload files.', 'my-text-domain' ), array( 'status' => 401 ) );
 		}
 		return true;
@@ -64,7 +64,7 @@ class ImportMediaImage {
 		$url        = $parameters['url'];
 
 		// Check that the $url is valid.
-		if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+		if ( false ===  filter_var( $url, FILTER_VALIDATE_URL ) ) {
 			return new \WP_Error( 'rest_invalid_url', esc_html__( 'The url provided is not valid.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}
 
@@ -78,13 +78,13 @@ class ImportMediaImage {
 
 		// Check if the file already exists.
 		$existing_attachment = attachment_exists( $remote_basename );
-		if ( is_wp_error( $existing_attachment ) ) {
+		if ( true === is_wp_error( $existing_attachment ) ) {
 			return $existing_attachment;
 		}
 
 		// Download the remote media file.
 		$download = $this->download_media( $url );
-		if ( is_wp_error( $download ) ) {
+		if ( true === is_wp_error( $download ) ) {
 			return $download;
 		}
 
@@ -93,12 +93,12 @@ class ImportMediaImage {
 
 		// Import the media file into the media library.
 		$attachment_id = $this->create_attachment( $download );
-		if ( is_wp_error( $attachment_id ) ) {
+		if ( true === is_wp_error( $attachment_id ) ) {
 			return $attachment_id;
 		}
 
 		// Save hash to attachment meta.
-		if ( $hash ) {
+		if ( true !== empty( $hash ) ) {
 			update_post_meta( $attachment_id, 'sha256_hash', $hash );
 		}
 
@@ -120,7 +120,7 @@ class ImportMediaImage {
 	private function download_media( $url ) {
 		$remote_basename = basename( $url );
 		$response        = wp_remote_get( $url );
-		if ( is_wp_error( $response ) ) {
+		if ( true === is_wp_error( $response ) ) {
 			return new \WP_Error( 'rest_download_failed', esc_html__( 'The download failed.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}
 		$file_path = wp_upload_dir()['path'] . '/' . clean_filename( $remote_basename );
@@ -131,7 +131,7 @@ class ImportMediaImage {
 		$file_ext       = $info['extension'];
 
 		$file = wp_upload_bits( $file_name, null, wp_remote_retrieve_body( $response ) );
-		if ( $file['error'] ) {
+		if ( true ===$file['error'] ) {
 			return new \WP_Error( 'rest_upload_failed', esc_html__( 'The upload failed.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}
 
@@ -153,7 +153,7 @@ class ImportMediaImage {
 			'post_status'    => 'inherit',
 		);
 		$attachment_id = wp_insert_attachment( $attachment, $file['file'], $product_id );
-		if ( is_wp_error( $attachment_id ) ) {
+		if ( true === is_wp_error( $attachment_id ) ) {
 			return new \WP_Error( 'rest_attachment_failed', esc_html__( 'The attachment failed.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}
 
@@ -179,7 +179,7 @@ class ImportMediaImage {
 		$caption     = $parameters['caption'];
 		$description = $parameters['description'];
 
-		if ( $title ) {
+		if ( true !== is_empty( $title ) ) {
 			wp_update_post(
 				array(
 					'ID'         => $attachment_id,
@@ -188,12 +188,12 @@ class ImportMediaImage {
 			);
 		}
 
-		if ( $caption ) {
+		if ( true !== is_empty( $caption ) ) {
 			update_post_meta( $attachment_id, '_wp_attachment_image_alt', $caption );
 
 		}
 
-		if ( $description ) {
+		if ( true !== is_empty( $description ) ) {
 			wp_update_post(
 				array(
 					'ID'           => $attachment_id,
@@ -220,7 +220,7 @@ function scrub( $url ) {
 
 	// Remove inline image params from davidsons.
 	$pattern = '/^(https:\/\/res\.cloudinary\.com\/davidsons-inc)(\/[^\/]+)(\/v1\/media\/.+)(\?.+)$/';
-	if ( preg_match( $pattern, $scrubbed_url, $matches ) ) {
+	if ( true ===preg_match( $pattern, $scrubbed_url, $matches ) ) {
 		$part1        = $matches[1];
 		$part2        = $matches[2];
 		$part3        = $matches[3];
@@ -278,7 +278,7 @@ function get_url_filename( $url ) {
  */
 function attachment_exists( $filename ) {
 	$post_id = post_exists( $filename );
-	if ( $post_id ) {
+	if ( true !== empty( $post_id ) ) {
 		return new \WP_Error(
 			'rest_attachment_exists',
 			esc_html__(

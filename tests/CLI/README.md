@@ -33,7 +33,7 @@ ALL 8 CLI command files follow the same problematic pattern:
 
 - **class-scrapeproductmedia.php**: Class with auto-instantiation
   - Pattern: `\WP_CLI::add_command('fa:media scrape-product-media', array(new ScrapeProductMedia(), 'wp_cli_scrape_product_media'));` at line 442
-  - Debug code: Line 320 - `exit;` statement in middle of `import_media()` method
+  - Debug code: Line 320 - `die( 'Security (fhi4d6): File addressed directly.' );` statement in middle of `import_media()` method
 
 - **class-exportdraftproductimagesources.php**: Function-based command
   - Bug: Line 62 - undefined variable `$wp_filesystem` (should be declared global)
