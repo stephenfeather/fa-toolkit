@@ -67,7 +67,7 @@ class Media_Fix_Ilab_Metadata {
 			\WP_CLI::error( 'Error processing attachment ' . $post_id . ': ' . $e->getMessage() );
 		}
 
-		if ( ! $success ) {
+		if ( false === $success ) {
 			\WP_CLI::error( 'Failed to fix metadata for post ID: ' . $post_id );
 		}
 		\WP_CLI::success( 'Metadata fixed for post ID: ' . $post_id );
@@ -94,11 +94,9 @@ class Media_Fix_Ilab_Metadata {
 		$starting_post_id       = absint( $args[0] ) ?? 0;
 		$override               = $assoc_args['override'] ?? false;
 
-		// if ( $override ) {.
+
 			$x = $starting_post_id;
-		// } else {
-		// $x = $last_processed_post_id;
-		// }
+
 
 		// Set the order (either 'ASC' for ascending or 'DESC' for descending).
 		$order = 'ASC'; // Use 'DESC' for descending order.
@@ -110,7 +108,6 @@ class Media_Fix_Ilab_Metadata {
 		$args = array(
 			'post_type'      => 'attachment',
 			'posts_per_page' => -1, // Retrieve all attachments in the range.
-			// 'post_status'    => 'inherit', // Include only attachments with the 'inherit' status.
 			'orderby'        => 'ID', // Order by ID.
 			'order'          => $order,
 			'post__in'       => range( $x, $y ), // Specify the IDs range.
@@ -126,10 +123,7 @@ class Media_Fix_Ilab_Metadata {
 		foreach ( $attachments as $attachment_id ) {
 			update_option( 'fa_toolkit_last_processed_post_id', $attachment_id );
 							$success = $storage_utilities->fixMetadata( $attachment_id );
-			// } catch ( Exception $e ) {
-				// \WP_CLI::warning( 'Error processing attachment ' . $attachment_id . ': ' . $e->getMessage() );
-				// continue; // Continue to the next iteration of the loop.
-			// }
+
 			if ( ! $success ) {
 				\WP_CLI::warning( 'Failed to fix metadata for post ID: ' . $attachment_id );
 			} else {
