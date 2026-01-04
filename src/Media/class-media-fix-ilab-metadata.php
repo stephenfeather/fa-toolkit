@@ -93,10 +93,7 @@ class Media_Fix_Ilab_Metadata {
 		$last_processed_post_id = get_option( 'fa_toolkit_last_processed_post_id' );
 		$starting_post_id       = absint( $args[0] ) ?? 0;
 		$override               = $assoc_args['override'] ?? false;
-
-
-			$x = $starting_post_id;
-
+		$x = $starting_post_id;
 
 		// Set the order (either 'ASC' for ascending or 'DESC' for descending).
 		$order = 'ASC'; // Use 'DESC' for descending order.
@@ -124,7 +121,7 @@ class Media_Fix_Ilab_Metadata {
 			update_option( 'fa_toolkit_last_processed_post_id', $attachment_id );
 							$success = $storage_utilities->fixMetadata( $attachment_id );
 
-			if ( ! $success ) {
+			if ( false === $success ) {
 				\WP_CLI::warning( 'Failed to fix metadata for post ID: ' . $attachment_id );
 			} else {
 				\WP_CLI::success( 'Metadata fixed for post ID: ' . $attachment_id );
