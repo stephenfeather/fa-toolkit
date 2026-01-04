@@ -208,6 +208,16 @@ class WooCommerceSettings {
 
 
 
+	/**
+	 * Trim and uppercase a value with special word boundary handling.
+	 *
+	 * Normalizes a string by trimming, converting to lowercase, then uppercasing
+	 * first letters at word boundaries (hyphens, parentheses, periods), and
+	 * replacing specific patterns.
+	 *
+	 * @param string $value The input value to format.
+	 * @return string The formatted value.
+	 */
 	private function trim_and_uppercase( $value ) {
 		return str_replace( 'Oww ', 'OWW ', implode( '.', array_map( 'ucwords', explode( '.', implode( '(', array_map( 'ucwords', explode( '(', implode( '-', array_map( 'ucwords', explode( '-', mb_strtolower( trim( $value ) ) ) ) ) ) ) ) ) ) ) );
 	}
