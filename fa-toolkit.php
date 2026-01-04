@@ -71,7 +71,6 @@ if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
 new \FAToolkit\Utilities\Debug();
 
 // Site.
-new \FAToolkit\Site\Fingerprint();
 new \FAToolkit\Site\GoogleTagManager();
 new \FAToolkit\Site\SetupBusinessBloomer();
 
