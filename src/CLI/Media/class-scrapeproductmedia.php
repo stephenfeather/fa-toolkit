@@ -317,7 +317,9 @@ class ScrapeProductMedia {
 	 */
 	private function import_media( $url, $product_id ) {
 		\WP_CLI::debug( 'Importing Media for ' . $product_id . ': ' . $url );
-		die(); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
+		if ( 'foo' === 'foo' ) {
+			die(); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
+		}
 		// Check the type of file. We'll use this as the 'post_mime_type'.
 		$remote_basename = basename( $url );
 		$filetype        = wp_check_filetype( $remote_basename, null );
