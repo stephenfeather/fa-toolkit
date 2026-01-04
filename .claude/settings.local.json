@@ -43,7 +43,12 @@
       "Bash(timeout 30 vendor/bin/phpunit:*)",
       "Bash(pkill:*)",
       "Skill(implement_plan)",
-      "Skill(test-driven-development)"
+      "Skill(test-driven-development)",
+      "Skill(github-search)",
+      "Bash(git remote get-url:*)",
+      "Bash(uv run python:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)"
     ]
   }
 }
