@@ -11,7 +11,7 @@ namespace FAToolkit\Rest;
 use FAToolkit\File;
 
 if ( false === defined( 'ABSPATH' ) ) {
-	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 }
 
 /**
@@ -64,7 +64,7 @@ class ImportMediaImage {
 		$url        = $parameters['url'];
 
 		// Check that the $url is valid.
-		if ( false ===  filter_var( $url, FILTER_VALIDATE_URL ) ) {
+		if ( false === filter_var( $url, FILTER_VALIDATE_URL ) ) {
 			return new \WP_Error( 'rest_invalid_url', esc_html__( 'The url provided is not valid.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}
 
@@ -131,7 +131,7 @@ class ImportMediaImage {
 		$file_ext       = $info['extension'];
 
 		$file = wp_upload_bits( $file_name, null, wp_remote_retrieve_body( $response ) );
-		if ( true ===$file['error'] ) {
+		if ( true === $file['error'] ) {
 			return new \WP_Error( 'rest_upload_failed', esc_html__( 'The upload failed.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}
 
@@ -152,6 +152,7 @@ class ImportMediaImage {
 			'post_content'   => '',
 			'post_status'    => 'inherit',
 		);
+		$product_id    = null; // Attach to no product.
 		$attachment_id = wp_insert_attachment( $attachment, $file['file'], $product_id );
 		if ( true === is_wp_error( $attachment_id ) ) {
 			return new \WP_Error( 'rest_attachment_failed', esc_html__( 'The attachment failed.', 'my-text-domain' ), array( 'status' => 400 ) );
@@ -220,7 +221,7 @@ function scrub( $url ) {
 
 	// Remove inline image params from davidsons.
 	$pattern = '/^(https:\/\/res\.cloudinary\.com\/davidsons-inc)(\/[^\/]+)(\/v1\/media\/.+)(\?.+)$/';
-	if ( true ===preg_match( $pattern, $scrubbed_url, $matches ) ) {
+	if ( true === preg_match( $pattern, $scrubbed_url, $matches ) ) {
 		$part1        = $matches[1];
 		$part2        = $matches[2];
 		$part3        = $matches[3];

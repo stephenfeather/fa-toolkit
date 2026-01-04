@@ -11,7 +11,7 @@ namespace FAToolkit\Modules;
 use FAToolkit\Utilities\Debug;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 }
 /**
  * WP All Import Settings.

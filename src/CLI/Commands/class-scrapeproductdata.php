@@ -8,7 +8,7 @@
 namespace FAToolkit\CLI\Commands;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	die( 'Security (fhi4d6): File addressed directly.' ); // Exit if accessed directly.
+	die( 'Security (fhi4d6): File addressed directly.' ); //phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 }
 
 if ( true === class_exists( 'WP_CLI_Command' ) ) {

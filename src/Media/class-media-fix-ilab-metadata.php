@@ -12,7 +12,7 @@ if ( defined( 'ABSPATH' ) === false ) {
 	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 };
 
-if ( ( defined( 'WP_CLI' ) && WP_CLI ) === false ) {
+if ( false === defined( 'WP_CLI' ) && WP_CLI === false ) {
 	return;
 }
 
@@ -52,11 +52,11 @@ class Media_Fix_Ilab_Metadata {
 	public function fix_media_metadata( $args, $assoc_args ) {
 		$post_id = absint( $args[0] );
 
-		if ( ! $post_id ) {
+		if ( true === is_empty( $post_id ) ) {
 			\WP_CLI::error( 'Please provide a valid post ID.' );
 		}
 
-		if ( ! post_exists( $post_id ) ) {
+		if ( false === post_exists( $post_id ) ) {
 			\WP_CLI::error( 'Post ID ' . $post_id . " doesn't exist." );
 		}
 
@@ -136,8 +136,6 @@ class Media_Fix_Ilab_Metadata {
 				\WP_CLI::success( 'Metadata fixed for post ID: ' . $attachment_id );
 			}
 		}
-
-		delete_option( $option_name );
 	}
 }
 
