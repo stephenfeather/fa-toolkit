@@ -18,8 +18,8 @@ if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 	return;
 }
 
-use \WP_CLI;
-use \WP_Query;
+use WP_CLI;
+use WP_Query;
 
 /**
  * Export ACF field values from all WooCommerce products.
