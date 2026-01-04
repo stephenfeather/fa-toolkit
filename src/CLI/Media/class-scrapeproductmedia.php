@@ -130,7 +130,7 @@ class ScrapeProductMedia {
 		$sku = $product->get_sku();
 
 		// Check if product already has featured image.
-		if ( true ===has_post_thumbnail( $product_id ) ) {
+		if ( true === has_post_thumbnail( $product_id ) ) {
 			\WP_CLI::warning( "Product ({$product_id}) already has a featured image." );
 			if ( false === $override ) {
 				$product->set_status( 'publish' );
