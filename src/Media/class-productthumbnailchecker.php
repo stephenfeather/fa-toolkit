@@ -106,10 +106,10 @@ class ProductThumbnailChecker {
 
 				if ( 0 === $status ) {
 					\WP_CLI::warning( "Product {$post_id} NOT moved to drafts." );
-					$error_count++;
+					++$error_count;
 				} else {
 					\WP_CLI::success( "Product {$post_id} moved to drafts." );
-					$processed_count++;
+					++$processed_count;
 				}
 			}
 		}

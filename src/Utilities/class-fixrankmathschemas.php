@@ -57,15 +57,15 @@ class FixRankMathSchemas {
 		// Delete 'rank_math_rich_snippet' meta key and run delete_schema function for each product.
 		foreach ( $product_ids as $product_id ) {
 			\WP_CLI::log( sprintf( 'Deleting rank_math_rich_snippet and rank_math_schema_Off for product %d of %d.', $current_count, count( $product_ids ) ) );
-			$current_count++;
+			++$current_count;
 			// Delete 'rank_math_rich_snippet' meta key.
 			delete_post_meta( $product_id, 'rank_math_rich_snippet' );
 			$delete_schema_status = $this->delete_schema( $product_id );
 			// Run delete_schema function.
 			if ( $delete_schema_status ) {
-				$deleted_count++;
+				++$deleted_count;
 			} else {
-				$failed_count++;
+				++$failed_count;
 			}
 		}
 

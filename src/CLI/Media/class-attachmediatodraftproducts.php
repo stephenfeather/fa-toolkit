@@ -102,12 +102,12 @@ if ( true ===function_exists( 'wp_cli_attach_media_to_draft_products' ) === fals
 
 				if ( empty( $is_attached ) === false && $is_attached === $attachment['ID'] ) {
 					\WP_CLI::debug( sprintf( 'Attachment ID %d is already attached to product ID %d', $product_id, $attachment['ID'] ) );
-					$matching_attachments++;
+					++$matching_attachments;
 				} else {
 					if ( isset( $assoc_args['dry-run'] ) === false ) {
 						set_post_thumbnail( $product_id, $attachment['ID'] );
 						\WP_CLI::success( sprintf( 'Product %d now parent of Attachment %d', $product_id, $attachment['ID'] ) );
-						$num_with_attachments++;
+						++$num_with_attachments;
 
 						// Publish the product.
 						$publish_response = wp_update_post(
