@@ -1,0 +1,23 @@
+engines:
+    - enabled: true
+      name: phpcs
+      php_version: 8.4.15
+    - enabled: true
+      name: lizard
+    - enabled: true
+      name: pmd
+    - enabled: true
+      name: semgrep
+    - enabled: true
+      name: trivy
+exclude_paths:
+    - vendor/**/*
+    - tests/**/*
+runtimes:
+    - java@17.0.10
+    - python@3.11.11
+tools:
+    - lizard@1.17.31
+    - pmd@6.55.0
+    - semgrep@1.78.0
+    - trivy@0.66.0
