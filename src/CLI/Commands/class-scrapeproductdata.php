@@ -49,7 +49,7 @@ if ( true === class_exists( 'WP_CLI_Command' ) ) {
 			$dom  = new \DOMDocument();
 
 			@$dom->loadHTML( $html['body'] );
-			$title_element = $dom->getElementsByTagName( 'h2' )->item( 0 );
+			$title_element     = $dom->getElementsByTagName( 'h2' )->item( 0 );
 				$product_title = 'Case ' . $title_element->textContent; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 
 			// Example code to extract gallery images.
