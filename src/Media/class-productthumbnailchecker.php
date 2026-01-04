@@ -81,12 +81,11 @@ class ProductThumbnailChecker {
 					'compare' => '=',
 				),
 			),
-			// 'posts_per_page' => $result_count,
-			'orderby'       => 'ID',
-			'order'         => $order,
-			'fields'        => 'ids',
-			'cache_results' => false,
-			'nopaging'      => true,
+			'posts_per_page' => $result_count,
+			'orderby'        => 'ID',
+			'order'          => $order,
+			'fields'         => 'ids',
+			'cache_results'  => false,
 		);
 		if ( isset( $assoc_args['vendor'] ) ) {
 			$args['meta_key']   = 'dealer'; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key

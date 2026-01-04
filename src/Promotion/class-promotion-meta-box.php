@@ -37,7 +37,6 @@ class Promotion_Meta_Box {
 	public static function output( $post ) {
 		wp_nonce_field( 'fatoolkit_save_data', 'fatoolkit_meta_nonce' );
 		$promotion_id = absint( $post->ID );
-		// $promotion    = new Promotion( $promotion_id );
 
 		// Retrieve the current values for the custom fields.
 		$promotion_date_begins = get_post_meta( $promotion_id, 'promotion_date_begins', true );
