@@ -11,7 +11,7 @@
 namespace FAToolkit\CLI\Media;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
@@ -19,7 +19,7 @@ if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 }
 
 
-if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
+if ( true ===function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 
 	/**
 	 * Attach media to draft products based on SKU.
@@ -95,7 +95,7 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 			// Get attachment with the same file name as the SKU.
 			$attachment = find_filename_in_attachment_array( $attachments, $filename_to_match, $product_id );
 
-			if ( $attachment ) {
+			if ( false === is_empty( $attachment ) ) {
 				$attachment = $attachment->to_array();
 
 				$is_attached = get_post_meta( $product_id, '_thumbnail_id', true );
