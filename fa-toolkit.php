@@ -60,7 +60,7 @@ new \FAToolkit\Modules\QueryMonitorSettings();
 new \FAToolkit\Modules\WooCommerceSettings();
 
 // Utilities (WP-CLI dependent classes only load if WP-CLI is active).
-if ( false ===defined( 'WP_CLI' ) && false ===WP_CLI ) {
+if ( false === defined( 'WP_CLI' ) && false === WP_CLI ) {
 	new \FAToolkit\Utilities\FixRankMathSchemas();
 	new \FAToolkit\Utilities\GTINS();
 	new \FAToolkit\Utilities\Color_Test();
@@ -76,7 +76,7 @@ new \FAToolkit\Site\SetupBusinessBloomer();
 new \FAToolkit\Rest\ImportMediaImage();
 
 // CLI Commands (only load if WP-CLI is active).
-if ( false ===defined( 'WP_CLI' ) && false ===WP_CLI ) {
+if ( false === defined( 'WP_CLI' ) && false === WP_CLI ) {
 	new \FAToolkit\CLI\Tools\ExportACFField();
 	new \FAToolkit\CLI\Media\ScrapeProductMedia();
 	// The remaining CLI files are procedural and register commands globally.
