@@ -83,7 +83,7 @@ class Debug {
 	 * @return bool True when the tracer was registered, false otherwise.
 	 */
 	public static function add_custom_tracer( $tracer_name ) {
-		if ( extension_loaded( 'newrelic' ) ) { // Ensure PHP agent is available.
+		if ( true === extension_loaded( 'newrelic' ) ) { // Ensure PHP agent is available.
 			newrelic_add_custom_tracer( $tracer_name ); // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid
 			return true;
 		}
@@ -101,13 +101,22 @@ class Debug {
 	public static function debug_to_console( $data, $context = 'Debug in Console' ) {
 		// Buffering to solve problems frameworks, like header() in this and not a solid return.
 		ob_start();
+		$context = esc_js( $context );
+		$json    = wp_json_encode( $data );
 
-		$output  = 'console.info(\'' . $context . ':\');';
-		$output .= 'console.log(' . wp_json_encode( $data ) . ');';
 		$output  = sprintf( '<script>%s</script>', $output );
+		$output  = sprintf(
+			"<script>console.info('%s:'); console.log(%s);</script>",
+			$context,
+			$json
+		);
 
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		echo wp_kses_post( $output );
+		// Allow script tags with no attributes
+		$allowed_tags = array(
+			'script' => array(),
+		);
+
+		echo wp_kses( $output, $allowed_tags );
 	}
 
 	/**
@@ -117,7 +126,7 @@ class Debug {
 	 */
 	public function shutdown_handler() {
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && current_user_can( 'manage_options' ) ) {
-			# self::var_dump_database();
+			// self::var_dump_database();
 		}
 	}
 }
