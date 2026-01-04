@@ -46,7 +46,7 @@ class Custom_Admin_Menu {
 	 * @return array The array of menu items.
 	 */
 	public function reorder_admin_menu_items( $menu_ord ) {
-		if ( ! $menu_ord ) {
+		if ( FALSE === $menu_ord ) {
 			return true;
 		}
 		// Set our array of menu items in the order we want them to appear.
@@ -76,5 +76,3 @@ class Custom_Admin_Menu {
 		// Add menu items.
 	}
 }
-
-new Custom_Admin_Menu();

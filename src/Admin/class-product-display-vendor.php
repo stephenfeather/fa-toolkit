@@ -47,7 +47,7 @@ class Product_Display_Vendor {
 		if ( 'vendor' === $column ) {
 			$vendor_url = $this->generate_vendor_url( $post_id );
 			$vendor     = get_field( 'dealer', $post_id );
-			printf( "<a href='%s' target='_blank' rel='noopener noreferrer'>%s</a>", esc_url( $vendor_url ), esc_html( $vendor ) );
+			echo '<a href="' . esc_url( $vendor_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $vendor ) . '</a>';
 		}
 	}
 
@@ -73,5 +73,3 @@ class Product_Display_Vendor {
 		return $url;
 	}
 }
-
-new Product_Display_Vendor();

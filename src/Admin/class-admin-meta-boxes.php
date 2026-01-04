@@ -70,7 +70,7 @@ class Admin_Meta_Boxes {
 	public function sort_meta_boxes() {
 
 		$current_value = get_user_meta( get_current_user_id(), 'meta-box-order_promotion', true );
-		if ( $current_value ) {
+		if ( TRUE === $current_value ) {
 			return;
 		}
 
@@ -85,5 +85,3 @@ class Admin_Meta_Boxes {
 		);
 	}
 }
-
-new Admin_Meta_Boxes();

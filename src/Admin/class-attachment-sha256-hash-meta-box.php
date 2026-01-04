@@ -82,5 +82,3 @@ class Attachment_SHA256_Hash_Meta_Box {
 		<?php
 	}
 }
-
-new Attachment_SHA256_Hash_Meta_Box();
