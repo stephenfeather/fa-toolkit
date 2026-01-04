@@ -16,10 +16,24 @@ if ( defined( 'ABSPATH' ) === false ) {
  */
 class Debug {
 	/**
-	 * Constructor - registers shutdown hook for debugging.
+	 * Logger callable for dependency injection.
+	 *
+	 * @var callable
 	 */
-	public function __construct() {
-		add_action( 'shutdown', array( $this, 'shutdown_handler' ) );
+	private $logger;
+
+	/**
+	 * Constructor - registers shutdown hook for debugging.
+	 *
+	 * @param callable|null $logger Optional logger callable. Defaults to error_log.
+	 * @param bool          $register_hooks Whether to register WordPress hooks. Defaults to true.
+	 */
+	public function __construct( $logger = null, $register_hooks = true ) {
+		$this->logger = $logger ?? 'error_log';
+
+		if ( $register_hooks ) {
+			add_action( 'shutdown', array( $this, 'shutdown_handler' ) );
+		}
 	}
 
 	/**
@@ -29,11 +43,11 @@ class Debug {
 	 *
 	 * @return void
 	 */
-	public static function write_log( $log ) {
+	public function write_log( $log ) {
 		if ( is_array( $log ) || is_object( $log ) ) {
-			error_log( print_r( $log, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+			call_user_func( $this->logger, wp_json_encode( $log ) );
 		} else {
-			error_log( $log ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			call_user_func( $this->logger, $log );
 		}
 	}
 
@@ -52,9 +66,13 @@ class Debug {
 	 *
 	 * @return void
 	 */
-	public static function var_dump_database() {
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_dump
-		var_dump( self::wpdb()->num_queries, self::wpdb()->queries );
+	public function var_dump_database() {
+		$this->write_log(
+			array(
+				'num_queries' => self::wpdb()->num_queries,
+				'queries'     => self::wpdb()->queries,
+			)
+		);
 	}
 
 	/**
@@ -103,6 +121,3 @@ class Debug {
 		}
 	}
 }
-
-// Instantiate to register hooks.
-new Debug();

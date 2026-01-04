@@ -13,6 +13,11 @@
 // Load Composer autoloader.
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
+// Define ABSPATH to prevent WordPress file guards from exiting.
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', '/fake/wordpress/path/' );
+}
+
 // Initialize Brain Monkey.
 // Brain Monkey provides utilities for mocking WordPress functions and hooks.
 // It uses Patchwork to intercept function calls and Mockery for expectations.

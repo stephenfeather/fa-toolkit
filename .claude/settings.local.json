@@ -42,7 +42,8 @@
       "Bash(bash:*)",
       "Bash(timeout 30 vendor/bin/phpunit:*)",
       "Bash(pkill:*)",
-      "Skill(implement_plan)"
+      "Skill(implement_plan)",
+      "Skill(test-driven-development)"
     ]
   }
 }
