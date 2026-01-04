@@ -1,4 +1,7 @@
 # fa-toolkit
+
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/b84d04af3a6d4e6dab95b303c7a49a00)](https://app.codacy.com/gh/stephenfeather/fa-toolkit?utm_source=github.com&utm_medium=referral&utm_content=stephenfeather/fa-toolkit&utm_campaign=Badge_Grade)
+
 Wordpress plugin with commands used by Feather Arms to aid in management
 
 ## Reason for Public
