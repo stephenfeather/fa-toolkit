@@ -31,7 +31,7 @@ class Debug {
 	public function __construct( $logger = null, $register_hooks = true ) {
 		$this->logger = $logger ?? 'error_log';
 
-		if ( $register_hooks ) {
+		if ( true === $register_hooks ) {
 			add_action( 'shutdown', array( $this, 'shutdown_handler' ) );
 		}
 	}
@@ -44,10 +44,10 @@ class Debug {
 	 * @return void
 	 */
 	public function write_log( $log ) {
-		if ( is_array( $log ) || is_object( $log ) ) {
-			call_user_func( $this->logger, wp_json_encode( $log ) );
+		if ( true === is_array( $log ) || true === is_object( $log ) ) {
+			( $this->logger )( wp_json_encode( $log ) );
 		} else {
-			call_user_func( $this->logger, $log );
+			( $this->logger )( $log );
 		}
 	}
 
