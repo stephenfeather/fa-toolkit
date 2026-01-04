@@ -9,7 +9,7 @@
 namespace FAToolkit\Admin;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 /**
@@ -51,7 +51,7 @@ class Attachment_SHA256_Hash_Meta_Box {
 		?>
 		<input type="text" value="<?php printf( '%s', esc_attr( $sha256_hash ) ); ?>" readonly="readonly" style="width:100%;">
 
-		<?php if ( empty( $sha256_hash ) ) : ?>
+		<?php if ( true === empty( $sha256_hash ) ) : ?>
 			<button id="generate_sha256_hash" type="button">Generate SHA256 Hash</button>
 			<p id="generate_sha256_hash_status"></p>
 			<script>

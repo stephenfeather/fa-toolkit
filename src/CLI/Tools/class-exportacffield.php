@@ -10,7 +10,7 @@ namespace FAToolkit\CLI\Tools;
 
 // Dont load directly.
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 // Dont load if WP_CLI is not defined.
@@ -62,7 +62,7 @@ class ExportACFField {
 		foreach ( $products as $product ) {
 			$product_id = $product->ID;
 			$acf_value  = get_field( $acf_field_key, $product_id );
-			if ( $acf_value ) {
+			if ( false === is_empty( $acf_value ) ) {
 				$csv_data[] = array( $product_id, $acf_value );
 			}
 			$progress->tick();

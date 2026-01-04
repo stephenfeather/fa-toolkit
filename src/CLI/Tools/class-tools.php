@@ -8,11 +8,11 @@
 namespace FAToolkit\CLI\Tools;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
-	exit;
+	die( 'Security (fhi4d6): File addressed directly.' );
 }
 
 if ( function_exists( __NAMESPACE__ . '\wp_cli_merge_files' ) === false ) {

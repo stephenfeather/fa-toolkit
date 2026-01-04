@@ -11,7 +11,7 @@
 namespace FAToolkit\Admin;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // Exit if accessed directly.
+	die( 'Security (fhi4d6): File addressed directly.' ); // Exit if accessed directly.
 }
 
 use FAToolkit\Promotion\Promotion_Meta_Box as Promotion_Meta_Box;
@@ -70,7 +70,7 @@ class Admin_Meta_Boxes {
 	public function sort_meta_boxes() {
 
 		$current_value = get_user_meta( get_current_user_id(), 'meta-box-order_promotion', true );
-		if ( TRUE === $current_value ) {
+		if ( false === is_empty( $current_value ) ) {
 			return;
 		}
 

@@ -11,7 +11,7 @@
 namespace FAToolkit\CLI\Media;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
@@ -52,7 +52,7 @@ if ( function_exists( __NAMESPACE__ . '\wp_cli_export_draft_product_image_source
 		foreach ( $products as $product_id ) {
 			$image_source = get_field( 'image_source', $product_id );
 			\WP_CLI::debug( "Image Source for {$product_id}: {$image_source}" );
-			if ( $image_source ) {
+			if ( false === is_empty( $image_source ) ) {
 				\WP_CLI::debug( "Image Source for {$product_id}: " );
 				$output .= $image_source . "\n";
 			}

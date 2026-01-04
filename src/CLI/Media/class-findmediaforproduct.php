@@ -11,7 +11,7 @@
 namespace FAToolkit\CLI\Media;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
@@ -101,7 +101,7 @@ function set_product_image( $product, $attachment_id ) {
 
 	$image_id = $product->get_image_id();
 	// Verify we dont already have a thumbnail.
-	if ( $product->get_image_id() == $attachment_id ) {
+	if ( $product->get_image_id() === $attachment_id ) {
 		\WP_CLI::log( sprintf( 'Attachment ID %d is already attached to product ID %d', $product->get_id(), $attachment_id ) );
 		return true;
 	} else {
@@ -120,7 +120,8 @@ if ( function_exists( 'graded_array_search' ) === false ) {
 	 * @param  string $basename The basename created from SKU.
 	 */
 	function graded_array_search( $attachment_array = array(), $basename = '' ) {
-
+		$matches  = 0;
+		$fails    = 0;
 		$basename = strtolower( $basename );
 		$result   = array();
 		foreach ( $attachment_array as $object ) {
@@ -150,13 +151,13 @@ if ( function_exists( 'graded_array_search' ) === false ) {
 						'file'     => $file,
 					)
 				);
-				$matches++;
+				++$matches;
 			} else {
-				$fails++;
+				++$fails;
 			}
 		}
 
-		usort( $result, fn ( $a, $b) => $a['distance'] <=> $b['distance'] );
+		usort( $result, fn ( $a, $b ) => $a['distance'] <=> $b['distance'] );
 		unset( $object );
 		return $result;
 	}

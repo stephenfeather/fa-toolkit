@@ -11,7 +11,7 @@
 namespace FAToolkit\CLI\Media;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 if ( ( defined( 'WP_CLI' ) & WP_CLI ) === false ) {
@@ -56,7 +56,7 @@ if ( function_exists( __NAMESPACE__ . '\wp_cli_fetch_import_product_image' ) ===
 		}
 		// Check if the post already has an image attached.
 		$media = get_attached_media( 'image', $product_id );
-		if ( $media ) {
+		if ( true === $media ) {
 			\WP_CLI::error( "($product_id) Post aleady has an image attached." );
 		}
 
@@ -72,7 +72,7 @@ if ( function_exists( __NAMESPACE__ . '\wp_cli_fetch_import_product_image' ) ===
 		}
 
 		// Verify we dont already have this image.
-		if ( post_exists( $filename ) ) {
+		if ( true === post_exists( $filename ) ) {
 			\WP_CLI::error( "({$product_id}): {$filename} already exists. Not redownloading." );
 		}
 
@@ -162,7 +162,7 @@ if ( function_exists( 'handle_wp_error' ) === false ) {
 	 * @param int   $post_id   Optional. The post ID used for contextual logging.
 	 */
 	function handle_wp_error( $the_error, $post_id = 0 ) {
-		if ( is_wp_error( $the_error ) ) {
+		if ( true === is_wp_error( $the_error ) ) {
 			$error_string = $the_error->get_error_message();
 			\WP_CLI::error( "($post_id): {$error_string}" );
 		}

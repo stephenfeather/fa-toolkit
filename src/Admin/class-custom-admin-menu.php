@@ -9,7 +9,7 @@
 namespace FAToolkit\Admin;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
 /**
@@ -46,7 +46,7 @@ class Custom_Admin_Menu {
 	 * @return array The array of menu items.
 	 */
 	public function reorder_admin_menu_items( $menu_ord ) {
-		if ( FALSE === $menu_ord ) {
+		if ( false === $menu_ord ) { // TODO: verify the logic here.
 			return true;
 		}
 		// Set our array of menu items in the order we want them to appear.

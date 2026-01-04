@@ -8,10 +8,10 @@
 namespace FAToolkit\CLI\Commands;
 
 if ( defined( 'ABSPATH' ) === false ) {
-	exit; // Exit if accessed directly.
+	die( 'Security (fhi4d6): File addressed directly.' ); // Exit if accessed directly.
 }
 
-if ( class_exists( 'WP_CLI_Command' ) ) {
+if ( true === class_exists( 'WP_CLI_Command' ) ) {
 	/**
 	 * WP-CLI command for scraping product data from URLs.
 	 */
