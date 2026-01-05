@@ -53,7 +53,7 @@ class SetupBusinessBloomer {
 		if ( true === is_admin() ) {
 			return $price; // BAIL IF BACKEND.
 		}
-		if ( false ===  $product->is_in_stock() ) {
+		if ( false === $product->is_in_stock() ) {
 			$price = apply_filters( 'woocommerce_empty_price_html', '', $product );
 		}
 		return $price;

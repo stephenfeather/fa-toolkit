@@ -125,7 +125,7 @@ class Debug {
 	 * @return void
 	 */
 	public function shutdown_handler() {
-		if ( true === defined( 'WP_DEBUG' ) && true === WP_DEBUG && true ===current_user_can( 'manage_options' ) ) {
+		if ( true === defined( 'WP_DEBUG' ) && true === WP_DEBUG && true === current_user_can( 'manage_options' ) ) {
 			// Database debug output intentionally disabled.
 		}
 	}

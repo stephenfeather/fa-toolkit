@@ -31,7 +31,7 @@ if ( function_exists( __NAMESPACE__ . '\wp_cli_find_media_for_product' ) === fal
 	 * @param  [type] $assoc_args Associative arguments passed to the WP-CLI command.
 	 */
 	function wp_cli_find_media_for_product( $args, $assoc_args ) {
-		$post_id    = isset( $args[0] ) ? $args[0] : 0;
+		$post_id    = (isset( $args[0] ) === true ? $args[0] : 0);
 		$post       = get_post( $post_id );
 		$product    = wc_get_product( $post_id );
 		$product_id = $product->get_id();
@@ -108,7 +108,7 @@ function set_product_image( $product, $attachment_id ) {
 		\WP_CLI::log( 'Setting product image' );
 		$product->set_image_id( $attachment_id );
 		$product->save();
-		return $success;
+		return true;
 	}
 }
 
@@ -192,7 +192,7 @@ if ( function_exists( 'sku_to_basename' ) === false ) {
  * @return Array List of posts matching $args.
  */
 function get_cached_posts( $query_args, $expires = HOUR_IN_SECONDS ) {
-	$post_list_name = 'get_posts_' . md5( json_encode( $query_args ) );
+	$post_list_name = 'get_posts_' . md5( wp_json_encode( $query_args ) );
 
 	if ( false === ( $post_list = get_transient( $post_list_name ) ) ) {
 		\WP_CLI::log( 'Cached Missed!' );
