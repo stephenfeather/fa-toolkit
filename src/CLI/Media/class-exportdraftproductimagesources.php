@@ -10,6 +10,8 @@
 
 namespace FAToolkit\CLI\Media;
 
+use FAToolkit\Utilities\Helpers;
+
 if ( defined( 'ABSPATH' ) === false ) {
 	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 }
@@ -52,7 +54,7 @@ if ( function_exists( __NAMESPACE__ . '\wp_cli_export_draft_product_image_source
 		foreach ( $products as $product_id ) {
 			$image_source = get_field( 'image_source', $product_id );
 			\WP_CLI::debug( "Image Source for {$product_id}: {$image_source}" );
-			if ( false === is_empty( $image_source ) ) {
+			if ( false === Helpers::is_empty( $image_source ) ) {
 				\WP_CLI::debug( "Image Source for {$product_id}: " );
 				$output .= $image_source . "\n";
 			}

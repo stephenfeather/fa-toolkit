@@ -12,6 +12,8 @@
 
 namespace FAToolkit\Media;
 
+use FAToolkit\Utilities\Helpers;
+
 if ( defined( 'ABSPATH' ) === false ) {
 	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 }
@@ -48,20 +50,20 @@ class AutoAttachUploadedMedia {
 
 		// 2. Get filename.
 		$file_path = get_attached_file( $attachment_id );
-		if ( true === is_empty( $file_path ) ) {
+		if ( true === Helpers::is_empty( $file_path ) ) {
 			return;
 		}
 		$filename = basename( $file_path );
 
 		// 3. Parse filename for hash and number.
 		$parsed = $this->parse_filename( $filename );
-		if ( true === is_empty( $parsed ) ) {
+		if ( true === Helpers::is_empty( $parsed ) ) {
 			return; // Filename doesn't match pattern.
 		}
 
 		// 4. Find product by hash.
 		$product_id = $this->find_product_by_hash( $parsed['hash'] );
-		if ( true === is_empty( $product_id ) ) {
+		if ( true === Helpers::is_empty( $product_id ) ) {
 			return; // No matching product.
 		}
 
@@ -86,7 +88,7 @@ class AutoAttachUploadedMedia {
 		$this->calculate_and_store_hash( $attachment_id );
 
 		// 9. Log result.
-		if ( true !== is_empty( $success ) ) {
+		if ( true !== Helpers::is_empty( $success ) ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log(
 				sprintf(
@@ -240,7 +242,7 @@ class AutoAttachUploadedMedia {
 		// Calculate SHA-256 hash.
 		$hash = hash_file( 'sha256', $file_path ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_hash_file
 
-		if ( true === is_empty( $hash ) ) {
+		if ( true === Helpers::is_empty( $hash ) ) {
 			return false;
 		}
 

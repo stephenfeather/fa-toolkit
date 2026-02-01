@@ -94,5 +94,5 @@ if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
     // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
 	require_once __DIR__ . '/src/CLI/Commands/class-scrapeproductdata.php';
     // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
-	require_once __DIR__ . 'src/CLI/Tools/class-tools.php';
+	require_once __DIR__ . '/src/CLI/Tools/class-tools.php';
 }

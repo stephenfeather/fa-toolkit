@@ -15,6 +15,7 @@ if ( defined( 'ABSPATH' ) === false ) {
 }
 
 use FAToolkit\Promotion\Promotion_Meta_Box as Promotion_Meta_Box;
+use FAToolkit\Utilities\Helpers;
 
 /**
  * FA-Toolkit Meta Boxes class.
@@ -70,7 +71,7 @@ class Admin_Meta_Boxes {
 	public function sort_meta_boxes() {
 
 		$current_value = get_user_meta( get_current_user_id(), 'meta-box-order_promotion', true );
-		if ( false === is_empty( $current_value ) ) {
+		if ( false === Helpers::is_empty( $current_value ) ) {
 			return;
 		}
 

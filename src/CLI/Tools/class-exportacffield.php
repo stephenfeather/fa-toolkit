@@ -20,6 +20,7 @@ if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
 
 use WP_CLI;
 use WP_Query;
+use FAToolkit\Utilities\Helpers;
 
 /**
  * Export ACF field values from all WooCommerce products.
@@ -61,7 +62,7 @@ class ExportACFField {
 		foreach ( $products as $product ) {
 			$product_id = $product->ID;
 			$acf_value  = get_field( $acf_field_key, $product_id );
-			if ( false === is_empty( $acf_value ) ) {
+			if ( false === Helpers::is_empty( $acf_value ) ) {
 				$csv_data[] = array( $product_id, $acf_value );
 			}
 			$progress->tick();

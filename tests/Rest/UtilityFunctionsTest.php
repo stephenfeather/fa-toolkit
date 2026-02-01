@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for utility functions in the Rest module.
+ * Tests for URL utility functions.
  *
  * @package FAToolkit
  */
@@ -8,21 +8,13 @@
 namespace FAToolkit\Tests\Rest;
 
 use FAToolkit\Tests\TestCase;
+use FAToolkit\File\UrlHelper;
 use Brain\Monkey\Functions;
 
 /**
- * Test utility functions in FAToolkit\Rest namespace.
+ * Test UrlHelper utility class.
  */
 class UtilityFunctionsTest extends TestCase {
-
-	/**
-	 * Set up the test by loading the source file.
-	 */
-	protected function setUp(): void {
-		parent::setUp();
-		// Load the source file to make namespace functions available.
-		require_once dirname( __DIR__, 2 ) . '/src/Rest/class-importmediaimage.php';
-	}
 
 	/**
 	 * Test scrub function removes Cloudinary parameters.
@@ -37,7 +29,7 @@ class UtilityFunctionsTest extends TestCase {
 			);
 
 		$url    = 'https://res.cloudinary.com/davidsons-inc/image/upload/v1/media/catalog/product/1/0/1006336.jpg?_a=AAAA0AA';
-		$result = \FAToolkit\Rest\scrub( $url );
+		$result = UrlHelper::scrub( $url );
 
 		// The scrub function removes query strings (and specific Cloudinary transformations for a different pattern).
 		// This URL doesn't match the Cloudinary transformation pattern, so it just removes the query string.
@@ -57,7 +49,7 @@ class UtilityFunctionsTest extends TestCase {
 			);
 
 		$url    = 'https://example.com/image.jpg?width=800&height=600';
-		$result = \FAToolkit\Rest\scrub( $url );
+		$result = UrlHelper::scrub( $url );
 
 		$this->assertEquals( 'https://example.com/image.jpg', $result );
 	}
@@ -75,7 +67,7 @@ class UtilityFunctionsTest extends TestCase {
 			);
 
 		$url    = 'https://example.com/image.jpg';
-		$result = \FAToolkit\Rest\scrub( $url );
+		$result = UrlHelper::scrub( $url );
 
 		$this->assertEquals( 'https://example.com/image.jpg', $result );
 	}
@@ -85,7 +77,7 @@ class UtilityFunctionsTest extends TestCase {
 	 */
 	public function test_clean_filename_removes_double_jpg_extensions() {
 		$filename = 'image.jpg.jpg';
-		$result   = \FAToolkit\Rest\clean_filename( $filename );
+		$result   = UrlHelper::clean_filename( $filename );
 
 		$this->assertEquals( 'image.jpg', $result );
 	}
@@ -95,27 +87,27 @@ class UtilityFunctionsTest extends TestCase {
 	 */
 	public function test_clean_filename_handles_normal_filenames() {
 		$filename = 'image.jpg';
-		$result   = \FAToolkit\Rest\clean_filename( $filename );
+		$result   = UrlHelper::clean_filename( $filename );
 
 		$this->assertEquals( 'image.jpg', $result );
 	}
 
 	/**
-	 * Test get_url_ext extracts extension from URL.
+	 * Test get_extension extracts extension from URL.
 	 */
-	public function test_get_url_ext_extracts_extension() {
+	public function test_get_extension_extracts_extension() {
 		$url    = 'https://example.com/path/to/image.jpg';
-		$result = \FAToolkit\Rest\get_url_ext( $url );
+		$result = UrlHelper::get_extension( $url );
 
 		$this->assertEquals( 'jpg', $result );
 	}
 
 	/**
-	 * Test get_url_ext handles URLs with query strings.
+	 * Test get_extension handles URLs with query strings.
 	 */
-	public function test_get_url_ext_handles_query_strings() {
+	public function test_get_extension_handles_query_strings() {
 		$url    = 'https://example.com/image.png?width=800';
-		$result = \FAToolkit\Rest\get_url_ext( $url );
+		$result = UrlHelper::get_extension( $url );
 
 		// Note: pathinfo on URL with query string may not work as expected.
 		// This test documents current behavior.
@@ -123,21 +115,21 @@ class UtilityFunctionsTest extends TestCase {
 	}
 
 	/**
-	 * Test get_url_filename extracts filename from URL.
+	 * Test get_filename extracts filename from URL.
 	 */
-	public function test_get_url_filename_extracts_filename() {
+	public function test_get_filename_extracts_filename() {
 		$url    = 'https://example.com/path/to/image.jpg';
-		$result = \FAToolkit\Rest\get_url_filename( $url );
+		$result = UrlHelper::get_filename( $url );
 
 		$this->assertEquals( 'image', $result );
 	}
 
 	/**
-	 * Test get_url_filename handles complex paths.
+	 * Test get_filename handles complex paths.
 	 */
-	public function test_get_url_filename_handles_complex_paths() {
+	public function test_get_filename_handles_complex_paths() {
 		$url    = 'https://example.com/media/catalog/product.jpg';
-		$result = \FAToolkit\Rest\get_url_filename( $url );
+		$result = UrlHelper::get_filename( $url );
 
 		$this->assertEquals( 'product', $result );
 	}
@@ -156,7 +148,7 @@ class UtilityFunctionsTest extends TestCase {
 			->with( 'The attachment already exists.', 'my-text-domain' )
 			->andReturn( 'The attachment already exists.' );
 
-		$result = \FAToolkit\Rest\attachment_exists( 'image.jpg' );
+		$result = UrlHelper::attachment_exists( 'image.jpg' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertEquals( 'rest_attachment_exists', $result->get_error_code() );
@@ -177,7 +169,7 @@ class UtilityFunctionsTest extends TestCase {
 			->with( 'image.jpg' )
 			->andReturn( 0 );
 
-		$result = \FAToolkit\Rest\attachment_exists( 'image.jpg' );
+		$result = UrlHelper::attachment_exists( 'image.jpg' );
 
 		$this->assertFalse( $result );
 	}

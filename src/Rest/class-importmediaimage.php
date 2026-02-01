@@ -8,7 +8,8 @@
 
 namespace FAToolkit\Rest;
 
-use FAToolkit\File;
+use FAToolkit\File\UrlHelper;
+use FAToolkit\Utilities\Helpers;
 
 if ( false === defined( 'ABSPATH' ) ) {
 	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
@@ -70,14 +71,14 @@ class ImportMediaImage {
 
 		// Scrub the url.
 		$url = esc_url_raw( $url );
-		$url = scrub( $url );
+		$url = UrlHelper::scrub( $url );
 
 		// Begin splitting references to remote name and local name.
 		$remote_basename     = basename( $url );
 		$parameters['title'] = $remote_basename;
 
 		// Check if the file already exists.
-		$existing_attachment = attachment_exists( $remote_basename );
+		$existing_attachment = UrlHelper::attachment_exists( $remote_basename );
 		if ( true === is_wp_error( $existing_attachment ) ) {
 			return $existing_attachment;
 		}
@@ -123,7 +124,7 @@ class ImportMediaImage {
 		if ( true === is_wp_error( $response ) ) {
 			return new \WP_Error( 'rest_download_failed', esc_html__( 'The download failed.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}
-		$file_path      = wp_upload_dir()['path'] . '/' . clean_filename( $remote_basename );
+		$file_path      = wp_upload_dir()['path'] . '/' . UrlHelper::clean_filename( $remote_basename );
 		$file_name      = basename( $file_path );
 		$info           = pathinfo( $file_path );
 		$file_name_base = $info['filename'];
@@ -178,7 +179,7 @@ class ImportMediaImage {
 		$caption     = $parameters['caption'];
 		$description = $parameters['description'];
 
-		if ( true !== is_empty( $title ) ) {
+		if ( true !== Helpers::is_empty( $title ) ) {
 			wp_update_post(
 				array(
 					'ID'         => $attachment_id,
@@ -187,12 +188,12 @@ class ImportMediaImage {
 			);
 		}
 
-		if ( true !== is_empty( $caption ) ) {
+		if ( true !== Helpers::is_empty( $caption ) ) {
 			update_post_meta( $attachment_id, '_wp_attachment_image_alt', $caption );
 
 		}
 
-		if ( true !== is_empty( $description ) ) {
+		if ( true !== Helpers::is_empty( $description ) ) {
 			wp_update_post(
 				array(
 					'ID'           => $attachment_id,
@@ -204,91 +205,3 @@ class ImportMediaImage {
 }
 
 new ImportMediaImage();
-
-
-// TODO: Refactor into the a class in the FAToolkit\File Namespace.
-
-/**
- * Scrub vendor junk from urls
- *
- * @param string $url The url.
- * @return string The scrubbed url.
- */
-function scrub( $url ) {
-	$scrubbed_url = $url;
-
-	// Remove inline image params from davidsons.
-	$pattern = '/^(https:\/\/res\.cloudinary\.com\/davidsons-inc)(\/[^\/]+)(\/v1\/media\/.+)(\?.+)$/';
-	if ( true === preg_match( $pattern, $scrubbed_url, $matches ) ) {
-		$part1        = $matches[1];
-		$part2        = $matches[2];
-		$part3        = $matches[3];
-		$part4        = $matches[4];
-		$scrubbed_url = $part1 . $part3;
-	}
-
-	// Remove Query Strings.
-	$parts        = wp_parse_url( $scrubbed_url );
-	$scrubbed_url = $parts['scheme'] . '://' . $parts['host'] . $parts['path'];
-
-	return $scrubbed_url;
-}
-
-/**
- * Clean double extensions
- *
- * @param string $filename The filename.
- * @return string The cleaned filename.
- */
-function clean_filename( $filename ) {
-	$new_name = $filename;
-	// Remove double extensions (stupid davidsons).
-	$new_name = str_replace( '.jpg.jpg', '.jpg', $new_name );
-	return $new_name;
-}
-
-/**
- * Get the extension from a URL.
- *
- * @param string $url The url.
- * @return string The extension.
- */
-function get_url_ext( $url ) {
-	$path_info = pathinfo( $url );
-	return $path_info['extension'];
-}
-
-/**
- * Get the filename from a URL.
- *
- * @param string $url The url.
- * @return string The filename.
- */
-function get_url_filename( $url ) {
-	$path_info = pathinfo( $url );
-	return $path_info['filename'];
-}
-
-/**
- * Check if an attachment exists.
- *
- * @param string $filename The filename.
- * @return bool True if the attachment exists.
- */
-function attachment_exists( $filename ) {
-	$post_id = post_exists( $filename );
-	if ( true !== empty( $post_id ) ) {
-		return new \WP_Error(
-			'rest_attachment_exists',
-			esc_html__(
-				'The attachment already exists.',
-				'my-text-domain'
-			),
-			array(
-				'status'        => 400,
-				'attachment_id' => $post_id,
-			)
-		);
-	}
-	return false;
-}

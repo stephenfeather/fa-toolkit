@@ -10,6 +10,8 @@
 
 namespace FAToolkit\CLI\Media;
 
+use FAToolkit\Utilities\Helpers;
+
 if ( defined( 'ABSPATH' ) === false ) {
 	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 }
@@ -95,7 +97,7 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 			// Get attachment with the same file name as the SKU.
 			$attachment = find_filename_in_attachment_array( $attachments, $filename_to_match, $product_id );
 
-			if ( false === is_empty( $attachment ) ) {
+			if ( false === Helpers::is_empty( $attachment ) ) {
 				$attachment = $attachment->to_array();
 
 				$is_attached = get_post_meta( $product_id, '_thumbnail_id', true );

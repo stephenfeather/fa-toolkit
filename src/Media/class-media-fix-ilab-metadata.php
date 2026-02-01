@@ -20,6 +20,7 @@ use WP_CLI;
 use WP_CLI_Command;
 use Exception;
 use MediaCloud\Plugin\Tools\Storage;
+use FAToolkit\Utilities\Helpers;
 
 /**
  * Class to fix the metadata of media.
@@ -52,7 +53,7 @@ class Media_Fix_Ilab_Metadata {
 	public function fix_media_metadata( $args, $assoc_args ) {
 		$post_id = absint( $args[0] );
 
-		if ( true === is_empty( $post_id ) ) {
+		if ( true === Helpers::is_empty( $post_id ) ) {
 			\WP_CLI::error( 'Please provide a valid post ID.' );
 		}
 
