@@ -1,27 +1,33 @@
 <?php
 /**
- * Attach media to draft products based on SKU.
+ * CLI command to attach media to draft products based on SKU.
  *
  * @package FA-Toolkit
- * @since 1.0
- *
- * TODO: Refactor this into a class.
+ * @since 1.0.9
  */
 
 namespace FAToolkit\CLI\Media;
 
+use FAToolkit\Services\SkuConverter;
 use FAToolkit\Utilities\Helpers;
 
 if ( defined( 'ABSPATH' ) === false ) {
 	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 }
 
-if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
-	return;
-}
+/**
+ * Attaches media to draft WooCommerce products based on SKU filename matching.
+ */
+class AttachMediaToDraftProductsCommand {
 
-
-if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
+	/**
+	 * Constructor - Register WP-CLI command.
+	 */
+	public function __construct() {
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			\WP_CLI::add_command( 'fa:media attach-media-to-draft-products', array( $this, 'execute' ) );
+		}
+	}
 
 	/**
 	 * Attach media to draft products based on SKU.
@@ -39,21 +45,24 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 	 *
 	 * [--sortorder=<order>]
 	 * : Allows user to override default sort order.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp fa:media attach-media-to-draft-products
 	 *     wp fa:media attach-media-to-draft-products --suffix='_1'
 	 *     wp fa:media attach-media-to-draft-products --extension=png
+	 *     wp fa:media attach-media-to-draft-products --dry-run
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
 	 *
 	 * @when after_wp_load
 	 */
-	function wp_cli_attach_media_to_draft_products( $args, $assoc_args ) {
-		$suffix    = isset( $assoc_args['suffix'] ) ? $assoc_args['suffix'] : null;
-		$extension = isset( $assoc_args['extension'] ) ? $assoc_args['extension'] : 'jpg';
-		$sortorder = isset( $assoc_args['sortorder'] ) ? $assoc_args['sortorder'] : 'DESC';
+	public function execute( $args, $assoc_args ) {
+		$suffix    = $assoc_args['suffix'] ?? null;
+		$extension = $assoc_args['extension'] ?? 'jpg';
+		$sortorder = $assoc_args['sortorder'] ?? 'DESC';
+		$dry_run   = isset( $assoc_args['dry-run'] );
 
 		// Get a list of draft product IDs.
 		\WP_CLI::debug( 'Loading Products..' );
@@ -81,7 +90,6 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 			)
 		);
 
-		// Initialize variables to keep track of the number of products processed and the number of products with attachments.
 		$matching_attachments = 0;
 		$num_with_attachments = 0;
 		$attachments_count    = count( $attachments );
@@ -89,24 +97,20 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 
 		// Loop through each draft product ID.
 		foreach ( $draft_product_ids as $product_id ) {
-			// Get the SKU for the product.
-			$sku = get_post_meta( $product_id, '_sku', true );
-			// Generate a filename to match from the sku.
-			$filename_to_match = sku_to_filename( $sku, $extension, $suffix );
+			$sku               = get_post_meta( $product_id, '_sku', true );
+			$filename_to_match = SkuConverter::to_filename( $sku, $extension, $suffix ?? '' );
 
-			// Get attachment with the same file name as the SKU.
-			$attachment = find_filename_in_attachment_array( $attachments, $filename_to_match, $product_id );
+			$attachment = $this->find_filename_in_attachment_array( $attachments, $filename_to_match, $product_id );
 
 			if ( false === Helpers::is_empty( $attachment ) ) {
-				$attachment = $attachment->to_array();
-
+				$attachment  = $attachment->to_array();
 				$is_attached = get_post_meta( $product_id, '_thumbnail_id', true );
 
-				if ( empty( $is_attached ) === false && $is_attached === $attachment['ID'] ) {
-					\WP_CLI::debug( sprintf( 'Attachment ID %d is already attached to product ID %d', $product_id, $attachment['ID'] ) );
+				if ( ! empty( $is_attached ) && $is_attached === $attachment['ID'] ) {
+					\WP_CLI::debug( sprintf( 'Attachment ID %d is already attached to product ID %d', $attachment['ID'], $product_id ) );
 					++$matching_attachments;
 				} else {
-					if ( isset( $assoc_args['dry-run'] ) === false ) {
+					if ( ! $dry_run ) {
 						set_post_thumbnail( $product_id, $attachment['ID'] );
 						\WP_CLI::success( sprintf( 'Product %d now parent of Attachment %d', $product_id, $attachment['ID'] ) );
 						++$num_with_attachments;
@@ -127,61 +131,28 @@ if ( function_exists( 'wp_cli_attach_media_to_draft_products' ) === false ) {
 				\WP_CLI::debug( "No Matching Attachment for {$product_id}!" );
 			}
 		}
+
 		\WP_CLI::log( "Draft Products: {$products_count}" );
 		\WP_CLI::log( "Attachments: {$attachments_count}" );
 		\WP_CLI::log( sprintf( 'Products with existing attachments: %d', $matching_attachments ) );
 		\WP_CLI::log( sprintf( '%d products had attachments added', $num_with_attachments ) );
 	}
 
-	\WP_CLI::add_command( 'fa:media attach-media-to-draft-products', __NAMESPACE__ . '\wp_cli_attach_media_to_draft_products' );
-}
-
-if ( function_exists( 'sku_to_filename' ) === false ) {
-	/**
-	 * Convert SKU to filename format.
-	 *
-	 * @param string $sku             The product SKU.
-	 * @param string $extension       File extension without dot.
-	 * @param string $basename_suffix Optional suffix to append to filename.
-	 *
-	 * @return string The formatted filename.
-	 */
-	function sku_to_filename( $sku, $extension, $basename_suffix = '' ) {
-		$image_filename = '';
-		$prefix         = substr( $sku, 0, 3 );
-
-		if ( 'FA-' === $prefix ) {
-			$numeric_part   = substr( $sku, 3 );
-			$image_filename = $numeric_part . $basename_suffix . '.' . $extension;
-		} else {
-			$image_filename = $sku . $basename_suffix . '.' . $extension;
-		}
-		return $image_filename;
-	}
-}
-
-if ( function_exists( 'find_filename_in_attachment_array' ) === false ) {
 	/**
 	 * Find an attachment by filename in an array of attachments.
 	 *
 	 * @param array  $attachment_array Array of attachment objects to search.
 	 * @param string $filename         The filename to match against post_title.
-	 * @param string $product_id       The product ID for debug logging.
-	 *
+	 * @param int    $product_id       The product ID for debug logging.
 	 * @return object|false The matching attachment object or false if not found.
 	 */
-	function find_filename_in_attachment_array( $attachment_array = array(), $filename = '', $product_id = '' ) {
-		$result = null;
-
-		$extensions = array( '.jpg', '.png', '.webp', '.jpg.jpg' );
+	private function find_filename_in_attachment_array( $attachment_array, $filename, $product_id ) {
 		foreach ( $attachment_array as $object ) {
 			if ( $object->post_title === $filename ) {
 				\WP_CLI::debug( sprintf( 'Matching sku>%s to post_title %s for product: %s attachment: %s', $filename, $object->post_title, $product_id, $object->ID ) );
-				$result = $object;
-				break;
+				return $object;
 			}
 		}
-		unset( $object );
-		return $result ?? false;
+		return false;
 	}
 }

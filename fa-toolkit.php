@@ -82,16 +82,14 @@ if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
 	new \FAToolkit\CLI\Tools\ExportACFField();
 	new \FAToolkit\CLI\Media\ScrapeProductMedia();
 	new \FAToolkit\CLI\Media\FetchImportProductImageCommand();
+	new \FAToolkit\CLI\Media\FindMediaForProductCommand();
+	new \FAToolkit\CLI\Media\AttachMediaToDraftProductsCommand();
 	// TODO: Refactor these classes to use namespacing and autoloading.
 	// The remaining CLI files are procedural and register commands globally.
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
-	require_once __DIR__ . '/src/CLI/Media/class-attachmediatodraftproducts.php';
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
 	require_once __DIR__ . '/src/CLI/Media/class-exportdraftproductimagesources.php';
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
-	require_once __DIR__ . '/src/CLI/Media/class-findmediaforproduct.php';
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
 	require_once __DIR__ . '/src/CLI/Commands/class-scrapeproductdata.php';
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
 	require_once __DIR__ . '/src/CLI/Tools/class-tools.php';
 }
