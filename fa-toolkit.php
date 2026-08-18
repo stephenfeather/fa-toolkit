@@ -17,7 +17,6 @@ if ( defined( 'ABSPATH' ) === false ) {
 	die( 'Security (fhi4d6): File addressed directly.' );// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
-add_filter( 'woocommerce_is_purchasable', '__return_true' );
 define( 'FA_TOOLKIT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FA_TOOLKIT_URL', plugin_dir_url( __FILE__ ) );
 
@@ -59,6 +58,13 @@ if ( false === class_exists( \FAToolkit\Admin\Custom_Admin_Menu::class ) ) {
 
 // Instantiate classes with side-effects (hooks, actions, WP-CLI commands, etc).
 // These classes register their own hooks in constructors.
+//
+// Everything below this point is a side effect, and must stay below the guard:
+// a plugin that failed to load its classes must not half-apply. This filter in
+// particular forces every product purchasable store-wide, bypassing price and
+// stock checks, so leaving it active in a broken state would be worse than not
+// loading at all.
+add_filter( 'woocommerce_is_purchasable', '__return_true' );
 
 // Admin.
 new \FAToolkit\Admin\Custom_Admin_Menu();
