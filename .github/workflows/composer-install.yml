@@ -113,44 +113,100 @@ jobs:
 
       - name: Assemble a consumer that installs from the remote
         env:
-          CONSUMER: ${{ runner.temp }}/remote-install
+          TEMPLATE: ${{ runner.temp }}/remote-template
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
           REF_NAME: ${{ github.head_ref || github.ref_name }}
         run: |
-          mkdir -p "$CONSUMER"
+          mkdir -p "$TEMPLATE"
           jq --arg url "$REPO_URL" --arg ref "dev-${REF_NAME}" \
              'del(._comment)
               | .repositories[0].url = $url
               | .require["featherarms/fa-toolkit"] = $ref' \
-             .github/composer-install-check/consumer.json > "$CONSUMER/composer.json"
-          cp .github/composer-install-check/verify.php "$CONSUMER/verify.php"
+             .github/composer-install-check/consumer.json > "$TEMPLATE/composer.json"
+          cp .github/composer-install-check/verify.php "$TEMPLATE/verify.php"
 
-      - name: Install from the remote, preferring dist
-        working-directory: ${{ runner.temp }}/remote-install
+      # Reads the route from Composer's own words rather than inferring it from
+      # the filesystem - an earlier version guessed from the presence of the
+      # dist staging directory and guessed wrong.
+      #
+      # A fallback to source is NOT a package failure. Composer falls back when
+      # a dist download fails, which a transient 401 or a rate limit will cause,
+      # so failing the build on it would make this job red for reasons that have
+      # nothing to do with the package - the exact conditionality this check
+      # exists to stamp out. It is retried once in case it was transient, and
+      # thereafter warns rather than fails, because the route assertion is about
+      # COVERAGE, not correctness: verify.php below still runs and must pass
+      # either way, so a fallback means "we learned less than usual this run",
+      # not "the package is broken".
+      #
+      # Each attempt installs into its own directory, so the retry starts clean
+      # without deleting anything.
+      - name: Install from the remote, preferring dist (retried once on fallback)
         env:
+          TEMPLATE: ${{ runner.temp }}/remote-template
           COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ github.token }}"}}'
-        run: composer install --no-interaction --no-progress --prefer-dist 2>&1 | tee install.log
-
-      # Asserts the route from Composer's own words rather than inferring it.
-      # If this job silently fell back to source it would be a duplicate of
-      # install-check while appearing to add coverage, which is worse than not
-      # having it - so a fallback fails the job rather than warning.
-      - name: Require the dist route to have been used
-        working-directory: ${{ runner.temp }}/remote-install
         run: |
-          if grep -q "Downloading featherarms/fa-toolkit" install.log; then
-            echo "dist route exercised"
-          elif grep -q "Cloning" install.log; then
-            echo "::error::fell back to a source clone - this job duplicated install-check instead of covering dist"
-            exit 1
-          else
-            echo "::error::could not determine the install route from composer output"
-            exit 1
+          set -u
+          attempt() {
+            dir="$1"
+            mkdir -p "$dir"
+            cp "$TEMPLATE/composer.json" "$TEMPLATE/verify.php" "$dir/"
+            ( cd "$dir" && composer install --no-interaction --no-progress --prefer-dist 2>&1 | tee install.log )
+          }
+          # Both patterns are scoped to OUR package. A bare "Cloning" also
+          # matches composer/installers being cloned, which would misreport the
+          # route for a run where only that dependency fell back.
+          #
+          # "Extracting archive" is accepted as dist because Composer prints it
+          # instead of "Downloading" when the zip is already in its cache. CI is
+          # cold today so only "Downloading" appears, but adding a Composer cache
+          # to this workflow would otherwise flip the route to "unknown" and hard
+          # fail - a failure caused by a caching optimisation rather than by
+          # anything about the package.
+          route_of() {
+            if grep -qE "(Downloading featherarms/fa-toolkit|Installing featherarms/fa-toolkit .*Extracting archive)" "$1/install.log"; then
+              echo dist
+            elif grep -qE "Installing featherarms/fa-toolkit .*Cloning" "$1/install.log"; then
+              echo source
+            else
+              echo unknown
+            fi
+          }
+
+          dir="${RUNNER_TEMP}/remote-install-1"
+          attempt "$dir"
+          route=$(route_of "$dir")
+
+          if [ "$route" = source ]; then
+            echo "dist download fell back to a source clone; retrying once in case it was transient"
+            dir="${RUNNER_TEMP}/remote-install-2"
+            attempt "$dir"
+            route=$(route_of "$dir")
           fi
 
+          echo "INSTALL_DIR=$dir" >> "$GITHUB_ENV"
+          echo "INSTALL_ROUTE=$route" >> "$GITHUB_ENV"
+
+      - name: Report the install route
+        run: |
+          case "$INSTALL_ROUTE" in
+            dist)
+              echo "dist route exercised - this run covered the route the real consumer uses"
+              ;;
+            source)
+              echo "::warning::REDUCED COVERAGE this run: Composer could not complete a dist download (typically a transient 401 or rate limit) and fell back to a source clone, twice. The install below is still fully verified, but this run did NOT exercise the dist route the real consumer uses, so it duplicated the install-check job. This is not a package failure and does not need fixing - if it happens on every run, the dist route is genuinely broken and that IS worth investigating."
+              ;;
+            *)
+              echo "::error::could not determine the install route from composer output - the check can no longer tell which path it exercised, so its coverage claim is unverifiable"
+              exit 1
+              ;;
+          esac
+
+      # Runs against whichever attempt was used. verify.php takes the consumer
+      # root as argv[1] precisely so it can be pointed at a directory it was not
+      # copied beside.
       - name: Verify the install
-        working-directory: ${{ runner.temp }}/remote-install
-        run: php verify.php
+        run: php "$INSTALL_DIR/verify.php" "$INSTALL_DIR"
 
   # A check nobody has seen fail is a check nobody knows works. This job runs
   # the SAME assertions against a deliberately broken consumer - installer-paths
