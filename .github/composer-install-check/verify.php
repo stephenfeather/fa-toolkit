@@ -11,10 +11,20 @@
  * No WordPress function is called and none is stubbed. Nothing here loads a
  * fa-toolkit class - see the note above check 4 for why that is deliberate.
  *
- * Authored by docker-dev, who ran it against a real composer install before
- * it was adopted here.
+ * Authored by docker-dev, who ran it against a real composer install.
  */
-$root = __DIR__;
+
+// Consumer project root. Defaults to this file's directory, so it works when
+// copied into the consumer; pass an explicit path as argv[1] if it is run from
+// anywhere else. Resolved rather than assumed, because a wrong root would make
+// every check below fail for the wrong reason.
+$root = rtrim($argv[1] ?? __DIR__, '/');
+if (!is_file($root . '/vendor/autoload.php')) {
+    fwrite(STDERR, "No vendor/autoload.php under '$root'.\n"
+        . "Run `composer install` in the consumer first, or pass its path as argv[1].\n");
+    exit(2);
+}
+
 $pkg  = $root . '/web/app/plugins/fa-toolkit';
 $fail = 0;
 $check = function (string $label, bool $ok) use (&$fail): void {
@@ -27,14 +37,15 @@ $check('1. installed at web/app/plugins/fa-toolkit/', is_file($pkg . '/fa-toolki
 // Tests for the package's CODE under vendor/, not merely for the directory.
 // Composer creates vendor/<vendor>/<name> as the download target and
 // composer/installers then relocates the package, which can leave an EMPTY
-// directory behind - observed on a real source install. An is_dir() check
-// fails on that harmless leftover and would make this job red for the wrong
-// reason. The failure actually worth catching is installer-paths not being
-// honoured, which puts fa-toolkit.php in vendor/ where WordPress cannot see it.
+// directory behind - observed on a real source install from the remote, where
+// an is_dir() check went red on a perfectly correct install. The failure worth
+// catching is installer-paths not being honoured, which leaves fa-toolkit.php
+// in vendor/ where WordPress cannot see it. (Do not simplify back to is_dir.)
 $check(
     '1. NOT installed into vendor/',
     !is_file($root . '/vendor/featherarms/fa-toolkit/fa-toolkit.php')
 );
+
 $check('2. package ships no vendor/autoload.php', !is_file($pkg . '/vendor/autoload.php'));
 
 $loader = require $root . '/vendor/autoload.php';
@@ -49,19 +60,16 @@ printf("   (%d classes mapped)\n", count($map));
 // Deliberately a STATIC check, not class_exists(). fa-toolkit's class files are
 // not side-effect-free on load: 13 of them instantiate themselves at file scope
 // (constructors call add_action), and the CLI ones call WP_CLI::add_command().
-// So *loading* a class needs WordPress; verifying the mapping does not. This
-// asserts every mapped path resolves inside the install target.
+// So *loading* a class needs WordPress; verifying the mapping does not.
+// If that self-instantiation is ever removed, this can and should be upgraded
+// to a real resolution probe (class_exists on every mapped class), which would
+// be a strictly stronger assertion than the path check below.
 //
-// If those file-scope instantiations are ever removed, this can be upgraded to
-// a real resolution probe (class_exists on each mapped class), which would make
-// the check strictly stronger. The static form is a constraint the package
-// imposes on its own test, not a shortcut.
-// Resolve the target ONCE and fail loudly if it does not exist. Inlining
-// realpath($pkg) into the comparison made this check pass vacuously whenever
-// the package was missing from the expected location: realpath() returns false,
-// false coerces to '', and str_starts_with($anything, '') is true - so the
-// check silently passed in precisely the case it exists to catch. Found by
-// running the negative control below; it is not hypothetical.
+// realpath() returns false for a missing dir, and false coerces to '' in a
+// string comparison - which would make every path "inside" a target that does
+// not exist and pass this check vacuously. Resolve the target first and fail
+// loudly if it is absent. (Found independently by two negative controls, on
+// both sides of this file's authorship. Do not simplify away.)
 $pkgReal = realpath($pkg);
 $bad = [];
 if ($pkgReal === false) {
@@ -75,7 +83,7 @@ if ($pkgReal === false) {
     }
 }
 $check('4. every mapped class points inside the install target', $bad === []);
-printf("   (%d paths checked)\n", count($map));
+printf("   (%d paths checked)\n", $pkgReal === false ? 0 : count($map));
 foreach ($bad as $b) { echo "   BAD: $b\n"; }
 
 printf("\n%s\n", $fail === 0 ? 'ALL CHECKS PASSED' : "$fail CHECK(S) FAILED");

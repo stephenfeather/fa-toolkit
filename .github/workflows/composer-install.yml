@@ -81,3 +81,60 @@ jobs:
       - name: Verify the install
         working-directory: ${{ runner.temp }}/install-check
         run: php verify.php
+
+  # A check nobody has seen fail is a check nobody knows works. This job runs
+  # the SAME assertions against a deliberately broken consumer - installer-paths
+  # removed, so composer/installers falls back to its default wp-content/plugins
+  # and the package lands somewhere the consumer does not expect - and requires
+  # them to FAIL. If this job ever passes, verify.php has stopped discriminating
+  # and the job above is worthless regardless of what it reports.
+  #
+  # This is not hypothetical: two separate defects were found this way, one of
+  # which passed vacuously on a broken install, in code that had already run
+  # green against a correct one.
+  negative-control:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the package
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Give Composer a resolvable branch
+        run: git checkout -B ci-install-check
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      # Derived from the same consumer.json by deleting installer-paths, so the
+      # two fixtures cannot drift apart.
+      - name: Assemble a deliberately broken consumer
+        env:
+          CONSUMER: ${{ runner.temp }}/negative-control
+        run: |
+          mkdir -p "$CONSUMER"
+          jq --arg url "$GITHUB_WORKSPACE" \
+             'del(._comment)
+              | del(.extra["installer-paths"])
+              | .repositories[0].url = $url
+              | .require["featherarms/fa-toolkit"] = "dev-ci-install-check"' \
+             .github/composer-install-check/consumer.json > "$CONSUMER/composer.json"
+          cp .github/composer-install-check/verify.php "$CONSUMER/verify.php"
+
+      - name: Install into the broken consumer
+        working-directory: ${{ runner.temp }}/negative-control
+        run: composer install --no-interaction --no-progress
+
+      - name: Require the checks to FAIL
+        working-directory: ${{ runner.temp }}/negative-control
+        run: |
+          if php verify.php; then
+            echo "::error::verify.php PASSED against a broken install - it is no longer discriminating"
+            exit 1
+          fi
+          echo "negative control behaved correctly: the checks failed as required"
