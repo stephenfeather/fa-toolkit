@@ -35,12 +35,21 @@ $check = function (string $label, bool $ok) use (&$fail): void {
 $check('1. installed at web/app/plugins/fa-toolkit/', is_file($pkg . '/fa-toolkit.php'));
 
 // Tests for the package's CODE under vendor/, not merely for the directory.
-// Composer creates vendor/<vendor>/<name> as the download target and
-// composer/installers then relocates the package, which can leave an EMPTY
-// directory behind - observed on a real source install from the remote, where
-// an is_dir() check went red on a perfectly correct install. The failure worth
+//
+// Whenever Composer ATTEMPTS a dist download it creates vendor/<vendor>/<name>
+// as the extraction target; composer/installers then relocates the package to
+// installer-paths and the now-empty directory is left behind. This happens even
+// when the dist download FAILS and Composer falls back to a source clone, so it
+// is the attempt that creates it, not a successful extraction. A pure source
+// install (e.g. from a local VCS repo, which exposes no dist URL) never creates
+// it - which is why an is_dir() check can pass locally and then go red in CI,
+// where every run reaches a real dist attempt.
+//
+// So is_dir() here fails on CORRECT installs. The failure actually worth
 // catching is installer-paths not being honoured, which leaves fa-toolkit.php
-// in vendor/ where WordPress cannot see it. (Do not simplify back to is_dir.)
+// in vendor/ where WordPress cannot see it. The directory is an implementation
+// detail of Composer's download staging; the code being there is the defect.
+// (Do not simplify back to is_dir.)
 $check(
     '1. NOT installed into vendor/',
     !is_file($root . '/vendor/featherarms/fa-toolkit/fa-toolkit.php')

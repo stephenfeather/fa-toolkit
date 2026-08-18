@@ -32,7 +32,16 @@
         "    this the package lands in vendor/ and the check is meaningless.",
         "",
         "The real consumer's require list is deliberately NOT mirrored - none of",
-        "it is needed to prove that this package installs."
+        "it is needed to prove that this package installs.",
+        "",
+        "PROVENANCE. A minimal fixture cannot drift, which is half its advantage",
+        "- but that only holds for values invented here. The three values below",
+        "were COPIED from the real consumer and can therefore go stale silently:",
+        "config.platform.php, extra.installer-paths, and the composer/installers",
+        "constraint. Taken from stephenfeather/featherarms-website composer.json",
+        "at main a57b7c1df442 (2026-08-18). If that project changes any of them,",
+        "this fixture is testing a layout the consumer no longer uses - so update",
+        "these and this line together."
     ],
     "name": "featherarms/install-test",
     "description": "Throwaway consumer, to verify fa-toolkit installs as a real Composer dependency.",
