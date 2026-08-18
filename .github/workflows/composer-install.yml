@@ -82,6 +82,71 @@ jobs:
         working-directory: ${{ runner.temp }}/install-check
         run: php verify.php
 
+  # The job above installs from a VCS repository pointed at the local checkout,
+  # which lets it test the PR's MERGE RESULT - but a local path exposes no dist
+  # URL, so Composer always installs from source there. The real consumer takes
+  # this dependency from the remote with preferred-install: dist, which is a
+  # different code path: Composer attempts a dist download and stages it through
+  # vendor/<vendor>/<name> before composer/installers relocates it.
+  #
+  # A positive control that only exercises the source route is not
+  # representative of how this package is actually consumed, and would not
+  # notice a regression specific to dist installs. This job covers that route.
+  #
+  # Its tradeoff is the mirror image: it installs the pushed HEAD BRANCH rather
+  # than the merge result, because that is what exists on the remote. Neither
+  # job is sufficient alone; together they cover both the merge result and the
+  # real install route.
+  remote-dist-install:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the package
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Assemble a consumer that installs from the remote
+        env:
+          CONSUMER: ${{ runner.temp }}/remote-install
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          REF_NAME: ${{ github.head_ref || github.ref_name }}
+        run: |
+          mkdir -p "$CONSUMER"
+          jq --arg url "$REPO_URL" --arg ref "dev-${REF_NAME}" \
+             'del(._comment)
+              | .repositories[0].url = $url
+              | .require["featherarms/fa-toolkit"] = $ref' \
+             .github/composer-install-check/consumer.json > "$CONSUMER/composer.json"
+          cp .github/composer-install-check/verify.php "$CONSUMER/verify.php"
+
+      - name: Install from the remote, preferring dist
+        working-directory: ${{ runner.temp }}/remote-install
+        env:
+          COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ github.token }}"}}'
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # Records which route Composer actually took, so a silent fall back to
+      # source (which would make this job a duplicate of install-check) is
+      # visible in the log rather than assumed not to have happened.
+      - name: Show the install route
+        working-directory: ${{ runner.temp }}/remote-install
+        run: |
+          if [ -d vendor/featherarms/fa-toolkit ]; then
+            echo "dist staging directory present - dist route exercised"
+          else
+            echo "::warning::no dist staging directory - Composer fell back to source, this job duplicated install-check"
+          fi
+
+      - name: Verify the install
+        working-directory: ${{ runner.temp }}/remote-install
+        run: php verify.php
+
   # A check nobody has seen fail is a check nobody knows works. This job runs
   # the SAME assertions against a deliberately broken consumer - installer-paths
   # removed, so composer/installers falls back to its default wp-content/plugins

@@ -41,9 +41,12 @@ $check('1. installed at web/app/plugins/fa-toolkit/', is_file($pkg . '/fa-toolki
 // installer-paths and the now-empty directory is left behind. This happens even
 // when the dist download FAILS and Composer falls back to a source clone, so it
 // is the attempt that creates it, not a successful extraction. A pure source
-// install (e.g. from a local VCS repo, which exposes no dist URL) never creates
-// it - which is why an is_dir() check can pass locally and then go red in CI,
-// where every run reaches a real dist attempt.
+// install never creates it, and a VCS repository pointed at a LOCAL path
+// exposes no dist URL, so it always installs from source. That is the trap:
+// whether this leftover exists depends on the install ROUTE, not on whether
+// the install is correct. An is_dir() check therefore passes against a local
+// path repo and fails against the remote - so it can look fine in one job and
+// break in another while nothing is actually wrong.
 //
 // So is_dir() here fails on CORRECT installs. The failure actually worth
 // catching is installer-paths not being honoured, which leaves fa-toolkit.php
