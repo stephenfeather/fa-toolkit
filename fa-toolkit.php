@@ -33,6 +33,30 @@ if ( true === file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 	require_once __DIR__ . '/vendor/autoload.php';
 }
 
+// Confirm the classes are actually reachable before instantiating any of them.
+//
+// Deliberately tests for a CLASS rather than for the autoloader FILE. Under a
+// Composer install the file above is legitimately absent, so a file check would
+// bail out on a correct install and register nothing at all - silently. The
+// class tested here is the first one instantiated below, so this check fails
+// exactly when that instantiation would fatal, and never otherwise.
+if ( false === class_exists( \FAToolkit\Admin\Custom_Admin_Menu::class ) ) {
+	add_action(
+		'admin_notices',
+		function () {
+			printf(
+				'<div class="notice notice-error"><p>%s</p></div>',
+				esc_html(
+					'Feather Arms Toolkit: classes could not be autoloaded. '
+					. 'For a standalone checkout, run "composer install" in the plugin directory. '
+					. 'When installed as a Composer dependency, run "composer install" in the project root.'
+				)
+			);
+		}
+	);
+	return;
+}
+
 // Instantiate classes with side-effects (hooks, actions, WP-CLI commands, etc).
 // These classes register their own hooks in constructors.
 
