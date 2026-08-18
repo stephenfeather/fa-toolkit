@@ -129,18 +129,23 @@ jobs:
         working-directory: ${{ runner.temp }}/remote-install
         env:
           COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ github.token }}"}}'
-        run: composer install --no-interaction --no-progress --prefer-dist
+        run: composer install --no-interaction --no-progress --prefer-dist 2>&1 | tee install.log
 
-      # Records which route Composer actually took, so a silent fall back to
-      # source (which would make this job a duplicate of install-check) is
-      # visible in the log rather than assumed not to have happened.
-      - name: Show the install route
+      # Asserts the route from Composer's own words rather than inferring it.
+      # If this job silently fell back to source it would be a duplicate of
+      # install-check while appearing to add coverage, which is worse than not
+      # having it - so a fallback fails the job rather than warning.
+      - name: Require the dist route to have been used
         working-directory: ${{ runner.temp }}/remote-install
         run: |
-          if [ -d vendor/featherarms/fa-toolkit ]; then
-            echo "dist staging directory present - dist route exercised"
+          if grep -q "Downloading featherarms/fa-toolkit" install.log; then
+            echo "dist route exercised"
+          elif grep -q "Cloning" install.log; then
+            echo "::error::fell back to a source clone - this job duplicated install-check instead of covering dist"
+            exit 1
           else
-            echo "::warning::no dist staging directory - Composer fell back to source, this job duplicated install-check"
+            echo "::error::could not determine the install route from composer output"
+            exit 1
           fi
 
       - name: Verify the install

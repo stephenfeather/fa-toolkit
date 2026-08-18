@@ -36,17 +36,20 @@ $check('1. installed at web/app/plugins/fa-toolkit/', is_file($pkg . '/fa-toolki
 
 // Tests for the package's CODE under vendor/, not merely for the directory.
 //
-// Whenever Composer ATTEMPTS a dist download it creates vendor/<vendor>/<name>
-// as the extraction target; composer/installers then relocates the package to
-// installer-paths and the now-empty directory is left behind. This happens even
-// when the dist download FAILS and Composer falls back to a source clone, so it
-// is the attempt that creates it, not a successful extraction. A pure source
-// install never creates it, and a VCS repository pointed at a LOCAL path
-// exposes no dist URL, so it always installs from source. That is the trap:
-// whether this leftover exists depends on the install ROUTE, not on whether
-// the install is correct. An is_dir() check therefore passes against a local
-// path repo and fails against the remote - so it can look fine in one job and
-// break in another while nothing is actually wrong.
+// Composer stages a dist download through vendor/<vendor>/<name>, and an EMPTY
+// directory can be left there after composer/installers relocates the package.
+// Measured across three routes:
+//
+//   dist attempted and FAILED, fell back to source  -> leftover PRESENT
+//   dist attempted and succeeded                    -> no leftover
+//   local path repo (no dist URL, source only)      -> no leftover
+//
+// So the leftover tracks a dist attempt that did not complete - which is a
+// property of the install ROUTE and of network conditions, not of whether the
+// install is correct. An is_dir() check here is therefore red on a perfectly
+// good install whenever a dist download happens to fail and fall back, and
+// green on the identical install when it does not. That is a flaky assertion
+// wearing a correctness costume.
 //
 // So is_dir() here fails on CORRECT installs. The failure actually worth
 // catching is installer-paths not being honoured, which leaves fa-toolkit.php
