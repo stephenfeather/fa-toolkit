@@ -1,6 +1,17 @@
 {
     "name": "featherarms/fa-toolkit",
-    "license": "GPL v3",
+    "description": "Collection of WordPress management tools used by Feather Arms.",
+    "type": "wordpress-plugin",
+    "license": "GPL-3.0-or-later",
+    "require": {
+        "php": "^8.3",
+        "composer/installers": "^2.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true
+        }
+    },
     "autoload": {
         "classmap": [
             "src/"

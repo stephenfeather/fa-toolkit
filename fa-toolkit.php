@@ -23,8 +23,15 @@ define( 'FA_TOOLKIT_URL', plugin_dir_url( __FILE__ ) );
 
 // Autoload classes via Composer.
 // Composer autoloader is a standard and safe pattern.
-// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
-require_once __DIR__ . '/vendor/autoload.php';
+//
+// Present only for a standalone checkout, where this plugin owns its vendor/.
+// When installed as a Composer dependency the file does not exist: Composer
+// merges this package's autoload config into the consuming project's root
+// autoloader instead, so the classes below are already resolvable.
+if ( true === file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
+	require_once __DIR__ . '/vendor/autoload.php';
+}
 
 // Instantiate classes with side-effects (hooks, actions, WP-CLI commands, etc).
 // These classes register their own hooks in constructors.
