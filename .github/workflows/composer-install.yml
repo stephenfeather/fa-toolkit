@@ -153,18 +153,26 @@ jobs:
             cp "$TEMPLATE/composer.json" "$TEMPLATE/verify.php" "$dir/"
             ( cd "$dir" && composer install --no-interaction --no-progress --prefer-dist 2>&1 | tee install.log )
           }
-          # Both patterns are scoped to OUR package. A bare "Cloning" also
-          # matches composer/installers being cloned, which would misreport the
-          # route for a run where only that dependency fell back.
+          # Matches evidence the route COMPLETED, never that it started.
           #
-          # "Extracting archive" is accepted as dist because Composer prints it
-          # instead of "Downloading" when the zip is already in its cache. CI is
-          # cold today so only "Downloading" appears, but adding a Composer cache
-          # to this workflow would otherwise flip the route to "unknown" and hard
-          # fail - a failure caused by a caching optimisation rather than by
-          # anything about the package.
+          # "Downloading <pkg>" is deliberately NOT used here. Composer prints it
+          # when it BEGINS a dist attempt, before the outcome is known, so a
+          # FAILED dist emits "Downloading ...", then "Failed to download ...",
+          # then "Cloning ... from cache". Matching "Downloading" therefore
+          # reports "dist route exercised" on a run that actually cloned from
+          # source - the gate fails OPEN, passing while covering nothing extra.
+          # That is worse than a false red, because a red build gets
+          # investigated and a green one does not.
+          #
+          # What each outcome actually prints, measured rather than assumed:
+          #   dist completed : Installing <pkg> (<ver>): Extracting archive
+          #   fell back      : Installing <pkg> (<ver>): Cloning <sha> from cache
+          #
+          # Both patterns are scoped to OUR package: a bare "Cloning" also
+          # matches composer/installers being cloned, which would misreport the
+          # route on a run where only that dependency fell back.
           route_of() {
-            if grep -qE "(Downloading featherarms/fa-toolkit|Installing featherarms/fa-toolkit .*Extracting archive)" "$1/install.log"; then
+            if grep -qE "Installing featherarms/fa-toolkit .*Extracting archive" "$1/install.log"; then
               echo dist
             elif grep -qE "Installing featherarms/fa-toolkit .*Cloning" "$1/install.log"; then
               echo source
