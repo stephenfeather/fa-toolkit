@@ -1,0 +1,83 @@
+name: Composer install check
+
+# Proves this package still installs as a Composer dependency and that its
+# classes land in the CONSUMING project's autoloader.
+#
+# This exists because "composer install exits 0" is not the property that
+# matters. The bug this guards against installed perfectly well and then
+# fataled at runtime, because the plugin required its own vendor/autoload.php
+# which a Composer install never creates. A check asserting only a zero exit
+# code would have PASSED on that broken version. The assertions in verify.php
+# are the ones that actually distinguish working from broken.
+#
+# SCOPE, stated plainly: this covers INSTALLABILITY and CLASSMAP CORRECTNESS.
+# It does NOT prove the classes load. That cannot be asserted without
+# WordPress, and cannot be a class_exists() probe at all while 13 of the
+# package's source files instantiate themselves at file scope - loading such a
+# class registers hooks, so the probe would itself be a side effect. See the
+# note above check 4 in verify.php.
+#
+# The package is installed through a VCS repository, not a path repository,
+# because a VCS entry is how the real consumer will take this dependency. A
+# path repo also mirrors a directory verbatim, so pointing one at a working
+# checkout ships any vendor/ present there and silently exercises the
+# standalone autoload path instead of the Composer one.
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+jobs:
+  install-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      # fetch-depth: 0 because Composer's VCS driver needs real git history and
+      # refs, not the single squashed commit checkout provides by default.
+      - name: Check out the package
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # On a pull_request, checkout leaves a detached HEAD at the merge commit,
+      # which Composer's VCS driver cannot resolve to a version. Give it a real
+      # branch to install. The name is fixed so the constraint below is stable.
+      - name: Give Composer a resolvable branch
+        run: git checkout -B ci-install-check
+
+      # Pinned deliberately. config.platform.php governs RESOLUTION only; the
+      # runner's real PHP is what EXECUTES composer and verify.php. Pinning to
+      # 8.3 keeps the two in agreement and matches production exactly
+      # (php:8.3-fpm-alpine), so a failure lands somewhere legible rather than
+      # in a confusing place at runtime.
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate package metadata
+        run: composer validate --strict
+
+      - name: Assemble the throwaway consumer
+        env:
+          CONSUMER: ${{ runner.temp }}/install-check
+        run: |
+          mkdir -p "$CONSUMER"
+          jq --arg url "$GITHUB_WORKSPACE" \
+             'del(._comment)
+              | .repositories[0].url = $url
+              | .require["featherarms/fa-toolkit"] = "dev-ci-install-check"' \
+             .github/composer-install-check/consumer.json > "$CONSUMER/composer.json"
+          cp .github/composer-install-check/verify.php "$CONSUMER/verify.php"
+          cat "$CONSUMER/composer.json"
+
+      - name: Install the package into the consumer
+        working-directory: ${{ runner.temp }}/install-check
+        run: composer install --no-interaction --no-progress
+
+      - name: Verify the install
+        working-directory: ${{ runner.temp }}/install-check
+        run: php verify.php

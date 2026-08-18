@@ -1,0 +1,63 @@
+{
+    "_comment": [
+        "Throwaway consumer used only by .github/workflows/composer-install.yml.",
+        "The workflow substitutes REPLACE_URL and REPLACE_CONSTRAINT at runtime.",
+        "",
+        "Deliberately MINIMAL rather than a mirror of the real consuming project.",
+        "A fixture that copies featherarms-website's config would fail whenever",
+        "that project changed something unrelated to us, and a check that cries",
+        "wolf is one people learn to ignore. Everything present below is here to",
+        "prove OUR install, and each entry earns its place:",
+        "",
+        "  minimum-stability / prefer-stable - REQUIRED while this repo has no",
+        "    tags. CI installs a BRANCH, and Composer's default stability of",
+        "    'stable' rejects dev-<branch> outright. These are here because of",
+        "    what CI installs, NOT because the real consumer happens to set",
+        "    them. Once a tag exists and CI tests the tag, removing these two",
+        "    lines is a genuine strengthening of this check.",
+        "",
+        "  config.platform.php - governs RESOLUTION only. It makes Composer",
+        "    resolve as though PHP were 8.3.0 whatever the runner ships, so the",
+        "    package's \"php\": \"^8.3\" is tested against the version production",
+        "    actually runs rather than the runner's default.",
+        "",
+        "  preferred-install: dist - a no-op today, because Composer clones from",
+        "    source for a dev branch regardless. Kept because it starts mattering",
+        "    the moment a tag exists: dist fetches a zip, which honours",
+        "    .gitattributes export-ignore. fa-toolkit has no .gitattributes today,",
+        "    so dist and source ship identical trees; if one is ever added, the two",
+        "    diverge and only a tag-based run would catch it.",
+        "",
+        "  installer-paths - the whole point of type: wordpress-plugin. Without",
+        "    this the package lands in vendor/ and the check is meaningless.",
+        "",
+        "The real consumer's require list is deliberately NOT mirrored - none of",
+        "it is needed to prove that this package installs."
+    ],
+    "name": "featherarms/install-test",
+    "description": "Throwaway consumer, to verify fa-toolkit installs as a real Composer dependency.",
+    "type": "project",
+    "license": "proprietary",
+    "repositories": [
+        { "type": "vcs", "url": "REPLACE_URL" }
+    ],
+    "require": {
+        "composer/installers": "^2.2",
+        "featherarms/fa-toolkit": "REPLACE_CONSTRAINT"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "platform": { "php": "8.3.0" },
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "allow-plugins": { "composer/installers": true }
+    },
+    "extra": {
+        "installer-paths": {
+            "web/app/mu-plugins/{$name}/": ["type:wordpress-muplugin"],
+            "web/app/plugins/{$name}/": ["type:wordpress-plugin"],
+            "web/app/themes/{$name}/": ["type:wordpress-theme"]
+        }
+    }
+}
