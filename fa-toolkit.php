@@ -17,17 +17,54 @@ if ( defined( 'ABSPATH' ) === false ) {
 	die( 'Security (fhi4d6): File addressed directly.' );// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.exit
 }
 
-add_filter( 'woocommerce_is_purchasable', '__return_true' );
+// Inert constants, deliberately above the guard: they define paths and register
+// nothing, so they leave no observable behaviour behind if the bootstrap bails.
+// The guard below is about SIDE EFFECTS, not about everything preceding it.
 define( 'FA_TOOLKIT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FA_TOOLKIT_URL', plugin_dir_url( __FILE__ ) );
 
 // Autoload classes via Composer.
 // Composer autoloader is a standard and safe pattern.
-// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
-require_once __DIR__ . '/vendor/autoload.php';
+//
+// Present only for a standalone checkout, where this plugin owns its vendor/.
+// When installed as a Composer dependency the file does not exist: Composer
+// merges this package's autoload config into the consuming project's root
+// autoloader instead, so the classes below are already resolvable.
+if ( true === file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
+	require_once __DIR__ . '/vendor/autoload.php';
+}
+
+// Confirm the classes are actually reachable before instantiating any of them.
+//
+// Deliberately tests for a CLASS rather than for the autoloader FILE. Under a
+// Composer install the file above is legitimately absent, so a file check would
+// bail out on a correct install and register nothing at all - silently. The
+// class tested here is the first one instantiated below, so this check fails
+// exactly when that instantiation would fatal, and never otherwise.
+if ( false === class_exists( \FAToolkit\Admin\Custom_Admin_Menu::class ) ) {
+	add_action(
+		'admin_notices',
+		function () {
+			printf(
+				'<div class="notice notice-error"><p>%s</p></div>',
+				esc_html(
+					'Feather Arms Toolkit: classes could not be autoloaded. '
+					. 'For a standalone checkout, run "composer install" in the plugin directory. '
+					. 'When installed as a Composer dependency, run "composer install" in the project root.'
+				)
+			);
+		}
+	);
+	return;
+}
 
 // Instantiate classes with side-effects (hooks, actions, WP-CLI commands, etc).
 // These classes register their own hooks in constructors.
+//
+// No side effect may sit above the guard - a plugin that failed to load its
+// classes must not half-apply. (The two define() calls above are exempt because
+// they register nothing and leave no observable behaviour behind.)
 
 // Admin.
 new \FAToolkit\Admin\Custom_Admin_Menu();
@@ -41,7 +78,7 @@ new \FAToolkit\Admin\Admin_Meta_Boxes();
 new \FAToolkit\Media\AutoAttachUploadedMedia();
 
 // Media (WP-CLI dependent - only load if WP-CLI is active).
-if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
+if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\Media\Media_Fix_Ilab_Metadata();
 	new \FAToolkit\Media\ProductThumbnailChecker();
 }
@@ -63,7 +100,7 @@ new \FAToolkit\Modules\QueryMonitorSettings();
 new \FAToolkit\Modules\WooCommerceSettings();
 
 // Utilities (WP-CLI dependent classes only load if WP-CLI is active).
-if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
+if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\Utilities\FixRankMathSchemas();
 	new \FAToolkit\Utilities\GTINS();
 	new \FAToolkit\Utilities\Color_Test();
@@ -78,7 +115,7 @@ new \FAToolkit\Site\SetupBusinessBloomer();
 new \FAToolkit\Rest\ImportMediaImage();
 
 // CLI Commands (only load if WP-CLI is active).
-if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
+if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\CLI\Tools\ExportACFField();
 	new \FAToolkit\CLI\Tools\FileToolsCommand();
 	new \FAToolkit\CLI\Media\ScrapeProductMedia();

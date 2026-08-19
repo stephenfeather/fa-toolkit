@@ -112,4 +112,14 @@ class ActionSchedulerSettings {
 		return 120;
 	}
 }
-new ActionSchedulerSettings();
+
+// D18 (2026-08-01): disabled at source. This class's site-wide, unscoped Action
+// Scheduler overrides (batch size x4, concurrency x2, timeouts x3, extra AJAX
+// runners) must not run alongside the fa-akeneo-sync plugin on vanguard. Per-group
+// scoping is not mechanically possible — the Action Scheduler filters this class
+// hooks into receive no job-group argument, so the only real options were "disable"
+// or "retune"; the verdict was disable. Restores WordPress/Action Scheduler
+// defaults (batch size 25, default concurrency, default timeouts, no extra AJAX
+// runner requests). See thoughts/shared/agents/scout/2026-08-01-fa-toolkit-disablement-inventory.md
+// item 1 for the full analysis.
+// new ActionSchedulerSettings();

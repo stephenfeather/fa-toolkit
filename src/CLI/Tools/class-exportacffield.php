@@ -14,7 +14,7 @@ if ( defined( 'ABSPATH' ) === false ) {
 }
 
 // Dont load if WP_CLI is not defined.
-if ( defined( 'WP_CLI' ) === false && WP_CLI === false ) {
+if ( false === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	return;
 }
 

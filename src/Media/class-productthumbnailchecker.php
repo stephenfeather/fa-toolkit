@@ -14,7 +14,7 @@ if ( defined( 'ABSPATH' ) === false ) {
 	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 }
 
-if ( ( defined( 'WP_CLI' ) && WP_CLI ) === false ) {
+if ( false === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	return;
 }
 
