@@ -64,11 +64,7 @@ if ( false === class_exists( \FAToolkit\Admin\Custom_Admin_Menu::class ) ) {
 //
 // No side effect may sit above the guard - a plugin that failed to load its
 // classes must not half-apply. (The two define() calls above are exempt because
-// they register nothing and leave no observable behaviour behind.) This filter
-// in particular forces every product purchasable store-wide, bypassing price
-// and stock checks, so leaving it active in a broken state would be worse than
-// not loading at all.
-add_filter( 'woocommerce_is_purchasable', '__return_true' );
+// they register nothing and leave no observable behaviour behind.)
 
 // Admin.
 new \FAToolkit\Admin\Custom_Admin_Menu();
