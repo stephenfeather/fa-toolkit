@@ -104,7 +104,6 @@ class Debug {
 		$context = esc_js( $context );
 		$json    = wp_json_encode( $data );
 
-		$output = sprintf( '<script>%s</script>', $output );
 		$output = sprintf(
 			"<script>console.info('%s:'); console.log(%s);</script>",
 			$context,

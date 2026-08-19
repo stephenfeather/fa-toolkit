@@ -171,10 +171,12 @@ class Media_Fix_Ilab_MetadataTest extends TestCase {
 			->twice()
 			->with( 'fa_toolkit_last_processed_post_id', Mockery::anyOf( 101, 102 ) );
 
-		// Note: Source has bug - undefined $option_name on line 140.
-		// We'll suppress the error expectation for this test.
-		Functions\expect( 'delete_option' )
-			->once();
+		// A delete_option() expectation used to sit here, with a note about an
+		// "undefined $option_name on line 140" in the source. Both are stale:
+		// fix_all_media_metadata() ends at line 131, calls delete_option()
+		// nowhere, and the file has no line 140. The expectation described a
+		// version of the source that no longer exists, so it could only ever
+		// fail.
 
 		$this->instance->fix_all_media_metadata( [ '100' ], [] );
 
@@ -211,8 +213,8 @@ class Media_Fix_Ilab_MetadataTest extends TestCase {
 		Functions\expect( 'update_option' )
 			->once();
 
-		Functions\expect( 'delete_option' )
-			->once();
+		// Stale delete_option() expectation removed - see the note in
+		// test_fix_all_media_metadata_processes_attachments above.
 
 		$this->instance->fix_all_media_metadata( [ '100' ], [] );
 

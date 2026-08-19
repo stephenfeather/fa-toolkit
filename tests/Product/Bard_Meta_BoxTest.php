@@ -20,9 +20,24 @@ class Bard_Meta_BoxTest extends TestCase {
 	 * Test that register_meta_box calls add_meta_box.
 	 */
 	public function test_register_meta_box_calls_add_meta_box() {
+		// Both stubs must be declared HERE rather than relied on from
+		// tests/bootstrap.php: Brain Monkey's setUp() resets every stub before
+		// each test, so the bootstrap-scope when() calls never reach this test.
+		Functions\when( '__' )->returnArg();
+
 		$meta_box = new Bard_Meta_Box();
 
-		// Verify that calling register_meta_box works without errors.
+		Functions\expect( 'add_meta_box' )
+			->once()
+			->with(
+				'bard_meta_box',
+				'Bard Prompt',
+				array( $meta_box, 'render_meta_box' ),
+				'product',
+				'side',
+				'high'
+			);
+
 		$this->assertNull( $meta_box->register_meta_box() );
 	}
 

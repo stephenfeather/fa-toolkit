@@ -32,7 +32,10 @@ class SetupBusinessBloomerTest extends TestCase {
 			->with( '', '<span class="single_product_date_published">Updated: ', '</span>', false )
 			->andReturn( 'January 1, 2026' );
 
-		// Note: esc_html is handled by bootstrap fallback (when()->returnArg())
+		// esc_html must be stubbed HERE, not relied on from tests/bootstrap.php.
+		// Brain Monkey's setUp() resets every stub before each test, so the
+		// when( 'esc_html' ) call at bootstrap scope never reaches this test.
+		Functions\when( 'esc_html' )->returnArg();
 
 		$bloomer = new SetupBusinessBloomer();
 

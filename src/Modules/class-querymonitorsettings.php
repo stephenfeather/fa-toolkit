@@ -31,7 +31,7 @@ class QueryMonitorSettings {
 	 * @param array $levels Error levels.
 	 * @return array $levels
 	 */
-	private function silence_noisy_plugins( array $levels ) {
+	public function silence_noisy_plugins( array $levels ) {
 		$levels['plugin']['fraudlabs-pro-for-woocommerce']         = ( E_ALL & ~E_NOTICE );
 		$levels['plugin']['query-monitor']                         = ( E_ALL & ~E_NOTICE );
 		$levels['plugin']['duracelltomi - google - tag - manager'] = ( E_ALL & ~E_NOTICE );
