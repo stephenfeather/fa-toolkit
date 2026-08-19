@@ -109,7 +109,6 @@ class WooCommerceSettings {
 			'UT' => __( 'Utah', 'woocommerce' ),
 			'VT' => __( 'Vermont', 'woocommerce' ),
 			'VA' => __( 'Virginia', 'woocommerce' ),
-			'WA' => __( 'Washington', 'woocommerce' ),
 			'WV' => __( 'West Virginia', 'woocommerce' ),
 			'WI' => __( 'Wisconsin', 'woocommerce' ),
 			'WY' => __( 'Wyoming', 'woocommerce' ),
