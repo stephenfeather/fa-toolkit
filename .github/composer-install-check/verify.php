@@ -90,9 +90,17 @@ $bad = [];
 if ($pkgReal === false) {
     $bad[] = 'install target does not exist: ' . $pkg;
 } else {
+    // The trailing separator is load-bearing. Without it this is a string
+    // prefix test rather than a path containment test, so a SIBLING directory
+    // whose name merely starts with the target - web/app/plugins/fa-toolkit-legacy
+    // against a target of web/app/plugins/fa-toolkit - would count as "inside".
+    // Not reachable with today's single-package classmap, but this check exists
+    // to be precise about paths, and it is the same shape as the realpath bug
+    // above: an expression that looks like containment and isn't.
+    $prefix = $pkgReal . DIRECTORY_SEPARATOR;
     foreach ($map as $class => $file) {
         $real = realpath($file);
-        if ($real === false || !str_starts_with($real, $pkgReal)) {
+        if ($real === false || !str_starts_with($real, $prefix)) {
             $bad[] = $class . ' -> ' . $file;
         }
     }

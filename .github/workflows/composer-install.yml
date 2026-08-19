@@ -52,7 +52,7 @@ jobs:
       # (php:8.3-fpm-alpine), so a failure lands somewhere legible rather than
       # in a confusing place at runtime.
       - name: Set up PHP 8.3
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: '8.3'
           tools: composer:v2
@@ -105,7 +105,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up PHP 8.3
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: '8.3'
           tools: composer:v2
@@ -146,7 +146,13 @@ jobs:
           TEMPLATE: ${{ runner.temp }}/remote-template
           COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ github.token }}"}}'
         run: |
-          set -u
+          # pipefail matters because composer's output is piped to tee: without
+          # it the pipeline reports tee's exit status, so a genuine install
+          # failure (bad constraint, no network) would be swallowed here and
+          # surface two steps later as "could not determine the install route".
+          # The job ended up red either way, but pointing at route detection
+          # instead of at the composer error it was actually caused by.
+          set -u -o pipefail
           attempt() {
             dir="$1"
             mkdir -p "$dir"
@@ -239,7 +245,7 @@ jobs:
         run: git checkout -B ci-install-check
 
       - name: Set up PHP 8.3
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: '8.3'
           tools: composer:v2
