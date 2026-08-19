@@ -78,7 +78,7 @@ new \FAToolkit\Admin\Admin_Meta_Boxes();
 new \FAToolkit\Media\AutoAttachUploadedMedia();
 
 // Media (WP-CLI dependent - only load if WP-CLI is active).
-if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
+if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\Media\Media_Fix_Ilab_Metadata();
 	new \FAToolkit\Media\ProductThumbnailChecker();
 }
@@ -100,7 +100,7 @@ new \FAToolkit\Modules\QueryMonitorSettings();
 new \FAToolkit\Modules\WooCommerceSettings();
 
 // Utilities (WP-CLI dependent classes only load if WP-CLI is active).
-if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
+if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\Utilities\FixRankMathSchemas();
 	new \FAToolkit\Utilities\GTINS();
 	new \FAToolkit\Utilities\Color_Test();
@@ -115,7 +115,7 @@ new \FAToolkit\Site\SetupBusinessBloomer();
 new \FAToolkit\Rest\ImportMediaImage();
 
 // CLI Commands (only load if WP-CLI is active).
-if ( true === defined( 'WP_CLI' ) && true === WP_CLI ) {
+if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\CLI\Tools\ExportACFField();
 	new \FAToolkit\CLI\Media\ScrapeProductMedia();
 	new \FAToolkit\CLI\Media\FetchImportProductImageCommand();

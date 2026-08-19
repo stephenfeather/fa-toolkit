@@ -20,7 +20,7 @@ class WordCount {
 		add_action( 'save_post', array( $this, 'update_word_count_meta' ) );
 
 		// Register WP-CLI command.
-		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		if ( \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 			\WP_CLI::add_command( 'update_word_count', array( $this, 'update_word_count_command' ) );
 		}
 	}

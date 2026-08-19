@@ -12,7 +12,7 @@
 
 namespace FAToolkit\Utilities;
 
-if ( false === defined( 'WP_CLI' ) || false === WP_CLI ) {
+if ( false === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	return;
 }
 

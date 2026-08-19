@@ -41,7 +41,7 @@ class FetchImportProductImageCommand {
 	 * Constructor - Register WP-CLI command.
 	 */
 	public function __construct() {
-		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		if ( \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 			\WP_CLI::add_command( 'fa:media fetch-import-product-image', array( $this, 'execute' ) );
 		}
 	}
