@@ -6,8 +6,20 @@ composer.lock
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
 
-# Continuous Claude cache (local only)
-.claude/cache/
+# Claude Code local state (settings, caches, permission logs) - local only
+.claude/
+
+# Editor settings - local only
+.vscode/
+
+# Working plans - local only
+plans/
+
+# tldr code-analysis index (regenerated locally)
+.tldr/
+
+# opengrep scan output
+opengrep-output.json
 
 # PHPUnit coverage and cache
 coverage/

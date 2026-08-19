@@ -1,0 +1,17 @@
+version: '1.1'
+summary:
+  generatePRSummary: true
+ignorePaths:
+  - 'yarn.lock'
+  - 'package-lock.json'
+  - '.env'
+  - '**/*.json'
+reviewOptions:
+  security: true
+  code_style: true
+  maintainability: true
+  bug: true
+suggestionControl:
+  limitationType: 'pr'
+  maxSuggestions: 9
+  severityLevelFilter: 'medium'
