@@ -154,8 +154,20 @@ class DebugTest extends TestCase {
 	public function test_debug_to_console_outputs_javascript() {
 		$test_data = array( 'key' => 'value', 'number' => 123 );
 
-		Functions\when( 'wp_json_encode' )->returnArg();
-		Functions\when( 'wp_kses_post' )->returnArg();
+		// Must actually encode. returnArg() handed the raw array straight back,
+		// so sprintf( '%s', $array ) inside debug_to_console() raised an
+		// "Array to string conversion" warning - a defect in the stub, not in
+		// the source: the real wp_json_encode() returns a string.
+		Functions\when( 'wp_json_encode' )->alias(
+			static function ( $data ) {
+				return json_encode( $data );
+			}
+		);
+		// The source calls esc_js() and wp_kses() - NOT wp_kses_post(). Stubbing
+		// the wrong name left the real functions undefined, which is what made
+		// this test error rather than assert.
+		Functions\when( 'esc_js' )->returnArg();
+		Functions\when( 'wp_kses' )->returnArg();
 
 		Debug::debug_to_console( $test_data, 'Test Context' );
 
@@ -176,8 +188,20 @@ class DebugTest extends TestCase {
 	 * @return void
 	 */
 	public function test_debug_to_console_with_default_context() {
-		Functions\when( 'wp_json_encode' )->returnArg();
-		Functions\when( 'wp_kses_post' )->returnArg();
+		// Must actually encode. returnArg() handed the raw array straight back,
+		// so sprintf( '%s', $array ) inside debug_to_console() raised an
+		// "Array to string conversion" warning - a defect in the stub, not in
+		// the source: the real wp_json_encode() returns a string.
+		Functions\when( 'wp_json_encode' )->alias(
+			static function ( $data ) {
+				return json_encode( $data );
+			}
+		);
+		// The source calls esc_js() and wp_kses() - NOT wp_kses_post(). Stubbing
+		// the wrong name left the real functions undefined, which is what made
+		// this test error rather than assert.
+		Functions\when( 'esc_js' )->returnArg();
+		Functions\when( 'wp_kses' )->returnArg();
 
 		Debug::debug_to_console( 'test' );
 
