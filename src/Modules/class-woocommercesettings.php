@@ -101,7 +101,6 @@ class WooCommerceSettings {
 			'OK' => __( 'Oklahoma', 'woocommerce' ),
 			'OR' => __( 'Oregon', 'woocommerce' ),
 			'PA' => __( 'Pennsylvania', 'woocommerce' ),
-			'RI' => __( 'Rhode Island', 'woocommerce' ),
 			'SC' => __( 'South Carolina', 'woocommerce' ),
 			'SD' => __( 'South Dakota', 'woocommerce' ),
 			'TN' => __( 'Tennessee', 'woocommerce' ),
