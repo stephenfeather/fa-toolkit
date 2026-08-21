@@ -41,6 +41,8 @@
         "dealerdirect/phpcodesniffer-composer-installer": "v1.2.1"
     },
     "scripts": {
+        "lint": "phpcs",
+        "lint:fix": "phpcbf",
         "test": "phpunit",
         "test:coverage": "phpunit --coverage-text",
         "test:coverage-html": "phpunit --coverage-html coverage",
