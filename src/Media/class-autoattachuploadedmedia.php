@@ -252,6 +252,3 @@ class AutoAttachUploadedMedia {
 		return $hash;
 	}
 }
-
-// Instantiate to register hooks.
-new AutoAttachUploadedMedia();
