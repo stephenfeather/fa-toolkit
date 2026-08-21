@@ -18,11 +18,29 @@ namespace FAToolkit\Tests\Support;
  * spl_object_hash() for object-method callbacks, so two instances mean two
  * surviving registrations and a callback that fires twice.
  *
- * This cannot be detected with Brain Monkey. The file-scope `new` fires while
- * the autoloader includes the file, which happens once per PHP process and
- * before any test's Brain Monkey window opens, so its registrations are never
- * observable from inside a test. The defect is therefore asserted against the
- * source itself.
+ * This is a source-pattern net, and it is deliberately NOT the only check.
+ *
+ * An earlier version of this docblock claimed the defect was unobservable from
+ * inside a test. That was wrong, and the correction matters to anyone reading
+ * this later. `src/` is autoloaded by classmap (composer.json), so a class file
+ * is included on FIRST REFERENCE to the class — which happens inside a test,
+ * not before the suite. The autoload-time registrations are therefore fully
+ * observable: install a recorder for add_action/add_filter, then trigger the
+ * include and inspect what the file did on its own.
+ *
+ * The real constraint is narrower: a class file is included only once per
+ * process, so in the default single-process arrangement the observation is lost
+ * if any earlier test already loaded the class. `#[RunInSeparateProcess]` with
+ * `#[PreserveGlobalState(false)]` removes that ordering dependence entirely.
+ * See tests/Autoload/ for the behavioural tests that do exactly this — they are
+ * the ones that prove the defect. This assertion is the durable pattern guard
+ * that sits alongside them.
+ *
+ * TODO: known false negative — this assertion only inspects brace-depth zero,
+ * so a wrapped instantiation such as `if ( true ) { new A(); }` at file scope
+ * passes it while still constructing on include. The behavioural tests in
+ * tests/Autoload/ do not have that hole. Recorded rather than fixed; tightening
+ * the traversal is separate work.
  */
 trait AssertsNoFileScopeInstantiation {
 
