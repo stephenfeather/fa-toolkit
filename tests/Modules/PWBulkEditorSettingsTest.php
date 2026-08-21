@@ -9,15 +9,75 @@ namespace FAToolkit\Tests\Modules;
 
 use FAToolkit\Modules\PWBulkEditorSettings;
 use FAToolkit\Tests\TestCase;
+use FAToolkit\Tests\Support\AssertsNoFileScopeInstantiation;
 use Brain\Monkey\Functions;
 
 /**
  * Test PWBulkEditorSettings
  *
- * Note: This class is auto-initialized. Tests focus on public methods
- * that modify PW Bulk Editor columns and filters.
+ * Tests focus on public methods that modify PW Bulk Editor columns and filters.
  */
 class PWBulkEditorSettingsTest extends TestCase {
+
+	use AssertsNoFileScopeInstantiation;
+
+	/**
+	 * The class file must not construct itself at include time.
+	 *
+	 * fa-toolkit.php:96 already instantiates this class. A second, file-scope
+	 * construction registers all eight of the constructor's filters twice —
+	 * WordPress keys object-method callbacks on spl_object_hash(), so both
+	 * registrations survive and every filter runs twice.
+	 *
+	 * For this class specifically that is a query-breaking defect rather than
+	 * wasted work: see test_common_joins_category_count_is_not_idempotent.
+	 *
+	 * Issue #18, row 2.
+	 *
+	 * @return void
+	 */
+	public function test_class_file_does_not_instantiate_at_file_scope() {
+		$this->assertNoFileScopeInstantiation(
+			dirname( __DIR__, 2 ) . '/src/Modules/class-pwbulkeditorsettings.php'
+		);
+	}
+
+	/**
+	 * Applying the category-count join filter twice produces a duplicate SQL alias.
+	 *
+	 * This documents WHY double registration is fatal here rather than merely
+	 * wasteful. The method appends a `LEFT JOIN ( ... ) AS category_counts`;
+	 * applied twice, one query carries the alias `category_counts` twice, which
+	 * MySQL rejects with ERROR 1066 "Not unique table/alias".
+	 *
+	 * The method is legitimately non-idempotent — a filter that appends to a
+	 * joins string is supposed to append. The invariant that keeps the query
+	 * valid is that it is registered exactly once, which is what
+	 * test_class_file_does_not_instantiate_at_file_scope guards.
+	 *
+	 * Issue #18, row 2.
+	 *
+	 * @return void
+	 */
+	public function test_common_joins_category_count_is_not_idempotent() {
+		global $wpdb;
+		$wpdb                    = new \stdClass();
+		$wpdb->term_relationships = 'wp_term_relationships';
+		$wpdb->term_taxonomy     = 'wp_term_taxonomy';
+		$wpdb->terms             = 'wp_terms';
+
+		$settings = new PWBulkEditorSettings();
+
+		$once  = $settings->pwbe_common_joins_category_count( '' );
+		$twice = $settings->pwbe_common_joins_category_count( $once );
+
+		$this->assertSame( 1, substr_count( $once, 'AS category_counts' ) );
+		$this->assertSame(
+			2,
+			substr_count( $twice, 'AS category_counts' ),
+			'Two applications must yield a duplicate alias — that duplicate is the ERROR 1066.'
+		);
+	}
 
 	/**
 	 * Test pw_bulk_edit_custom_column_order adds custom columns.
