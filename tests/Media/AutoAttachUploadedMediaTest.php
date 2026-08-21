@@ -8,6 +8,7 @@
 namespace FAToolkit\Tests\Media;
 
 use FAToolkit\Tests\TestCase;
+use FAToolkit\Tests\Support\AssertsNoFileScopeInstantiation;
 use FAToolkit\Media\AutoAttachUploadedMedia;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -21,12 +22,86 @@ use ReflectionMethod;
  */
 class AutoAttachUploadedMediaTest extends TestCase {
 
+	use AssertsNoFileScopeInstantiation;
+
 	/**
 	 * Instance of the class under test.
 	 *
 	 * @var AutoAttachUploadedMedia
 	 */
 	private $instance;
+
+	/**
+	 * The class file must not construct itself at include time.
+	 *
+	 * fa-toolkit.php:78 already instantiates this class. A second, file-scope
+	 * construction registers the constructor's `add_attachment` callback twice
+	 * — WordPress keys object-method callbacks on spl_object_hash(), so both
+	 * registrations survive and every media upload runs
+	 * process_uploaded_attachment twice.
+	 *
+	 * For the consequence of running twice, see
+	 * test_second_run_reroutes_featured_image_into_the_gallery.
+	 *
+	 * Issue #18, row 1.
+	 *
+	 * @return void
+	 */
+	public function test_class_file_does_not_instantiate_at_file_scope() {
+		$this->assertNoFileScopeInstantiation(
+			dirname( __DIR__, 2 ) . '/src/Media/class-autoattachuploadedmedia.php'
+		);
+	}
+
+	/**
+	 * A second run routes the same attachment into the gallery as well.
+	 *
+	 * This documents WHY double registration is harmful here rather than merely
+	 * wasteful, and it is a sharper consequence than "the handler runs twice".
+	 *
+	 * determine_image_type() is state-dependent
+	 * (src/Media/class-autoattachuploadedmedia.php:170-178): an image numbered 0
+	 * becomes 'featured' only while the product has no featured image. So for a
+	 * `{hash}_0.jpg` upload onto a product with no thumbnail:
+	 *
+	 *   run 1 - no thumbnail yet  -> 'featured' -> set_post_thumbnail()
+	 *   run 2 - thumbnail now set -> 'gallery'  -> append_to_gallery( same id )
+	 *
+	 * The one uploaded image ends up BOTH the featured image AND a gallery
+	 * entry, which is visible on the product page. Note that the individual
+	 * write methods are each idempotent — append_to_gallery() explicitly guards
+	 * against duplicates at :213 — so the defect is not a repeated write. It is
+	 * the branch flipping, because the first run changed the state the second
+	 * run reads.
+	 *
+	 * Issue #18, row 1.
+	 *
+	 * @covers ::determine_image_type
+	 * @return void
+	 */
+	public function test_second_run_reroutes_featured_image_into_the_gallery() {
+		$method = $this->get_private_method( 'determine_image_type' );
+
+		// Run 1: product has no featured image yet.
+		Functions\expect( 'has_post_thumbnail' )
+			->once()
+			->with( 123 )
+			->andReturn( false );
+
+		$this->assertSame( 'featured', $method->invoke( $this->instance, 123, 0 ) );
+
+		// Run 2: the first run set the thumbnail, so the branch flips.
+		Functions\expect( 'has_post_thumbnail' )
+			->once()
+			->with( 123 )
+			->andReturn( true );
+
+		$this->assertSame(
+			'gallery',
+			$method->invoke( $this->instance, 123, 0 ),
+			'The second registration re-routes the same image into the gallery.'
+		);
+	}
 
 	/**
 	 * Set up test environment.
