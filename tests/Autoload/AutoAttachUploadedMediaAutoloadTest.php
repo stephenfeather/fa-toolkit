@@ -8,29 +8,25 @@
 namespace FAToolkit\Tests\Autoload;
 
 use FAToolkit\Tests\TestCase;
-use Brain\Monkey\Functions;
+use FAToolkit\Tests\Support\AssertsNoAutoloadRegistration;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 
 /**
  * Proves that merely loading the class file registers no hooks.
  *
- * `composer.json` autoloads `src/` by classmap, so a class file is included on
- * first reference to the class — which happens inside a test, not before the
- * suite. That makes autoload-time side effects directly observable: install a
- * recorder for add_action/add_filter, then trigger the include and see what the
- * file did on its own.
+ * Mechanism and the reason process isolation is required are documented on
+ * AssertsNoAutoloadRegistration.
  *
- * The one requirement is that the class must not already be loaded, since a
- * class file is included only once per process. `#[RunInSeparateProcess]` with
- * `#[PreserveGlobalState(false)]` guarantees a fresh process, so the ordering is
- * deterministic rather than dependent on which test ran first. This test lives
- * in its own class for that reason: `AutoAttachUploadedMediaTest::setUp()`
- * constructs the class, which would load it before the assertion could run.
+ * This lives in its own test class because
+ * AutoAttachUploadedMediaTest::setUp() constructs the class, which would load
+ * it before the precondition could be asserted.
  *
  * Issue #18, row 1.
  */
 class AutoAttachUploadedMediaAutoloadTest extends TestCase {
+
+	use AssertsNoAutoloadRegistration;
 
 	/**
 	 * Loading the class file must not register the add_attachment hook.
@@ -53,32 +49,9 @@ class AutoAttachUploadedMediaAutoloadTest extends TestCase {
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
 	public function test_loading_the_class_file_registers_no_hooks() {
-		$class = 'FAToolkit\Media\AutoAttachUploadedMedia';
-
-		$this->assertFalse(
-			class_exists( $class, false ),
-			'Precondition: the class must not be loaded yet, or the include has already happened and this test proves nothing.'
-		);
-
-		$GLOBALS['fa_autoload_registrations'] = array();
-
-		$recorder = static function ( $hook ) {
-			$GLOBALS['fa_autoload_registrations'][] = $hook;
-			return true;
-		};
-
-		Functions\when( 'add_action' )->alias( $recorder );
-		Functions\when( 'add_filter' )->alias( $recorder );
-
-		// Trigger the classmap include.
-		class_exists( $class );
-
-		$this->assertSame(
-			array(),
-			$GLOBALS['fa_autoload_registrations'],
-			'Loading the class file registered hooks by itself. The bootstrap at '
-			. 'fa-toolkit.php:78 is the single intended registration point; anything '
-			. 'registered here is a second, duplicate registration. See issue #18.'
+		$this->assertAutoloadRegistersNoHooks(
+			'FAToolkit\Media\AutoAttachUploadedMedia',
+			'fa-toolkit.php:78'
 		);
 	}
 }
