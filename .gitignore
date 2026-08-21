@@ -1,7 +1,6 @@
 vendor
 documentation
 doxygen.conf
-composer.lock
 
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
