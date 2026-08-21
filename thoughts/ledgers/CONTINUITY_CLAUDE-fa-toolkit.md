@@ -1,5 +1,7 @@
 # FA-Toolkit Test Coverage Initiative
-Updated: 2026-08-21T12:00:15.055Z
+Updated: 2026-08-21T16:07:25Z — CLI-bug section and Fingerprint entries re-verified against
+`develop @ 99c8f0c`; see #27. Corrections are marked inline and dated. Sections outside
+Phase 7, Phase 10's CLI list, and the test-file index were NOT re-verified in that pass.
 
 ## Goal
 
