@@ -54,6 +54,3 @@ class GoogleTagManager {
 		<?php
 	}
 }
-
-// Instantiate to register hooks.
-new GoogleTagManager();
