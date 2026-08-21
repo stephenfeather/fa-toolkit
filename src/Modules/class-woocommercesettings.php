@@ -36,35 +36,6 @@ class WooCommerceSettings {
 	}
 
 	/**
-	 * Format customer data.
-	 */
-	public function customer_data_filter() {
-		// Rewrite certain customer data to standard formats during checkout and update from account page.
-		add_filter( 'woocommerce_process_checkout_field_billing_first_name', 'trim_and_uppercase', 10, 1 );
-		add_filter( 'woocommerce_process_myaccount_field_billing_first_name', 'trim_and_uppercase', 10, 1 );
-		add_filter( 'woocommerce_process_checkout_field_billing_last_name', 'trim_and_uppercase', 10, 1 );
-		add_filter( 'woocommerce_process_myaccount_field_billing_last_name', 'trim_and_uppercase', 10, 1 );
-		add_filter( 'woocommerce_process_checkout_field_billing_company', 'trim_and_uppercase', 10, 1 );
-		add_filter( 'woocommerce_process_myaccount_field_billing_company', 'trim_and_uppercase', 10, 1 );
-		add_filter( 'woocommerce_process_checkout_field_billing_address_1', 'format_place', 10, 1 );
-		add_filter( 'woocommerce_process_myaccount_field_billing_address_1', 'format_place', 10, 1 );
-		add_filter( 'woocommerce_process_checkout_field_billing_postcode', 'format_zipcode', 10, 1 );
-		add_filter( 'woocommerce_process_myaccount_field_billing_postcode', 'format_zipcode', 10, 1 );
-		add_filter( 'woocommerce_process_checkout_field_billing_city', 'format_city', 10, 1 );
-		add_filter( 'woocommerce_process_myaccount_field_billing_city', 'format_city', 10, 1 );
-		add_filter( 'woocommerce_process_checkout_field_billing_email', 'format_mail', 10, 1 );
-		add_filter( 'woocommerce_process_myaccount_field_billing_email', 'format_mail', 10, 1 );
-		add_filter( 'woocommerce_process_checkout_field_shipping_first_name', 'trim_and_uppercase', 10, 1 );
-		add_filter( 'woocommerce_process_myaccount_field_shipping_first_name', 'trim_and_uppercase', 10, 1 );
-		add_filter( 'woocommerce_process_checkout_field_shipping_last_name', 'trim_and_uppercase', 10, 1 );
-		add_filter( 'woocommerce_process_myaccount_field_shipping_last_name', 'trim_and_uppercase', 10, 1 );
-		add_filter( 'woocommerce_process_checkout_field_shipping_address_1', 'format_place', 10, 1 );
-		add_filter( 'woocommerce_process_myaccount_field_shipping_address_1', 'format_place', 10, 1 );
-		add_filter( 'woocommerce_process_checkout_field_shipping_city', 'format_city', 10, 1 );
-		add_filter( 'woocommerce_process_myaccount_field_shipping_city', 'format_city', 10, 1 );
-	}
-
-	/**
 	 * Modify List of US States in checkout drop down.
 	 *
 	 * @param array $states Existing states grouped by country.
@@ -172,73 +143,5 @@ class WooCommerceSettings {
 			);
 		}
 		return $terms;
-	}
-
-
-
-
-
-	/**
-	 * Trim and uppercase a value with special word boundary handling.
-	 *
-	 * Normalizes a string by trimming, converting to lowercase, then uppercasing
-	 * first letters at word boundaries (hyphens, parentheses, periods), and
-	 * replacing specific patterns.
-	 *
-	 * @param string $value The input value to format.
-	 * @return string The formatted value.
-	 */
-	private function trim_and_uppercase( $value ) {
-		return str_replace( 'Oww ', 'OWW ', implode( '.', array_map( 'ucwords', explode( '.', implode( '(', array_map( 'ucwords', explode( '(', implode( '-', array_map( 'ucwords', explode( '-', mb_strtolower( trim( $value ) ) ) ) ) ) ) ) ) ) ) );
-	}
-
-	/**
-	 * Format a place string by trimming and uppercasing.
-	 *
-	 * @param string $value The input value.
-	 * @return string The formatted value.
-	 */
-	private function format_place( $value ) {
-		return trim_and_uppercase( $value );
-	}
-
-	/**
-	 * Format a zipcode string by trimming whitespace.
-	 *
-	 * @param string $value The input value.
-	 * @return string The formatted value.
-	 */
-	private function format_zipcode( $value ) {
-		return trim( $value );
-	}
-
-	/**
-	 * Format a city string by trimming and uppercasing.
-	 *
-	 * @param string $value The input value.
-	 * @return string The formatted value.
-	 */
-	private function format_city( $value ) {
-		return trim_and_uppercase( $value );
-	}
-
-	/**
-	 * Format an email address by trimming whitespace and converting to lowercase.
-	 *
-	 * @param string $value The input email address.
-	 * @return string The formatted email address.
-	 */
-	private function format_mail( $value ) {
-		return mb_strtolower( trim( $value ) );
-	}
-
-	/**
-	 * Format a headquarter string by trimming and uppercasing.
-	 *
-	 * @param string $value The input value.
-	 * @return string The formatted value.
-	 */
-	private function format_headquarter( $value ) {
-		return trim_and_uppercase( $value );
 	}
 }
