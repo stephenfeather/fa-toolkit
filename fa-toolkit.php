@@ -123,7 +123,18 @@ if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\CLI\Media\FindMediaForProductCommand();
 	new \FAToolkit\CLI\Media\AttachMediaToDraftProductsCommand();
 	new \FAToolkit\CLI\Media\ExportDraftProductImageSourcesCommand();
-	// TODO: Refactor this class to use namespacing and autoloading.
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
-	require_once __DIR__ . '/src/CLI/Commands/class-scrapeproductdata.php';
+	// Scrape_Product_Data_Command registers its own command at file scope
+	// (src/CLI/Commands/class-scrapeproductdata.php:155), outside the class
+	// body — so including the file IS the registration, and this class is not
+	// instantiated like the commands above.
+	//
+	// Referencing the class name triggers the Composer classmap autoloader,
+	// which includes the file and performs that registration at exactly this
+	// point in the bootstrap, as the previous require_once did. Do not remove
+	// this line as an unused expression: it is the registration.
+	//
+	// class_exists() rather than `new`: the class declaration is itself
+	// conditional on WP_CLI_Command existing, so class_exists() returns false
+	// where `new` would fatal.
+	class_exists( \FAToolkit\CLI\Commands\Scrape_Product_Data_Command::class );
 }
