@@ -109,23 +109,21 @@ class AttachMediaToDraftProductsCommand {
 				if ( ! empty( $is_attached ) && $is_attached === $attachment['ID'] ) {
 					\WP_CLI::debug( sprintf( 'Attachment ID %d is already attached to product ID %d', $attachment['ID'], $product_id ) );
 					++$matching_attachments;
-				} else {
-					if ( ! $dry_run ) {
-						set_post_thumbnail( $product_id, $attachment['ID'] );
-						\WP_CLI::success( sprintf( 'Product %d now parent of Attachment %d', $product_id, $attachment['ID'] ) );
-						++$num_with_attachments;
+				} elseif ( ! $dry_run ) {
+					set_post_thumbnail( $product_id, $attachment['ID'] );
+					\WP_CLI::success( sprintf( 'Product %d now parent of Attachment %d', $product_id, $attachment['ID'] ) );
+					++$num_with_attachments;
 
-						// Publish the product.
-						$publish_response = wp_update_post(
-							array(
-								'ID'          => $product_id,
-								'post_status' => 'publish',
-							)
-						);
-						\WP_CLI::debug( sprintf( 'Product ID %s: %s', $product_id, $publish_response ) );
-					} else {
-						\WP_CLI::log( sprintf( 'Preview: Attachment %d: (%s) will be attached to Product %d: (%s)', $attachment['ID'], $attachment['post_title'], $product_id, $sku ) );
-					}
+					// Publish the product.
+					$publish_response = wp_update_post(
+						array(
+							'ID'          => $product_id,
+							'post_status' => 'publish',
+						)
+					);
+					\WP_CLI::debug( sprintf( 'Product ID %s: %s', $product_id, $publish_response ) );
+				} else {
+					\WP_CLI::log( sprintf( 'Preview: Attachment %d: (%s) will be attached to Product %d: (%s)', $attachment['ID'], $attachment['post_title'], $product_id, $sku ) );
 				}
 			} else {
 				\WP_CLI::debug( "No Matching Attachment for {$product_id}!" );

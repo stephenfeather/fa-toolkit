@@ -64,10 +64,10 @@ class ProductThumbnailChecker {
 		$error_count     = 0;
 
 		$args = array(
-			'post_type'     => 'product',
-			'post_status'   => 'publish',
+			'post_type'      => 'product',
+			'post_status'    => 'publish',
 			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-			'meta_query'    => array(
+			'meta_query'     => array(
 				'relation' => 'OR',
 				array(
 					'key'     => '_thumbnail_id',

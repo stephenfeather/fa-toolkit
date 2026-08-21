@@ -14,7 +14,7 @@ if ( defined( 'ABSPATH' ) === false ) {
 	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
 }
 
-use FAToolkit\Promotion\Promotion_Meta_Box as Promotion_Meta_Box;
+use FAToolkit\Promotion\Promotion_Meta_Box;
 use FAToolkit\Utilities\Helpers;
 
 /**
