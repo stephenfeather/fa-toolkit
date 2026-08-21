@@ -4,8 +4,6 @@
  *
  * @package FA-Toolkit
  * @since 1.0
- *
- * TODO: Refactor this into a class.
  */
 
 namespace FAToolkit\Media;
