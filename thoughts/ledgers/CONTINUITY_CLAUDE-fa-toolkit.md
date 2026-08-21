@@ -1,5 +1,5 @@
 # FA-Toolkit Test Coverage Initiative
-Updated: 2026-02-01T11:17:13.611Z
+Updated: 2026-08-21T12:00:15.055Z
 
 ## Goal
 
@@ -144,14 +144,23 @@ Backfill unit tests for existing WordPress plugin codebase to achieve 95% code c
     - Note: Lower coverage due to significant dead code (private methods never called) in WooCommerceSettings and WPAllImportSettings
     - Note: Hook registration difficult to test with Brain Monkey (ABSPATH checks and callback validation issues)
     - All business logic fully tested where accessible via public methods or reflection
-  - [x] **Phase 7:** Site module (3 of 3 files complete)
+  - [x] **Phase 7:** Site module (2 of 2 remaining files complete)
     - ✅ GoogleTagManager: 100% coverage (15/15 lines, 3/3 methods) - 6 tests, 19 assertions
-    - ✅ Fingerprint: 100% coverage (27/27 lines, 4/4 methods) - 8 tests, 41 assertions
+    - ~~✅ Fingerprint: 100% coverage (27/27 lines, 4/4 methods) - 8 tests, 41 assertions~~
+      - **CORRECTED 2026-08-21 (#27): this class no longer exists.** `src/Site/class-fingerprint.php`
+        was deleted in `27fe428` ("REmove fingerprint.js since they went paid with not additional
+        benefit"). A deleted class cannot be at 100% coverage. The corresponding test file was
+        deleted in `aad244e`. Struck rather than removed so the correction is visible to anyone
+        who read the original.
     - ✅ SetupBusinessBloomer: 100% coverage (14/14 lines, 5/5 methods) - 9 tests, 35 assertions
-    - **Module total: 23 tests, 95 assertions**
-    - **Average coverage: 100%** (56/56 lines, 12/12 methods) 🎯 Exceeds 95% target!
+    - **Module total: 15 tests, 54 assertions** (was 23/95 before the Fingerprint deletion)
+    - **Average coverage: 100%** (29/29 lines, 8/8 methods) 🎯 Exceeds 95% target!
     - Added `session_id` to patchwork.json for internal function mocking
-    - All three classes auto-instantiated at file load (GoogleTagManager, Fingerprint) or used as library (SetupBusinessBloomer)
+    - ~~All three classes auto-instantiated at file load (GoogleTagManager, Fingerprint) or used as library (SetupBusinessBloomer)~~
+      - **CORRECTED 2026-08-21 (#27):** two classes remain, not three. Fingerprint is deleted.
+        GoogleTagManager was auto-instantiated at file load (`class-googletagmanager.php:59`);
+        **that file-scope `new` is removed by PR #37**, after which no Site class
+        auto-instantiates. SetupBusinessBloomer is used as a library, unchanged.
   - [x] **Phase 8:** Rest module (0 of 1 file testable)
     - ⚠️ ImportMediaImage: 0% coverage - Class deemed untestable with current approach
     - **Module total: 0 tests, 0 assertions**
@@ -192,19 +201,68 @@ Backfill unit tests for existing WordPress plugin codebase to achieve 95% code c
     - **Module total: 0 tests, 0 assertions**
     - **Average coverage: 0%** ❌ Below 95% target
     - **Reason for skipping:**
-      - ALL files follow auto-registration pattern that causes Brain Monkey hangs
-      - Commands register via `\WP_CLI::add_command()` at file load
-      - Brain Monkey callback validation hangs when loading command files
-      - Significant source code bugs prevent testing even if auto-registration were fixed
-    - **Files affected (8 total):**
-      - CLI/Tools/class-tools.php: 3 syntax errors (assignment operator misplaced)
-      - CLI/Tools/class-exportacffield.php: auto-instantiation in constructor
-      - CLI/Media/class-findmediaforproduct.php: 3 undefined variables
-      - CLI/Media/class-scrapeproductmedia.php: debug code (exit statement), auto-instantiation
-      - CLI/Media/class-exportdraftproductimagesources.php: undefined variable ($wp_filesystem)
-      - CLI/Media/class-fetchimportproductimage.php: bitwise AND bug, undefined variables, logic error
-      - CLI/Media/class-attachmediatodraftproducts.php: cleanest implementation
-      - CLI/Commands/class-scrapeproductdata.php: missing method, auto-registration
+      - ~~ALL files follow auto-registration pattern that causes Brain Monkey hangs~~
+      - ~~Commands register via `\WP_CLI::add_command()` at file load~~
+      - ~~Brain Monkey callback validation hangs when loading command files~~
+      - ~~Significant source code bugs prevent testing even if auto-registration were fixed~~
+
+> **RE-VERIFIED 2026-08-21 against `develop @ 99c8f0c` — see #27. Do not trust the struck text above or the original file list below.**
+>
+> Everything below this line is the corrected version. Of the 11 defect claims in the original
+> file list, **5 survive, 5 are falsified, 1 is unverifiable**. The Phase 2-4 command-class
+> refactor (`a777fc3` and neighbours) fixed much of it without this section being updated.
+>
+> **Corrected header claims:**
+> - **Auto-registration is NOT universal.** Six of eight CLI classes register inside constructors
+>   invoked by the guarded bootstrap (`fa-toolkit.php:118-125`). Only two register at file load:
+>   `class-scrapeproductmedia.php:451` and `class-scrapeproductdata.php:155`.
+> - **Brain Monkey does NOT hang when loading command files.** Tested, not assumed: an isolated
+>   probe (`#[RunInSeparateProcess]`, real bootstrap) loaded all seven autoloadable CLI classes —
+>   7 assertions, 0.54s, no hang. **Scope:** this disproves the blocker for *loading* only.
+>   Whether commands can be *invoked* under test was not tested and remains open.
+> - **Two source bugs remain**, not the seven-ish implied: #38 and #39.
+> - **The "8 total" count is misleading.** It is coincidentally still 8, but it is a DIFFERENT SET —
+>   four of the originally-named files no longer exist, having been renamed to `*Command.php`.
+>   Checking by count leads a reader to conclude nothing changed.
+>
+> **Current CLI inventory (8 files):** `Commands/class-scrapeproductdata.php`,
+> `Media/class-attachmediatodraftproductscommand.php`,
+> `Media/class-exportdraftproductimagesourcescommand.php`,
+> `Media/class-fetchimportproductimagecommand.php`,
+> `Media/class-findmediaforproductcommand.php`, `Media/class-scrapeproductmedia.php`,
+> `Tools/class-exportacffield.php`, `Tools/class-filetoolscommand.php`.
+> All eight pass `php -l`.
+>
+> **Per-claim verdicts:**
+>
+> | Original claim | Verdict | Evidence |
+> |---|---|---|
+> | `class-tools.php`: 3 syntax errors | FALSIFIED | File gone; successor `Tools/class-filetoolscommand.php` lints clean |
+> | `class-exportacffield.php`: auto-instantiation in constructor | STANDS, misdescribed | Constructor (`:34`) registers a command, does not instantiate. The `new` is at **file scope, `:114`**. Row 13 of #18 |
+> | `class-findmediaforproduct.php`: 3 undefined variables | FALSIFIED | File gone; successor `class-findmediaforproductcommand.php` — all variables assigned before use, all four `$this->` calls resolve (`:104`, `:123`, `:156`, `:175`) |
+> | `class-scrapeproductmedia.php`: debug code (exit statement) | STANDS — **understated** | `:327-328` `if ( 'foo' === 'foo' ) { die(); }` is the second statement of `import_media()`. Unconditional: the method is a no-op that terminates the process. **#38** |
+> | `class-scrapeproductmedia.php`: auto-instantiation | STANDS | `:451`, file scope, inside the `add_command()` argument. Also noted on #18 as a fourteenth site |
+> | `class-exportdraftproductimagesources.php`: undefined `$wp_filesystem` | FALSIFIED | File gone; successor declares the global (`:50`), calls `WP_Filesystem()` (`:53`), then uses it (`:83`) |
+> | `class-fetchimportproductimage.php`: bitwise AND bug | FALSIFIED | No single-`&` operator in the successor |
+> | `class-fetchimportproductimage.php`: undefined variables | FALSIFIED | `download_image()` (`:176`) declares `global $wp_filesystem` without initialising it, but its only caller `execute()` calls `WP_Filesystem()` at `:71` before the `:105` call. Fragile, not broken |
+> | `class-fetchimportproductimage.php`: logic error | **UNVERIFIABLE — retained, not deleted** | Names no location, no symptom, and no expected behaviour, so it cannot be checked as written. It is NOT being called false. Anyone who knows what it referred to should record that here or close it out |
+> | `class-attachmediatodraftproducts.php`: cleanest implementation | n/a — not a defect claim | Filename stale; successor `...command.php` lints clean |
+> | `class-scrapeproductdata.php`: missing method | STANDS | `$this->import_media()` at `:131` and `:144`; no such method on the class or on `\WP_CLI_Command`. Fatal on any path reaching media import. **#39** |
+> | `class-scrapeproductdata.php`: auto-registration | STANDS | `\WP_CLI::add_command(...)` at `:155`, file scope, outside the class body. Same file as #20 |
+>
+> Six other `die()` calls in `class-scrapeproductmedia.php` (`:124`, `:132`, `:145`, `:155`,
+> `:166`, `:431`) are deliberate control flow in warning paths and are **not** defects.
+>
+> **Original file list, retained struck-through for traceability:**
+>
+> - ~~CLI/Tools/class-tools.php: 3 syntax errors (assignment operator misplaced)~~
+> - ~~CLI/Tools/class-exportacffield.php: auto-instantiation in constructor~~
+> - ~~CLI/Media/class-findmediaforproduct.php: 3 undefined variables~~
+> - ~~CLI/Media/class-scrapeproductmedia.php: debug code (exit statement), auto-instantiation~~
+> - ~~CLI/Media/class-exportdraftproductimagesources.php: undefined variable ($wp_filesystem)~~
+> - ~~CLI/Media/class-fetchimportproductimage.php: bitwise AND bug, undefined variables, logic error~~
+> - ~~CLI/Media/class-attachmediatodraftproducts.php: cleanest implementation~~
+> - ~~CLI/Commands/class-scrapeproductdata.php: missing method, auto-registration~~
     - **Recommendation:** Fix source bugs, refactor to lazy registration, consider WP-CLI test framework
     - Created tests/CLI/README.md documenting all issues comprehensively
     - Note: Same auto-registration limitation as Admin/Rest modules
@@ -308,7 +366,9 @@ Backfill unit tests for existing WordPress plugin codebase to achieve 95% code c
 - `tests/Modules/WPAllImportSettingsTest.php` - 6 tests, 23.33% coverage ✓
 - `tests/Modules/PWBulkEditorSettingsTest.php` - 6 tests, 71.84% coverage ✓
 - `tests/Site/GoogleTagManagerTest.php` - 6 tests, 100% coverage ✓
-- `tests/Site/FingerprintTest.php` - 8 tests, 100% coverage ✓
+- ~~`tests/Site/FingerprintTest.php` - 8 tests, 100% coverage ✓~~
+  - **CORRECTED 2026-08-21 (#27): deleted.** Removed in `aad244e` ("Delete orphaned FingerprintTest
+    whose source was removed in 27fe428"). Its source class was deleted in `27fe428`.
 - `tests/Site/SetupBusinessBloomerTest.php` - 9 tests, 100% coverage ✓
 - `tests/Rest/ImportMediaImageTest.php.disabled` - Untestable (auto-instantiation + bugs)
 - `tests/Admin/README.md` - Documentation of Admin module testing limitations
