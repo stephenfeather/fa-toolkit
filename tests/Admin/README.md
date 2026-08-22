@@ -1,60 +1,63 @@
-# Admin Module - Untestable with Current Approach
+# Admin Module — testing notes
 
-## Status: 0% Coverage (0 of 6 files testable)
+## Status
 
-All 6 Admin module files follow the same pattern that makes them untestable with Brain Monkey unit tests:
+Two of the six Admin classes now have running tests. The blocker this file used to
+describe is gone.
 
-1. **Auto-instantiation at file load**: Each file ends with `new ClassName();`
-2. **Hook registration in constructor**: Constructors call `add_action()` / `add_filter()` with object method callbacks
-3. **Brain Monkey limitation**: Callback validation hangs when loading classes with this pattern
+| File | State |
+|---|---|
+| `class-attachment-sha256-hash-meta-box.php` | Tested — 3 tests, 66.67% methods / 94.59% lines |
+| `class-product-display-id.php` | Tested — 4 tests, 66.67% methods / 77.78% lines |
+| `class-product-display-vendor.php` | No test file |
+| `class-product-category-counts.php` | No test file |
+| `class-custom-admin-menu.php` | No test file |
+| `class-admin-meta-boxes.php` | No test file |
 
-## Affected Files
+## What changed
 
-1. `class-attachment-sha256-hash-meta-box.php` - Test file disabled
-2. `class-product-display-id.php` - Test file disabled
-3. `class-product-display-vendor.php` - Untested
-4. `class-product-category-counts.php` - Untested
-5. `class-custom-admin-menu.php` - Untested
-6. `class-admin-meta-boxes.php` - Untested
+This document previously said all six files were untestable, for three stated reasons.
+Two of the three no longer hold:
 
-## The Problem
+1. **Auto-instantiation at file load** — gone. Issue #18 removed every file-scope
+   `new ClassName();` from `src/`. Verified: no file-scope instantiation remains in
+   `src/Admin/` or `src/Rest/`.
+2. **Brain Monkey callback validation hangs when loading these classes** — does not
+   reproduce. Both test files load and run with no hang, no Patchwork loop.
+3. **Hook registration in constructor** — still true, and still fine. Tests construct
+   via `ReflectionClass::newInstanceWithoutConstructor()` where they want to bypass it.
 
-When PHPUnit loads any of these source files to test them:
+The two test files sat parked as `*.php.disabled` from January 2026 (commit `daf9ab3`)
+until #35. They were never re-checked after #18 landed.
 
-```php
-// Source file structure:
-class Product_Display_Id {
-    public function __construct() {
-        add_action('hook', array($this, 'method'));  // ← Brain Monkey hangs here
-    }
-}
+## The real blocker, once the tests were enabled
 
-new Product_Display_Id();  // ← Auto-executes constructor on file load
-```
+Not Brain Monkey. Two mundane causes:
 
-Even using `ReflectionClass::newInstanceWithoutConstructor()` doesn't help because the auto-instantiation at the bottom of each file executes before the test class loads.
+- **Stale expectations.** `Product_Display_IdTest` mocked `esc_html()`; the source
+  escapes with `absint()`. The tests described an implementation that no longer existed.
+- **A poisoned function name.** `tests/bootstrap.php` used to call
+  `Functions\when( 'add_meta_box' )` at bootstrap scope. That binds the stub to the
+  bootstrap-era Brain Monkey container while the defined function outlives every later
+  `setUp()`/`tearDown()`. Calls to it then succeed and return the bootstrap value while
+  Brain Monkey records nothing — so a later `Functions\expect( 'add_meta_box' )` reports
+  "called 0 times" even though the code under test called it. Those bootstrap stubs are
+  removed; see the comment in `tests/bootstrap.php` for the full explanation.
 
-## Additional Issues Found
+**Do not add `Functions\when()` calls at bootstrap scope.** Declare stubs inside the
+test that needs them.
 
-- **class-attachment-sha256-hash-meta-box.php**: Missing `generate_sha256_hash()` method referenced in constructor
-- **class-product-display-id.php**: Contains debug `ray()` calls (lines 38-39)
+## Still open
 
-## Recommendations
+- `class-attachment-sha256-hash-meta-box.php` registers
+  `wp_ajax_generate_sha256_hash` → `array( $this, 'generate_sha256_hash' )`, but the
+  class defines no `generate_sha256_hash()` method. The AJAX endpoint cannot work.
+- `class-product-display-id.php` calls `ray()` at lines 38-39 — leftover debug output
+  in production code.
 
-To make these classes testable:
+Neither is fixed here; both predate #35 and neither is a test problem.
 
-1. **Refactor**: Remove auto-instantiation and create an initialization function
-2. **Dependency Injection**: Pass dependencies instead of using global `add_action`
-3. **Integration Tests**: Use WordPress test suite instead of unit tests
-4. **Accept Lower Coverage**: Document these files as untestable legacy code
+## Related
 
-## Similar Issues in Other Modules
-
-- **Utilities/Debug**: Untestable due to PHP internal function mocking issues
-- **Rest/ImportMediaImage**: Untestable due to bugs + auto-instantiation + complexity
-
-## Test Files
-
-Disabled test files can be found with `.disabled` extension:
-- `Attachment_SHA256_Hash_Meta_BoxTest.php.disabled`
-- `Product_Display_IdTest.php.disabled`
+#24 (test strategy for Admin, Rest and CLI), #35 (this work), #18 (the refactor that
+removed the auto-instantiation).
