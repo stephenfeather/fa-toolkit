@@ -9,12 +9,12 @@ namespace FAToolkit\Tests\Promotion;
 
 use FAToolkit\Promotion\Promotions;
 use FAToolkit\Tests\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test Promotions data class.
- *
- * @covers \FAToolkit\Promotion\Promotions
  */
+#[CoversClass( Promotions::class )]
 class PromotionsTest extends TestCase {
 
 	/**

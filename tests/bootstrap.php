@@ -40,6 +40,7 @@ if ( ! class_exists( 'WP_Query' ) ) {
 		private $posts       = array();
 		private $post_index  = 0;
 		private $post_count  = 0;
+		public $query_args   = array();
 
 		public function __construct( $args = array() ) {
 			// Store args for potential verification.

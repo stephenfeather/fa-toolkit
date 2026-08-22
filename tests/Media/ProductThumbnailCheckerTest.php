@@ -11,12 +11,13 @@ use FAToolkit\Tests\TestCase;
 use FAToolkit\Media\ProductThumbnailChecker;
 use Brain\Monkey\Functions;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversMethod;
 
 /**
  * Test ProductThumbnailChecker functionality.
- *
- * @coversDefaultClass \FAToolkit\Media\ProductThumbnailChecker
  */
+#[CoversMethod( ProductThumbnailChecker::class, '__construct' )]
+#[CoversMethod( ProductThumbnailChecker::class, 'wp_cli_product_thumbnail_check' )]
 class ProductThumbnailCheckerTest extends TestCase {
 
 	/**
@@ -36,8 +37,6 @@ class ProductThumbnailCheckerTest extends TestCase {
 
 	/**
 	 * Test constructor registers WP-CLI command.
-	 *
-	 * @covers ::__construct
 	 */
 	public function test_constructor_registers_command() {
 		\WP_CLI::$calls = [];
@@ -51,8 +50,6 @@ class ProductThumbnailCheckerTest extends TestCase {
 
 	/**
 	 * Test wp_cli_product_thumbnail_check with default args.
-	 *
-	 * @covers ::wp_cli_product_thumbnail_check
 	 */
 	public function test_wp_cli_product_thumbnail_check_default_args() {
 		\WP_CLI::$calls = [];
@@ -66,8 +63,6 @@ class ProductThumbnailCheckerTest extends TestCase {
 
 	/**
 	 * Test wp_cli_product_thumbnail_check processes products successfully.
-	 *
-	 * @covers ::wp_cli_product_thumbnail_check
 	 */
 	public function test_wp_cli_product_thumbnail_check_success() {
 		\WP_CLI::$calls = [];
@@ -96,8 +91,6 @@ class ProductThumbnailCheckerTest extends TestCase {
 
 	/**
 	 * Test wp_cli_product_thumbnail_check handles failures.
-	 *
-	 * @covers ::wp_cli_product_thumbnail_check
 	 */
 	public function test_wp_cli_product_thumbnail_check_failure() {
 		\WP_CLI::$calls = [];
@@ -111,8 +104,6 @@ class ProductThumbnailCheckerTest extends TestCase {
 
 	/**
 	 * Test wp_cli_product_thumbnail_check with vendor filter.
-	 *
-	 * @covers ::wp_cli_product_thumbnail_check
 	 */
 	public function test_wp_cli_product_thumbnail_check_with_vendor_filter() {
 		\WP_CLI::$calls = [];
@@ -126,8 +117,6 @@ class ProductThumbnailCheckerTest extends TestCase {
 
 	/**
 	 * Test wp_cli_product_thumbnail_check with custom result_count.
-	 *
-	 * @covers ::wp_cli_product_thumbnail_check
 	 */
 	public function test_wp_cli_product_thumbnail_check_with_custom_result_count() {
 		\WP_CLI::$calls = [];
@@ -141,8 +130,6 @@ class ProductThumbnailCheckerTest extends TestCase {
 
 	/**
 	 * Test wp_cli_product_thumbnail_check with DESC order.
-	 *
-	 * @covers ::wp_cli_product_thumbnail_check
 	 */
 	public function test_wp_cli_product_thumbnail_check_with_desc_order() {
 		\WP_CLI::$calls = [];
