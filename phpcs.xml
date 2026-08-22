@@ -7,7 +7,7 @@
 	<arg name="colors"/>
 	<arg value="ps"/>
 
-	<!-- What to scan: every PHP file in the repo, including tests/ and .github/ -->
+	<!-- What to scan: every PHP file in the repo, including .github/ -->
 	<file>.</file>
 
 	<!-- Ignore vendor/build artifacts -->
@@ -16,6 +16,15 @@
 	<exclude-pattern>dist/*</exclude-pattern>
 	<exclude-pattern>build/*</exclude-pattern>
 	<exclude-pattern>.claude/*</exclude-pattern>
+
+	<!--
+		tests/ is not linted. It is a different dialect from the plugin code:
+		PSR-4 filenames and PascalCase classes (which WPCS filename sniffs reject
+		and which cannot be renamed without breaking composer.json autoload-dev),
+		and snake_case test methods (which PSR-12 rejects). Neither standard fits,
+		so no standard is applied. See #55.
+	-->
+	<exclude-pattern>tests/*</exclude-pattern>
 
 	<!-- Standards -->
 	<rule ref="WordPress-Core"/>
