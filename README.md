@@ -1,5 +1,4 @@
 # fa-toolkit
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/b84d04af3a6d4e6dab95b303c7a49a00)](https://app.codacy.com/gh/stephenfeather/fa-toolkit?utm_source=github.com&utm_medium=referral&utm_content=stephenfeather/fa-toolkit&utm_campaign=Badge_Grade)
 ![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)
 ![Composer](https://img.shields.io/badge/composer-%23885630.svg?style=for-the-badge&logo=composer&logoColor=white)
 
