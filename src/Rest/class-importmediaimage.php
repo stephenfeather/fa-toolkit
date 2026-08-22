@@ -203,5 +203,3 @@ class ImportMediaImage {
 		}
 	}
 }
-
-new ImportMediaImage();

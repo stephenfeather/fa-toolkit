@@ -212,5 +212,3 @@ class WPAllImportSettings {
 		$wp_filesystem->put_contents( $log_file_name, $existing_data . PHP_EOL, FS_APPEND | LOCK_EX );
 	}
 }
-
-new WpAllImportSettings();

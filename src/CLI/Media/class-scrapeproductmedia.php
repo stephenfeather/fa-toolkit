@@ -25,6 +25,17 @@ use WP_CLI;
 class ScrapeProductMedia {
 
 	/**
+	 * Register the WP-CLI command.
+	 *
+	 * The registration lives here rather than at file scope so that the plugin
+	 * bootstrap is the single place a command comes into existence, matching
+	 * every other CLI command class. See issue #18.
+	 */
+	public function __construct() {
+		WP_CLI::add_command( 'fa:media scrape-product-media', array( $this, 'wp_cli_scrape_product_media' ) );
+	}
+
+	/**
 	 * Distributors and their media types.
 	 *
 	 * @var array
@@ -447,5 +458,3 @@ class ScrapeProductMedia {
 		return get_post_meta( $product_id, 'product_placeholder', true );
 	}
 }
-
-\WP_CLI::add_command( 'fa:media scrape-product-media', array( new ScrapeProductMedia(), 'wp_cli_scrape_product_media' ) );

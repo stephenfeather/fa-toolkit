@@ -112,5 +112,3 @@ class ProductThumbnailChecker {
 		}
 	}
 }
-
-new ProductThumbnailChecker();

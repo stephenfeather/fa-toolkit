@@ -81,5 +81,3 @@ class GTINS {
 		\WP_CLI::success( 'GTIN codes populated successfully.' );
 	}
 }
-
-new GTINS();

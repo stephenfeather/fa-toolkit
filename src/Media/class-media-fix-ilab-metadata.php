@@ -130,5 +130,3 @@ class Media_Fix_Ilab_Metadata {
 		}
 	}
 }
-
-new Media_Fix_Ilab_Metadata();

@@ -14,7 +14,7 @@ use Brain\Monkey\Functions;
  *
  * Background (issue #18): several class files end with a file-scope `new
  * ClassName();`. The plugin bootstrap already instantiates the same classes
- * (fa-toolkit.php:70-125), so the class is constructed twice — once when the
+ * (fa-toolkit.php:70-133), so the class is constructed twice — once when the
  * autoloader includes the file, once when the bootstrap runs. Constructors here
  * register hooks, and WordPress keys object-method callbacks on
  * spl_object_hash(), so two instances mean two surviving registrations.
@@ -42,6 +42,70 @@ trait AssertsNoAutoloadRegistration {
 	 * @return void
 	 */
 	protected function assertAutoloadRegistersNoHooks( $class, $bootstrap_site ) {
+		$registered = $this->captureAutoloadRegistrations( $class );
+
+		$this->assertSame(
+			array(),
+			$registered['hooks'],
+			sprintf(
+				'Loading %s registered hooks by itself. The bootstrap at %s is the single '
+				. 'intended registration point; anything registered here is a second, '
+				. 'duplicate registration. See issue #18.',
+				$class,
+				$bootstrap_site
+			)
+		);
+	}
+
+	/**
+	 * Assert that including the given class registers neither hooks nor WP-CLI commands.
+	 *
+	 * Use this for classes whose constructor calls `\WP_CLI::add_command()`. The
+	 * hooks-only assertion above cannot see those: `add_command` is a static call
+	 * on the WP_CLI class, not a WordPress function Brain Monkey can intercept.
+	 * The test-suite stub at tests/bootstrap.php records every call instead, so
+	 * autoload-time command registration is observable the same way hooks are.
+	 *
+	 * @param string $class          Fully-qualified class name to autoload.
+	 * @param string $bootstrap_site Where the intended single registration lives,
+	 *                               e.g. 'fa-toolkit.php:83'. Used in the failure message.
+	 * @return void
+	 */
+	protected function assertAutoloadRegistersNothing( $class, $bootstrap_site ) {
+		$registered = $this->captureAutoloadRegistrations( $class );
+
+		$this->assertSame(
+			array(),
+			$registered['hooks'],
+			sprintf(
+				'Loading %s registered hooks by itself. The bootstrap at %s is the single '
+				. 'intended registration point; anything registered here is a second, '
+				. 'duplicate registration. See issue #18.',
+				$class,
+				$bootstrap_site
+			)
+		);
+
+		$this->assertSame(
+			array(),
+			$registered['commands'],
+			sprintf(
+				'Loading %s registered WP-CLI command(s) by itself: %s. The bootstrap at %s '
+				. 'is the single intended registration point. See issue #18.',
+				$class,
+				implode( ', ', $registered['commands'] ),
+				$bootstrap_site
+			)
+		);
+	}
+
+	/**
+	 * Trigger the classmap include and record what the file registered on its own.
+	 *
+	 * @param string $class Fully-qualified class name to autoload.
+	 * @return array{hooks: array<int, string>, commands: array<int, string>}
+	 */
+	private function captureAutoloadRegistrations( $class ) {
 		$this->assertFalse(
 			class_exists( $class, false ),
 			sprintf(
@@ -62,19 +126,19 @@ trait AssertsNoAutoloadRegistration {
 		Functions\when( 'add_action' )->alias( $recorder );
 		Functions\when( 'add_filter' )->alias( $recorder );
 
+		\WP_CLI::reset_calls();
+
 		// Trigger the classmap include.
 		class_exists( $class );
 
-		$this->assertSame(
-			array(),
-			$GLOBALS['fa_autoload_registrations'],
-			sprintf(
-				'Loading %s registered hooks by itself. The bootstrap at %s is the single '
-				. 'intended registration point; anything registered here is a second, '
-				. 'duplicate registration. See issue #18.',
-				$class,
-				$bootstrap_site
-			)
+		$commands = array();
+		foreach ( \WP_CLI::get_calls( 'add_command' ) as $call ) {
+			$commands[] = $call['args'][0];
+		}
+
+		return array(
+			'hooks'    => $GLOBALS['fa_autoload_registrations'],
+			'commands' => $commands,
 		);
 	}
 }
