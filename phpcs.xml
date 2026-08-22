@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<ruleset name="FA Toolkit - Strict WPCS">
+	<description>Strict WordPress Coding Standards with pragmatic loader/CLI handling.</description>
+
+	<!-- CLI args -->
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="ps"/>
+
+	<!-- What to scan: every PHP file in the repo, including tests/ and .github/ -->
+	<file>.</file>
+
+	<!-- Ignore vendor/build artifacts -->
+	<exclude-pattern>vendor/*</exclude-pattern>
+	<exclude-pattern>node_modules/*</exclude-pattern>
+	<exclude-pattern>dist/*</exclude-pattern>
+	<exclude-pattern>build/*</exclude-pattern>
+	<exclude-pattern>.claude/*</exclude-pattern>
+
+	<!-- Standards -->
+	<rule ref="WordPress-Core"/>
+	<rule ref="WordPress-Extra"/>
+	<rule ref="WordPress-Docs"/>
+
+	<!-- Enforce: output must be escaped -->
+	<rule ref="WordPress.Security.EscapeOutput"/>
+
+	<!-- Enforce: input must be validated/sanitized, and nonce checks where applicable -->
+	<rule ref="WordPress.Security.ValidatedSanitizedInput"/>
+	<rule ref="WordPress.Security.NonceVerification"/>
+
+	<!-- Allow direct-access guards in leaf files (still strict elsewhere) -->
+	<rule ref="WordPress.PHP.DiscouragedPHPFunctions.exit">
+		<exclude-pattern>*/src/*.php</exclude-pattern>
+	</rule>
+
+	<!-- CLI code may legitimately output raw CLI text; keep strict in web paths -->
+	<rule ref="WordPress.Security.EscapeOutput.OutputNotEscaped">
+		<exclude-pattern>src/CLI/*</exclude-pattern>
+	</rule>
+</ruleset>

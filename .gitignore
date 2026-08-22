@@ -1,0 +1,31 @@
+vendor
+documentation
+doxygen.conf
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
+
+# Claude Code local state (settings, caches, permission logs) - local only
+.claude/
+
+# Editor settings - local only
+.vscode/
+
+# Working plans - local only. Anchored with a leading slash: an unanchored
+# "plans/" matches at ANY depth and would also swallow thoughts/shared/plans/,
+# which is tracked.
+/plans/
+
+# Session handoffs - local only. Note thoughts/ledgers/ and
+# thoughts/shared/plans/ ARE tracked; only handoffs are excluded.
+thoughts/shared/handoffs/
+
+# tldr code-analysis index (regenerated locally)
+.tldr/
+
+# opengrep scan output
+opengrep-output.json
+
+# PHPUnit coverage and cache
+coverage/
+.phpunit.cache/

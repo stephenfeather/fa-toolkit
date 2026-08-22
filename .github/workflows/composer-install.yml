@@ -1,0 +1,280 @@
+name: Composer install check
+
+# Proves this package still installs as a Composer dependency and that its
+# classes land in the CONSUMING project's autoloader.
+#
+# This exists because "composer install exits 0" is not the property that
+# matters. The bug this guards against installed perfectly well and then
+# fataled at runtime, because the plugin required its own vendor/autoload.php
+# which a Composer install never creates. A check asserting only a zero exit
+# code would have PASSED on that broken version. The assertions in verify.php
+# are the ones that actually distinguish working from broken.
+#
+# SCOPE, stated plainly: this covers INSTALLABILITY and CLASSMAP CORRECTNESS.
+# It does NOT prove the classes load. That cannot be asserted without
+# WordPress, and cannot be a class_exists() probe at all while 13 of the
+# package's source files instantiate themselves at file scope - loading such a
+# class registers hooks, so the probe would itself be a side effect. See the
+# note above check 4 in verify.php.
+#
+# The package is installed through a VCS repository, not a path repository,
+# because a VCS entry is how the real consumer will take this dependency. A
+# path repo also mirrors a directory verbatim, so pointing one at a working
+# checkout ships any vendor/ present there and silently exercises the
+# standalone autoload path instead of the Composer one.
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+jobs:
+  install-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      # fetch-depth: 0 because Composer's VCS driver needs real git history and
+      # refs, not the single squashed commit checkout provides by default.
+      - name: Check out the package
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # On a pull_request, checkout leaves a detached HEAD at the merge commit,
+      # which Composer's VCS driver cannot resolve to a version. Give it a real
+      # branch to install. The name is fixed so the constraint below is stable.
+      - name: Give Composer a resolvable branch
+        run: git checkout -B ci-install-check
+
+      # Pinned deliberately. config.platform.php governs RESOLUTION only; the
+      # runner's real PHP is what EXECUTES composer and verify.php. Pinning to
+      # 8.3 keeps the two in agreement and matches production exactly
+      # (php:8.3-fpm-alpine), so a failure lands somewhere legible rather than
+      # in a confusing place at runtime.
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate package metadata
+        run: composer validate --strict
+
+      - name: Assemble the throwaway consumer
+        env:
+          CONSUMER: ${{ runner.temp }}/install-check
+        run: |
+          mkdir -p "$CONSUMER"
+          jq --arg url "$GITHUB_WORKSPACE" \
+             'del(._comment)
+              | .repositories[0].url = $url
+              | .require["featherarms/fa-toolkit"] = "dev-ci-install-check"' \
+             .github/composer-install-check/consumer.json > "$CONSUMER/composer.json"
+          cp .github/composer-install-check/verify.php "$CONSUMER/verify.php"
+          cat "$CONSUMER/composer.json"
+
+      - name: Install the package into the consumer
+        working-directory: ${{ runner.temp }}/install-check
+        run: composer install --no-interaction --no-progress
+
+      - name: Verify the install
+        working-directory: ${{ runner.temp }}/install-check
+        run: php verify.php
+
+  # The job above installs from a VCS repository pointed at the local checkout,
+  # which lets it test the PR's MERGE RESULT - but a local path exposes no dist
+  # URL, so Composer always installs from source there. The real consumer takes
+  # this dependency from the remote with preferred-install: dist, which is a
+  # different code path: Composer attempts a dist download and stages it through
+  # vendor/<vendor>/<name> before composer/installers relocates it.
+  #
+  # A positive control that only exercises the source route is not
+  # representative of how this package is actually consumed, and would not
+  # notice a regression specific to dist installs. This job covers that route.
+  #
+  # Its tradeoff is the mirror image: it installs the pushed HEAD BRANCH rather
+  # than the merge result, because that is what exists on the remote. Neither
+  # job is sufficient alone; together they cover both the merge result and the
+  # real install route.
+  remote-dist-install:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the package
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Assemble a consumer that installs from the remote
+        env:
+          TEMPLATE: ${{ runner.temp }}/remote-template
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          REF_NAME: ${{ github.head_ref || github.ref_name }}
+        run: |
+          mkdir -p "$TEMPLATE"
+          jq --arg url "$REPO_URL" --arg ref "dev-${REF_NAME}" \
+             'del(._comment)
+              | .repositories[0].url = $url
+              | .require["featherarms/fa-toolkit"] = $ref' \
+             .github/composer-install-check/consumer.json > "$TEMPLATE/composer.json"
+          cp .github/composer-install-check/verify.php "$TEMPLATE/verify.php"
+
+      # Reads the route from Composer's own words rather than inferring it from
+      # the filesystem - an earlier version guessed from the presence of the
+      # dist staging directory and guessed wrong.
+      #
+      # A fallback to source is NOT a package failure. Composer falls back when
+      # a dist download fails, which a transient 401 or a rate limit will cause,
+      # so failing the build on it would make this job red for reasons that have
+      # nothing to do with the package - the exact conditionality this check
+      # exists to stamp out. It is retried once in case it was transient, and
+      # thereafter warns rather than fails, because the route assertion is about
+      # COVERAGE, not correctness: verify.php below still runs and must pass
+      # either way, so a fallback means "we learned less than usual this run",
+      # not "the package is broken".
+      #
+      # Each attempt installs into its own directory, so the retry starts clean
+      # without deleting anything.
+      - name: Install from the remote, preferring dist (retried once on fallback)
+        env:
+          TEMPLATE: ${{ runner.temp }}/remote-template
+          COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ github.token }}"}}'
+        run: |
+          # pipefail matters because composer's output is piped to tee: without
+          # it the pipeline reports tee's exit status, so a genuine install
+          # failure (bad constraint, no network) would be swallowed here and
+          # surface two steps later as "could not determine the install route".
+          # The job ended up red either way, but pointing at route detection
+          # instead of at the composer error it was actually caused by.
+          set -u -o pipefail
+          attempt() {
+            dir="$1"
+            mkdir -p "$dir"
+            cp "$TEMPLATE/composer.json" "$TEMPLATE/verify.php" "$dir/"
+            ( cd "$dir" && composer install --no-interaction --no-progress --prefer-dist 2>&1 | tee install.log )
+          }
+          # Matches evidence the route COMPLETED, never that it started.
+          #
+          # "Downloading <pkg>" is deliberately NOT used here. Composer prints it
+          # when it BEGINS a dist attempt, before the outcome is known, so a
+          # FAILED dist emits "Downloading ...", then "Failed to download ...",
+          # then "Cloning ... from cache". Matching "Downloading" therefore
+          # reports "dist route exercised" on a run that actually cloned from
+          # source - the gate fails OPEN, passing while covering nothing extra.
+          # That is worse than a false red, because a red build gets
+          # investigated and a green one does not.
+          #
+          # What each outcome actually prints, measured rather than assumed:
+          #   dist completed : Installing <pkg> (<ver>): Extracting archive
+          #   fell back      : Installing <pkg> (<ver>): Cloning <sha> from cache
+          #
+          # Both patterns are scoped to OUR package: a bare "Cloning" also
+          # matches composer/installers being cloned, which would misreport the
+          # route on a run where only that dependency fell back.
+          route_of() {
+            if grep -qE "Installing featherarms/fa-toolkit .*Extracting archive" "$1/install.log"; then
+              echo dist
+            elif grep -qE "Installing featherarms/fa-toolkit .*Cloning" "$1/install.log"; then
+              echo source
+            else
+              echo unknown
+            fi
+          }
+
+          dir="${RUNNER_TEMP}/remote-install-1"
+          attempt "$dir"
+          route=$(route_of "$dir")
+
+          if [ "$route" = source ]; then
+            echo "dist download fell back to a source clone; retrying once in case it was transient"
+            dir="${RUNNER_TEMP}/remote-install-2"
+            attempt "$dir"
+            route=$(route_of "$dir")
+          fi
+
+          echo "INSTALL_DIR=$dir" >> "$GITHUB_ENV"
+          echo "INSTALL_ROUTE=$route" >> "$GITHUB_ENV"
+
+      - name: Report the install route
+        run: |
+          case "$INSTALL_ROUTE" in
+            dist)
+              echo "dist route exercised - this run covered the route the real consumer uses"
+              ;;
+            source)
+              echo "::warning::REDUCED COVERAGE this run: Composer could not complete a dist download (typically a transient 401 or rate limit) and fell back to a source clone, twice. The install below is still fully verified, but this run did NOT exercise the dist route the real consumer uses, so it duplicated the install-check job. This is not a package failure and does not need fixing - if it happens on every run, the dist route is genuinely broken and that IS worth investigating."
+              ;;
+            *)
+              echo "::error::could not determine the install route from composer output - the check can no longer tell which path it exercised, so its coverage claim is unverifiable"
+              exit 1
+              ;;
+          esac
+
+      # Runs against whichever attempt was used. verify.php takes the consumer
+      # root as argv[1] precisely so it can be pointed at a directory it was not
+      # copied beside.
+      - name: Verify the install
+        run: php "$INSTALL_DIR/verify.php" "$INSTALL_DIR"
+
+  # A check nobody has seen fail is a check nobody knows works. This job runs
+  # the SAME assertions against a deliberately broken consumer - installer-paths
+  # removed, so composer/installers falls back to its default wp-content/plugins
+  # and the package lands somewhere the consumer does not expect - and requires
+  # them to FAIL. If this job ever passes, verify.php has stopped discriminating
+  # and the job above is worthless regardless of what it reports.
+  #
+  # This is not hypothetical: two separate defects were found this way, one of
+  # which passed vacuously on a broken install, in code that had already run
+  # green against a correct one.
+  negative-control:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the package
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Give Composer a resolvable branch
+        run: git checkout -B ci-install-check
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      # Derived from the same consumer.json by deleting installer-paths, so the
+      # two fixtures cannot drift apart.
+      - name: Assemble a deliberately broken consumer
+        env:
+          CONSUMER: ${{ runner.temp }}/negative-control
+        run: |
+          mkdir -p "$CONSUMER"
+          jq --arg url "$GITHUB_WORKSPACE" \
+             'del(._comment)
+              | del(.extra["installer-paths"])
+              | .repositories[0].url = $url
+              | .require["featherarms/fa-toolkit"] = "dev-ci-install-check"' \
+             .github/composer-install-check/consumer.json > "$CONSUMER/composer.json"
+          cp .github/composer-install-check/verify.php "$CONSUMER/verify.php"
+
+      - name: Install into the broken consumer
+        working-directory: ${{ runner.temp }}/negative-control
+        run: composer install --no-interaction --no-progress
+
+      - name: Require the checks to FAIL
+        working-directory: ${{ runner.temp }}/negative-control
+        run: |
+          if php verify.php; then
+            echo "::error::verify.php PASSED against a broken install - it is no longer discriminating"
+            exit 1
+          fi
+          echo "negative control behaved correctly: the checks failed as required"

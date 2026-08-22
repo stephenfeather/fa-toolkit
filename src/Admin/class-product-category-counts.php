@@ -1,0 +1,259 @@
+<?php
+/**
+ * Creates an admin menu item that lists product categories and the number of products in each category.
+ *
+ * @package FA-Toolkit
+ * @since 1.0.3
+ */
+
+namespace FAToolkit\Admin;
+
+if ( defined( 'ABSPATH' ) === false ) {
+	die( 'Security (fhi4d6): File addressed directly.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.die
+}
+
+/**
+ * Product Category Counts
+ */
+class Product_Category_Counts {
+
+	/**
+	 * Constructor.
+	 */
+	public function __construct() {
+		add_action( 'admin_menu', array( $this, 'add_product_category_counts_menu' ) );
+	}
+
+	/**
+	 * Adds the product category counts menu item.
+	 */
+	public function add_product_category_counts_menu() {
+		add_submenu_page(
+			'edit.php?post_type=product',
+			'Product Category Counts',
+			'Product Category Counts',
+			'manage_options',
+			'product-category-counts',
+			array( $this, 'product_category_counts_page' )
+		);
+	}
+
+	/**
+	 * Displays the product category counts page.
+	 */
+	public function product_category_counts_page() {
+
+		$nonce_action = 'product_category_counts_sort_action';
+		$nonce_name   = 'product_category_counts_sort_nonce';
+		$categories   = get_terms( 'product_cat' );
+
+		// If we have a nonce, verify it.
+		if ( isset( $_REQUEST[ $nonce_name ] ) && false !== wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST[ $nonce_name ] ) ), $nonce_action ) ) {
+			// If we have a nonce, sort the categories.
+			// Sanitize inputs first, then validate.
+			$sort_by_raw    = isset( $_REQUEST['sort_by'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['sort_by'] ) ) : '';
+			$sort_order_raw = isset( $_REQUEST['sort_order'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['sort_order'] ) ) : '';
+
+			// Validate the sanitized values.
+			$sort_by    = in_array( $sort_by_raw, array( 'name', 'count' ), true ) ? $sort_by_raw : 'name';
+			$sort_order = in_array( $sort_order_raw, array( 'asc', 'desc' ), true ) ? $sort_order_raw : 'desc';
+
+			// Sort the categories array.
+			if ( 'name' === $sort_by ) {
+				usort(
+					$categories,
+					function ( $a, $b ) use ( $sort_order ) {
+						return 'asc' === $sort_order ? strcasecmp( $a->name, $b->name ) : strcasecmp( $b->name, $a->name );
+					}
+				);
+			} else {
+				usort(
+					$categories,
+					function ( $a, $b ) use ( $sort_order ) {
+						return 'asc' === $sort_order ? $a->count - $b->count : $b->count - $a->count;
+					}
+				);
+			}
+		} else {
+			// If we don't have a nonce, set the default sort order.
+			$sort_by    = 'name';
+			$sort_order = 'asc';
+		}
+
+		// Get total categories and published product counts.
+		$total_categories         = count( $categories );
+		$total_published_products = wp_count_posts( 'product' )->publish;
+		$total_draft_products     = wp_count_posts( 'product' )->draft;
+
+		// Output our css styles.
+		$this->create_css_styles();
+
+		// Outout our pretable content.
+		printf( '<div class="wrap">' );
+		printf( '<h1>%s</h1>', esc_html( 'Product Category Counts' ) );
+		printf( '<p>Total Categories: %s </p>', esc_html( $total_categories ) );
+		printf( '<p>Total Published Products: %s </p>', esc_html( $total_published_products ) );
+		printf( '<p>Total Draft Products: %s </p>', esc_html( $total_draft_products ) );
+
+		// Output our refresh counts form.
+		$this->create_refresh_counts_form();
+
+		// Output our table.
+		printf( '<table class="wp-list-table widefat striped">' );
+		$this->create_table_headers( $sort_by, $sort_order, $nonce_action, $nonce_name );
+		printf( '<tbody>' );
+		foreach ( $categories as $category ) {
+			$lineage_names  = $this->get_category_lineage( $category->term_id );
+			$lineage_string = $this->build_lineage_string( $lineage_names );
+			printf( '<tr>' );
+			printf( '<td>%s</td>', wp_kses_post( $lineage_string ) );
+			printf( '<td>%s</td>', esc_html( $category->count ) );
+			printf( '</tr>' );
+		}
+		printf( '</tbody>' );
+		printf( '</table>' );
+		printf( '</div>' );
+	}
+
+	/**
+	 * Retrieves the lineage (ancestors) of a category.
+	 *
+	 * @param int $category_id The ID of the category.
+	 * @return array An array of lineage names.
+	 */
+	public function get_category_lineage( $category_id ) {
+		$lineage_names = array();
+		$ancestors     = get_ancestors( $category_id, 'product_cat' );
+		foreach ( $ancestors as $ancestor_id ) {
+			$ancestor = get_term( $ancestor_id, 'product_cat' );
+			array_unshift( $lineage_names, $ancestor->name );
+		}
+
+		// Add the category name at the end.
+		$category        = get_term( $category_id, 'product_cat' );
+		$lineage_names[] = $category->name;
+
+		return $lineage_names;
+	}
+
+	/**
+	 * Builds the lineage string and assigns CSS class for each parent category.
+	 *
+	 * @param array $lineage_names The array of lineage names.
+	 * @return string The lineage string with individual CSS classes for each level.
+	 */
+	public function build_lineage_string( $lineage_names ) {
+		$lineage_string  = '';
+		$lineage_classes = '';
+		foreach ( $lineage_names as $index => $name ) {
+			$level            = $index + 1;
+			$cat              = ( count( $lineage_names ) - 1 === $index ) ? 'fa-pc-category ' : '';
+			$top              = ( 1 === count( $lineage_names ) ) ? 'fa-pc-top ' : '';
+			$lineage_string  .= '<span class="fa-pc-catLevel-' . $level . ' ' . $top . $cat . '">' . esc_html( $name ) . '</span>';
+			$lineage_classes .= ' fa-pc-catLevel-' . $level;
+			if ( $index < count( $lineage_names ) - 1 ) {
+				$lineage_string .= ' > ';
+			}
+		}
+
+		return $lineage_string;
+	}
+
+	/**
+	 * Sorts an array of categories based on the specified sort criteria.
+	 *
+	 * @param array  $categories The array of category objects to be sorted. (Passed by reference).
+	 * @param string $sort_by The field to sort the categories by. Possible values: 'name' or 'count'.
+	 * @param string $sort_order The sort order. Possible values: 'asc' for ascending or 'desc' for descending.
+	 * @return void
+	 */
+	public function sort_categories( &$categories, $sort_by, $sort_order ) {
+		if ( 'name' === $sort_by ) {
+			usort(
+				$categories,
+				function ( $a, $b ) use ( $sort_order ) {
+					return 'asc' === $sort_order ? strcasecmp( $a->name, $b->name ) : strcasecmp( $b->name, $a->name );
+				}
+			);
+		} else {
+			usort(
+				$categories,
+				function ( $a, $b ) use ( $sort_order ) {
+					return 'asc' === $sort_order ? $a->count - $b->count : $b->count - $a->count;
+				}
+			);
+		}
+	}
+
+	/**
+	 * Create our CSS styles.
+	 *
+	 * @return void
+	 */
+	public function create_css_styles() {
+		printf( '<style>' );
+		printf( '%s', '.fa-pc-top { color: #000000; font-weight: bold; }' );
+		printf( '%s', '.parent-category { color: #000000; }' );
+		printf( '</style>' );
+	}
+
+	/**
+	 * Create our counts refresh form.
+	 *
+	 * @return void
+	 */
+	public function create_refresh_counts_form() {
+		printf( '<form method="post" action="%s">', esc_url( admin_url( 'admin-post.php' ) ) );
+		printf( '<input type="hidden" name="action" value="force_recount_product_cat">' );
+		wp_nonce_field( 'force_recount_product_cat', 'force_recount_product_cat_nonce' );
+		printf( '<p>' );
+		printf( '</p>' );
+		printf( '<button type="submit">%s</button>', esc_html( 'Force Recount' ) );
+		printf( '</form>' );
+	}
+
+	/**
+	 * Create our table headers.
+	 *
+	 * @param string $sort_by The field to sort the categories by. Possible values: 'name' or 'count'.
+	 * @param string $sort_order The sort order. Possible values: 'asc' for ascending or 'desc' for descending.
+	 * @param string $nonce_action The nonce action.
+	 * @param string $nonce_name The nonce name.
+	 * @return void
+	 */
+	public function create_table_headers( $sort_by, $sort_order, $nonce_action, $nonce_name ) {
+		$sort_by_name_url  = wp_nonce_url(
+			add_query_arg(
+				array(
+					'sort_by'    => 'name',
+					'sort_order' => 'name' === $sort_by && 'asc' === $sort_order ? 'desc' : 'asc',
+				)
+			),
+			$nonce_action,
+			$nonce_name
+		);
+		$sort_order_name   = ( 'name' === $sort_by ? '<span class="dashicons dashicons-arrow-' . ( 'asc' === $sort_order ? 'down' : 'up' ) . '"></span>' : '' );
+		$sort_by_count_url = wp_nonce_url(
+			add_query_arg(
+				array(
+					'sort_by'    => 'count',
+					'sort_order' => 'count' === $sort_by && 'asc' === $sort_order ? 'desc' : 'asc',
+				)
+			),
+			$nonce_action,
+			$nonce_name
+		);
+		printf( '<thead>' );
+		printf( '<tr>' );
+		printf( '<th><a href="%s">Category Name %s</a></th>', esc_url( $sort_by_name_url ), wp_kses_post( $sort_order_name ) );
+
+		printf(
+			'<th><a href="%s">Number of Products %s</a></th>',
+			esc_url( $sort_by_count_url ),
+			wp_kses_post( ( 'count' === $sort_by ? '<span class="dashicons dashicons-arrow-' . ( 'asc' === $sort_order ? 'down' : 'up' ) . '"></span>' : '' ) )
+		);
+
+		printf( '</tr>' );
+		printf( '</thead>' );
+	}
+}

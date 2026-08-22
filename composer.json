@@ -1,0 +1,51 @@
+{
+    "name": "featherarms/fa-toolkit",
+    "description": "Collection of WordPress management tools used by Feather Arms.",
+    "type": "wordpress-plugin",
+    "license": "GPL-3.0-or-later",
+    "require": {
+        "php": "^8.3",
+        "composer/installers": "^2.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "autoload": {
+        "classmap": [
+            "src/"
+        ],
+        "psr-4": {
+            "FAToolkit\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "FAToolkit\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Stephen Feather",
+            "email": "sfeather@gmail.com"
+        }
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "^11",
+        "brain/monkey": "^2.6",
+        "mockery/mockery": "^1.6",
+        "squizlabs/php_codesniffer": "3.13.6",
+        "wp-coding-standards/wpcs": "3.4.1",
+        "dealerdirect/phpcodesniffer-composer-installer": "v1.2.1"
+    },
+    "scripts": {
+        "lint": "phpcs",
+        "lint:fix": "phpcbf",
+        "test": "phpunit",
+        "test:coverage": "phpunit --coverage-text",
+        "test:coverage-html": "phpunit --coverage-html coverage",
+        "test:coverage-clover": "phpunit --coverage-clover coverage/clover.xml"
+    }
+}

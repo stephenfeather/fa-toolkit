@@ -1,0 +1,75 @@
+name: Tests
+
+# Runs the PHPUnit suite on every pull request and on pushes to the long-lived
+# branches.
+#
+# WHY THIS EXISTS. Until this workflow landed, nothing in CI ran phpunit. The
+# suite had drifted to 15 errors and 3 risky tests without anyone noticing,
+# because no pull request had ever reported a test result. That is the failure
+# mode this guards against: not "tests fail", which is loud, but "nobody knows
+# whether tests pass", which is silent and gets worse for free.
+#
+# SCOPE. This runs the unit suite only. Three modules - Admin, Rest, CLI - sit
+# at 0% coverage and cannot be loaded under the current Brain Monkey approach at
+# all, because their classes auto-instantiate at file scope. A green run here
+# therefore does NOT mean the plugin works; it means the parts that are testable
+# today still behave. Widening that is tracked separately.
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+# A second push to the same PR makes the first run's answer irrelevant. Cancel
+# it rather than paying for a result nobody will read. Not applied to
+# develop/main pushes - each of those commits is a distinct thing to know about,
+# and cancelling one would leave a permanent gap in the record.
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  phpunit:
+    name: PHPUnit (PHP 8.3)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the package
+        uses: actions/checkout@v4
+
+      # Pinned to 8.3 to match production (php:8.3-fpm-alpine) exactly, for the
+      # same reason composer-install.yml pins it: a failure should land where it
+      # can be read, not in a version nothing actually deploys on.
+      #
+      # NOTE this leaves something unverified. composer.json declares
+      # "php": "^8.3", which claims 8.4 and 8.5 support that nothing here
+      # exercises. That is a deliberate v1 scope choice, not an oversight - a
+      # version matrix is the obvious next step, and is worth adding the moment
+      # anyone actually runs this on something other than 8.3.
+      #
+      # setup-php is pinned to a commit SHA rather than a tag: SonarCloud
+      # githubactions:S7637. actions/checkout stays on its tag - Sonar does not
+      # flag first-party actions.
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      # --prefer-dist because this installs the package's OWN dev dependencies
+      # from Packagist; none of the fa-toolkit distribution concerns that shape
+      # composer-install.yml apply here.
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # phpunit.xml sets failOnRisky and failOnWarning, so this step is stricter
+      # than "no failures": a test that leaves an output buffer open, or that
+      # asserts nothing, fails the build too. That is deliberate and predates
+      # this workflow - three risky tests had to be fixed before this job could
+      # go green, and keeping the setting means they cannot silently come back.
+      - name: Run the test suite
+        run: vendor/bin/phpunit --no-coverage
