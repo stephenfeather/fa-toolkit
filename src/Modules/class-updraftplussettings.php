@@ -36,5 +36,3 @@ class UpdraftPlusSettings {
 		return ( in_array( basename( $dir ), $excluded_directories, true ) ) ? true : $filter;
 	}
 }
-
-new UpdraftPlusSettings();

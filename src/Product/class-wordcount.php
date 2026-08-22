@@ -78,6 +78,3 @@ class WordCount {
 		\WP_CLI::success( 'Word count updated successfully.' );
 	}
 }
-
-// Instantiate the class.
-new WordCount();

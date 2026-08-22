@@ -59,5 +59,3 @@ class Bard_Meta_Box {
 		<?php
 	}
 }
-
-new Bard_Meta_Box();

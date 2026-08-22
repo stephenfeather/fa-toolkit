@@ -94,5 +94,3 @@ class FixRankMathSchemas {
 		return false !== $result;
 	}
 }
-
-new FixRankMathSchemas();

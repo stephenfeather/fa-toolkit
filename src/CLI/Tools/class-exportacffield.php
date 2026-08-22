@@ -110,5 +110,3 @@ class ExportACFField {
 		fclose( $output );
 	}
 }
-
-new ExportACFField();

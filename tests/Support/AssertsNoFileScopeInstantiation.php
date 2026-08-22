@@ -12,7 +12,7 @@ namespace FAToolkit\Tests\Support;
  *
  * Background (issue #18): several class files end with a file-scope `new
  * ClassName();`. Because the plugin bootstrap also instantiates the same class
- * (fa-toolkit.php:70-125), the class ends up constructed twice — once when the
+ * (fa-toolkit.php:70-133), the class ends up constructed twice — once when the
  * autoloader includes the file, once when the bootstrap runs. Constructors in
  * this plugin register hooks, and WordPress keys hook callbacks on
  * spl_object_hash() for object-method callbacks, so two instances mean two
