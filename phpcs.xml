@@ -47,4 +47,41 @@
 	<rule ref="WordPress.Security.EscapeOutput.OutputNotEscaped">
 		<exclude-pattern>src/CLI/*</exclude-pattern>
 	</rule>
+
+	<!--
+		.github/composer-install-check/ stays IN scope per #56. Only these three
+		WordPress-specific sniffs are switched off for it, and only for it.
+
+		verify.php is a standalone CI script. It runs under plain `php`, loads no
+		WordPress, and exits before anything WordPress-shaped exists. These three
+		sniffs are not "violations we are choosing to tolerate" — they are category
+		errors, each asking the script to use an API that is definitionally absent:
+
+		- EscapeOutput          wants esc_html() on a printf to a terminal. There is
+		                        no HTML, no browser, and no WordPress to escape with.
+		- AlternativeFunctions  wants WP_Filesystem instead of fwrite(). WP_Filesystem
+		                        ships with WordPress, which is not loaded.
+		- GlobalVariablesOverride wants $argv left alone as a WordPress global. $argv
+		                        is PHP's CLI argument array, not a WordPress global.
+
+		Scoped at sniff level rather than at the individual error codes that happen to
+		fire today (OutputNotEscaped, file_system_operations_fwrite, Prohibited). The
+		ruling is about the sniffs being inapplicable to this file, not about five
+		specific lines — pinning to today's error codes would let the next fopen() or
+		printf() in the same script re-raise the same category error.
+
+		Everything else stays on. The script is still held to Yoda conditions, naming
+		conventions, commenting and the rest, and those violations are still reported.
+	-->
+	<rule ref="WordPress.Security.EscapeOutput">
+		<exclude-pattern>.github/composer-install-check/*</exclude-pattern>
+	</rule>
+
+	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>.github/composer-install-check/*</exclude-pattern>
+	</rule>
+
+	<rule ref="WordPress.WP.GlobalVariablesOverride">
+		<exclude-pattern>.github/composer-install-check/*</exclude-pattern>
+	</rule>
 </ruleset>
