@@ -11,12 +11,14 @@ use FAToolkit\Tests\TestCase;
 use FAToolkit\Media\Media_Fix_Ilab_Metadata;
 use Brain\Monkey\Functions;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversMethod;
 
 /**
  * Test Media_Fix_Ilab_Metadata functionality.
- *
- * @coversDefaultClass \FAToolkit\Media\Media_Fix_Ilab_Metadata
  */
+#[CoversMethod( Media_Fix_Ilab_Metadata::class, '__construct' )]
+#[CoversMethod( Media_Fix_Ilab_Metadata::class, 'fix_media_metadata' )]
+#[CoversMethod( Media_Fix_Ilab_Metadata::class, 'fix_all_media_metadata' )]
 class Media_Fix_Ilab_MetadataTest extends TestCase {
 
 	/**
@@ -36,8 +38,6 @@ class Media_Fix_Ilab_MetadataTest extends TestCase {
 
 	/**
 	 * Test constructor registers WP-CLI commands.
-	 *
-	 * @covers ::__construct
 	 */
 	public function test_constructor_registers_commands() {
 		\WP_CLI::$calls = [];
@@ -53,8 +53,6 @@ class Media_Fix_Ilab_MetadataTest extends TestCase {
 
 	/**
 	 * Test fix_media_metadata errors on invalid post ID.
-	 *
-	 * @covers ::fix_media_metadata
 	 */
 	public function test_fix_media_metadata_invalid_post_id() {
 		\WP_CLI::$calls = [];
@@ -67,8 +65,6 @@ class Media_Fix_Ilab_MetadataTest extends TestCase {
 
 	/**
 	 * Test fix_media_metadata errors when post doesn't exist.
-	 *
-	 * @covers ::fix_media_metadata
 	 */
 	public function test_fix_media_metadata_post_not_exists() {
 		\WP_CLI::$calls = [];
@@ -86,8 +82,6 @@ class Media_Fix_Ilab_MetadataTest extends TestCase {
 
 	/**
 	 * Test fix_media_metadata success.
-	 *
-	 * @covers ::fix_media_metadata
 	 */
 	public function test_fix_media_metadata_success() {
 		\WP_CLI::$calls = [];
@@ -116,8 +110,6 @@ class Media_Fix_Ilab_MetadataTest extends TestCase {
 
 	/**
 	 * Test fix_media_metadata handles exceptions.
-	 *
-	 * @covers ::fix_media_metadata
 	 */
 	public function test_fix_media_metadata_handles_exception() {
 		\WP_CLI::$calls = [];
@@ -142,8 +134,6 @@ class Media_Fix_Ilab_MetadataTest extends TestCase {
 
 	/**
 	 * Test fix_all_media_metadata processes attachments.
-	 *
-	 * @covers ::fix_all_media_metadata
 	 */
 	public function test_fix_all_media_metadata_processes_attachments() {
 		\WP_CLI::$calls = [];
@@ -189,8 +179,6 @@ class Media_Fix_Ilab_MetadataTest extends TestCase {
 
 	/**
 	 * Test fix_all_media_metadata handles failures.
-	 *
-	 * @covers ::fix_all_media_metadata
 	 */
 	public function test_fix_all_media_metadata_handles_failures() {
 		\WP_CLI::$calls = [];

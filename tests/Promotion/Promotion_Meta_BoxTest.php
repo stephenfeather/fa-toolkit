@@ -8,14 +8,15 @@
 namespace FAToolkit\Tests\Promotion;
 
 use Brain\Monkey\Functions;
+use FAToolkit\Promotion\Promotion_Meta_Box;
 use FAToolkit\Tests\TestCase;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test Promotion_Meta_Box class.
- *
- * @covers \FAToolkit\Promotion\Promotion_Meta_Box
  */
+#[CoversClass( Promotion_Meta_Box::class )]
 class Promotion_Meta_BoxTest extends TestCase {
 
 	/**

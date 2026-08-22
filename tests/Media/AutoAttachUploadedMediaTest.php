@@ -12,14 +12,21 @@ use FAToolkit\Tests\Support\AssertsNoFileScopeInstantiation;
 use FAToolkit\Media\AutoAttachUploadedMedia;
 use Brain\Monkey\Functions;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversMethod;
 use ReflectionClass;
 use ReflectionMethod;
 
 /**
  * Test AutoAttachUploadedMedia functionality.
- *
- * @coversDefaultClass \FAToolkit\Media\AutoAttachUploadedMedia
  */
+#[CoversMethod( AutoAttachUploadedMedia::class, '__construct' )]
+#[CoversMethod( AutoAttachUploadedMedia::class, 'parse_filename' )]
+#[CoversMethod( AutoAttachUploadedMedia::class, 'find_product_by_hash' )]
+#[CoversMethod( AutoAttachUploadedMedia::class, 'determine_image_type' )]
+#[CoversMethod( AutoAttachUploadedMedia::class, 'set_as_featured_image' )]
+#[CoversMethod( AutoAttachUploadedMedia::class, 'append_to_gallery' )]
+#[CoversMethod( AutoAttachUploadedMedia::class, 'calculate_and_store_hash' )]
+#[CoversMethod( AutoAttachUploadedMedia::class, 'process_uploaded_attachment' )]
 class AutoAttachUploadedMediaTest extends TestCase {
 
 	use AssertsNoFileScopeInstantiation;
@@ -76,7 +83,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 	 *
 	 * Issue #18, row 1.
 	 *
-	 * @covers ::determine_image_type
 	 * @return void
 	 */
 	public function test_second_run_reroutes_featured_image_into_the_gallery() {
@@ -113,8 +119,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test constructor registers action hook.
-	 *
-	 * @covers ::__construct
 	 */
 	public function test_constructor_registers_hook() {
 		// Constructor is already tested via global mocks in bootstrap.
@@ -125,8 +129,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test parse_filename with valid pattern.
-	 *
-	 * @covers ::parse_filename
 	 */
 	public function test_parse_filename_valid() {
 		$method = $this->get_private_method( 'parse_filename' );
@@ -144,8 +146,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test parse_filename with invalid pattern.
-	 *
-	 * @covers ::parse_filename
 	 */
 	public function test_parse_filename_invalid() {
 		$method = $this->get_private_method( 'parse_filename' );
@@ -165,8 +165,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test find_product_by_hash when product exists.
-	 *
-	 * @covers ::find_product_by_hash
 	 */
 	public function test_find_product_by_hash_found() {
 		$method = $this->get_private_method( 'find_product_by_hash' );
@@ -189,8 +187,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test find_product_by_hash when product not found.
-	 *
-	 * @covers ::find_product_by_hash
 	 */
 	public function test_find_product_by_hash_not_found() {
 		$method = $this->get_private_method( 'find_product_by_hash' );
@@ -205,8 +201,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test determine_image_type returns featured for number 0 without thumbnail.
-	 *
-	 * @covers ::determine_image_type
 	 */
 	public function test_determine_image_type_featured() {
 		$method = $this->get_private_method( 'determine_image_type' );
@@ -222,8 +216,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test determine_image_type returns gallery when product already has thumbnail.
-	 *
-	 * @covers ::determine_image_type
 	 */
 	public function test_determine_image_type_gallery_has_thumbnail() {
 		$method = $this->get_private_method( 'determine_image_type' );
@@ -239,8 +231,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test determine_image_type returns gallery for non-zero number.
-	 *
-	 * @covers ::determine_image_type
 	 */
 	public function test_determine_image_type_gallery_non_zero() {
 		$method = $this->get_private_method( 'determine_image_type' );
@@ -252,8 +242,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test set_as_featured_image success.
-	 *
-	 * @covers ::set_as_featured_image
 	 */
 	public function test_set_as_featured_image_success() {
 		$method = $this->get_private_method( 'set_as_featured_image' );
@@ -269,8 +257,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test append_to_gallery success.
-	 *
-	 * @covers ::append_to_gallery
 	 */
 	public function test_append_to_gallery_success() {
 		$method = $this->get_private_method( 'append_to_gallery' );
@@ -296,8 +282,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test append_to_gallery prevents duplicates.
-	 *
-	 * @covers ::append_to_gallery
 	 */
 	public function test_append_to_gallery_prevents_duplicates() {
 		$method = $this->get_private_method( 'append_to_gallery' );
@@ -319,8 +303,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test append_to_gallery returns false when product not found.
-	 *
-	 * @covers ::append_to_gallery
 	 */
 	public function test_append_to_gallery_product_not_found() {
 		$method = $this->get_private_method( 'append_to_gallery' );
@@ -336,8 +318,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test calculate_and_store_hash success.
-	 *
-	 * @covers ::calculate_and_store_hash
 	 */
 	public function test_calculate_and_store_hash_success() {
 		$method = $this->get_private_method( 'calculate_and_store_hash' );
@@ -368,8 +348,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test calculate_and_store_hash returns false when file not found.
-	 *
-	 * @covers ::calculate_and_store_hash
 	 */
 	public function test_calculate_and_store_hash_file_not_found() {
 		$method = $this->get_private_method( 'calculate_and_store_hash' );
@@ -385,8 +363,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test process_uploaded_attachment returns early for non-image.
-	 *
-	 * @covers ::process_uploaded_attachment
 	 */
 	public function test_process_uploaded_attachment_non_image() {
 		Functions\expect( 'get_post_mime_type' )
@@ -401,8 +377,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test process_uploaded_attachment returns early for invalid filename pattern.
-	 *
-	 * @covers ::process_uploaded_attachment
 	 */
 	public function test_process_uploaded_attachment_invalid_filename() {
 		Functions\expect( 'get_post_mime_type' )
@@ -422,8 +396,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 
 	/**
 	 * Test process_uploaded_attachment full workflow for featured image.
-	 *
-	 * @covers ::process_uploaded_attachment
 	 */
 	public function test_process_uploaded_attachment_featured_image_workflow() {
 		// Mock attachment is image.
@@ -500,7 +472,6 @@ class AutoAttachUploadedMediaTest extends TestCase {
 	private function get_private_method( $method_name ) {
 		$reflection = new ReflectionClass( AutoAttachUploadedMedia::class );
 		$method     = $reflection->getMethod( $method_name );
-		$method->setAccessible( true );
 		return $method;
 	}
 }

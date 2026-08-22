@@ -8,13 +8,14 @@
 namespace FAToolkit\Tests\Promotion;
 
 use Brain\Monkey\Functions;
+use FAToolkit\Promotion\Promotion_PostType;
 use FAToolkit\Tests\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test Promotion_PostType class.
- *
- * @covers \FAToolkit\Promotion\Promotion_PostType
  */
+#[CoversClass( Promotion_PostType::class )]
 class Promotion_PostTypeTest extends TestCase {
 
 	/**
