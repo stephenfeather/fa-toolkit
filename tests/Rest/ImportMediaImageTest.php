@@ -133,17 +133,30 @@ class ImportMediaImageTest extends TestCase {
 			->with( 'https://example.com/image.jpg' )
 			->andReturn( 'https://example.com/image.jpg' );
 
-		// Mock the namespaced scrub function.
-		Functions\expect( 'FAToolkit\Rest\scrub' )
+		// scrub() and attachment_exists() used to be free functions in the
+		// FAToolkit\Rest namespace. They are now static methods on
+		// FAToolkit\File\UrlHelper, so the old Functions\expect() mocks matched
+		// nothing. Drive the real UrlHelper instead and stub what it calls.
+		Functions\expect( 'wp_parse_url' )
 			->once()
 			->with( 'https://example.com/image.jpg' )
-			->andReturn( 'https://example.com/image.jpg' );
+			->andReturn(
+				array(
+					'scheme' => 'https',
+					'host'   => 'example.com',
+					'path'   => '/image.jpg',
+				)
+			);
 
-		// Mock attachment_exists returning an error.
-		Functions\expect( 'FAToolkit\Rest\attachment_exists' )
+		Functions\expect( 'post_exists' )
 			->once()
 			->with( 'image.jpg' )
-			->andReturn( new \WP_Error( 'rest_attachment_exists', 'The attachment already exists.' ) );
+			->andReturn( 42 );
+
+		Functions\expect( 'esc_html__' )
+			->once()
+			->with( 'The attachment already exists.', 'my-text-domain' )
+			->andReturn( 'The attachment already exists.' );
 
 		$request = new \WP_REST_Request( array( 'url' => 'https://example.com/image.jpg' ) );
 
@@ -170,7 +183,6 @@ class ImportMediaImageTest extends TestCase {
 
 		$instance = new ImportMediaImage();
 		$method   = new \ReflectionMethod( ImportMediaImage::class, 'download_media' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $instance, 'https://example.com/image.jpg' );
 
@@ -195,12 +207,9 @@ class ImportMediaImageTest extends TestCase {
 			->once()
 			->andReturn( array( 'path' => '/var/www/uploads' ) );
 
-		// Mock the namespaced clean_filename function.
-		Functions\expect( 'FAToolkit\Rest\clean_filename' )
-			->once()
-			->with( 'image.jpg' )
-			->andReturn( 'image.jpg' );
-
+		// clean_filename() moved from a FAToolkit\Rest free function to a
+		// UrlHelper static method. The real one is a pure str_replace, so it
+		// needs no stub — the old Functions\expect() matched nothing.
 		Functions\expect( 'wp_upload_bits' )
 			->once()
 			->with( 'image.jpg', null, Mockery::any() )
@@ -219,7 +228,6 @@ class ImportMediaImageTest extends TestCase {
 
 		$instance = new ImportMediaImage();
 		$method   = new \ReflectionMethod( ImportMediaImage::class, 'download_media' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $instance, 'https://example.com/image.jpg' );
 
@@ -244,10 +252,7 @@ class ImportMediaImageTest extends TestCase {
 			->once()
 			->andReturn( array( 'path' => '/var/www/uploads' ) );
 
-		Functions\expect( 'FAToolkit\Rest\clean_filename' )
-			->once()
-			->andReturn( 'image.jpg' );
-
+		// See the note above: UrlHelper::clean_filename() runs for real.
 		Functions\expect( 'wp_upload_bits' )
 			->once()
 			->andReturn(
@@ -267,7 +272,6 @@ class ImportMediaImageTest extends TestCase {
 
 		$instance = new ImportMediaImage();
 		$method   = new \ReflectionMethod( ImportMediaImage::class, 'download_media' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $instance, 'https://example.com/image.jpg' );
 
@@ -305,7 +309,6 @@ class ImportMediaImageTest extends TestCase {
 
 		$instance   = new ImportMediaImage();
 		$method     = new \ReflectionMethod( ImportMediaImage::class, 'save_optional_meta' );
-		$method->setAccessible( true );
 
 		$parameters = array(
 			'title'       => 'Test Title',
@@ -347,7 +350,6 @@ class ImportMediaImageTest extends TestCase {
 
 		$instance   = new ImportMediaImage();
 		$method     = new \ReflectionMethod( ImportMediaImage::class, 'save_optional_meta' );
-		$method->setAccessible( true );
 
 		$parameters = array(
 			'title'       => null,

@@ -50,7 +50,7 @@ class ImportMediaImage {
 	public function import_media_image_permission() {
 		// Restrict endpoint to only users who have the edit_posts capability.
 		if ( false === current_user_can( 'upload_files' ) ) {
-			return new WP_Error( 'rest_forbidden', esc_html__( 'Your are not permitted to upload files.', 'my-text-domain' ), array( 'status' => 401 ) );
+			return new \WP_Error( 'rest_forbidden', esc_html__( 'Your are not permitted to upload files.', 'my-text-domain' ), array( 'status' => 401 ) );
 		}
 		return true;
 	}
@@ -130,7 +130,10 @@ class ImportMediaImage {
 		$file_name_base = $info['filename'];
 		$file_ext       = $info['extension'];
 		$file           = wp_upload_bits( $file_name, null, wp_remote_retrieve_body( $response ) );
-		if ( true === $file['error'] ) {
+		// wp_upload_bits() reports failure as a message string, not as boolean
+		// true, so an identity check against true never fires and every upload
+		// failure fell through as success.
+		if ( true !== empty( $file['error'] ) ) {
 			return new \WP_Error( 'rest_upload_failed', esc_html__( 'The upload failed.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}
 
@@ -144,15 +147,20 @@ class ImportMediaImage {
 	 * @return mixed $attachment_id The attachment id or error.
 	 */
 	private function create_attachment( $file ) {
-		$attachment    = array(
+		// $file_name_base used to be read here as a bare variable. It is a local
+		// of download_media(), never passed in, so post_title was always null.
+		// Derive it from the uploaded path, which is what download_media computed
+		// it from in the first place.
+		$file_name_base = pathinfo( $file['file'], PATHINFO_FILENAME );
+		$attachment     = array(
 			'guid'           => $file['url'],
 			'post_mime_type' => $file['type'],
 			'post_title'     => $file_name_base,
 			'post_content'   => '',
 			'post_status'    => 'inherit',
 		);
-		$product_id    = 0; // Attach to no product.
-		$attachment_id = wp_insert_attachment( $attachment, $file['file'], $product_id );
+		$product_id     = 0; // Attach to no product.
+		$attachment_id  = wp_insert_attachment( $attachment, $file['file'], $product_id );
 		if ( true === is_wp_error( $attachment_id ) ) {
 			return new \WP_Error( 'rest_attachment_failed', esc_html__( 'The attachment failed.', 'my-text-domain' ), array( 'status' => 400 ) );
 		}

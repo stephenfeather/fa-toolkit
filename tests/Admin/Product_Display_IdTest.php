@@ -68,11 +68,12 @@ class Product_Display_IdTest extends TestCase {
 	public function test_add_id_column_content_outputs_id_for_id_column() {
 		$instance = $this->create_instance_without_constructor();
 
-		// Mock esc_html.
-		\Brain\Monkey\Functions\expect( 'esc_html' )
+		// The source escapes with absint(), not esc_html(). These tests were
+		// written against an esc_html() implementation that no longer exists.
+		\Brain\Monkey\Functions\expect( 'absint' )
 			->once()
 			->with( 123 )
-			->andReturn( '123' );
+			->andReturn( 123 );
 
 		ob_start();
 		$instance->add_id_column_content( 'ID', 123 );
@@ -87,8 +88,8 @@ class Product_Display_IdTest extends TestCase {
 	public function test_add_id_column_content_outputs_nothing_for_other_column() {
 		$instance = $this->create_instance_without_constructor();
 
-		// esc_html should not be called.
-		\Brain\Monkey\Functions\expect( 'esc_html' )
+		// absint should not be called.
+		\Brain\Monkey\Functions\expect( 'absint' )
 			->never();
 
 		ob_start();
@@ -107,11 +108,11 @@ class Product_Display_IdTest extends TestCase {
 		$test_ids = array( 1, 999, 12345 );
 
 		foreach ( $test_ids as $test_id ) {
-			// Mock esc_html.
-			\Brain\Monkey\Functions\expect( 'esc_html' )
+			// See the note above: the source uses absint(), not esc_html().
+			\Brain\Monkey\Functions\expect( 'absint' )
 				->once()
 				->with( $test_id )
-				->andReturn( (string) $test_id );
+				->andReturn( $test_id );
 
 			ob_start();
 			$instance->add_id_column_content( 'ID', $test_id );

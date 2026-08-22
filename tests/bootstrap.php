@@ -14,8 +14,13 @@
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 // Define ABSPATH to prevent WordPress file guards from exiting.
+//
+// This points at a real fixture directory rather than a made-up path because
+// some code under test does more than check `defined( 'ABSPATH' )` — it does
+// `require_once ABSPATH . 'wp-admin/includes/image.php'`. A fictional path makes
+// that require fatal and the method untestable. See tests/fixtures/wp-root/.
 if ( ! defined( 'ABSPATH' ) ) {
-	define( 'ABSPATH', '/fake/wordpress/path/' );
+	define( 'ABSPATH', __DIR__ . '/fixtures/wp-root/' );
 }
 
 // Initialize Brain Monkey.
@@ -23,16 +28,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 // It uses Patchwork to intercept function calls and Mockery for expectations.
 \Brain\Monkey\setUp();
 
-// Set up default mocks for WordPress functions that are commonly called during class loading.
-// This is necessary because many classes auto-instantiate at the bottom of their files.
-\Brain\Monkey\Functions\when( 'add_action' )->justReturn( true );
-\Brain\Monkey\Functions\when( 'add_filter' )->justReturn( true );
-\Brain\Monkey\Functions\when( '__' )->returnArg();
-\Brain\Monkey\Functions\when( '_e' )->justReturn( null );
-\Brain\Monkey\Functions\when( 'esc_html' )->returnArg();
-\Brain\Monkey\Functions\when( 'esc_html__' )->returnArg();
-\Brain\Monkey\Functions\when( 'add_meta_box' )->justReturn( true );
-\Brain\Monkey\Functions\when( 'update_post_meta' )->justReturn( true );
+// No bootstrap-scope Functions\when() stubs live here, and none should be added.
+//
+// They used to, with the rationale "many classes auto-instantiate at the bottom
+// of their files". That rationale is gone: issue #18 removed every file-scope
+// `new` from src/, so nothing runs at class-load time any more.
+//
+// Keeping them was actively harmful. A when() called out here binds the stub to
+// the bootstrap-era Brain Monkey container, but the function it defines outlives
+// every later setUp()/tearDown() cycle. The name is then permanently poisoned:
+// calls to it still succeed and still return the bootstrap stub value, while
+// Brain Monkey records nothing — so a later Functions\expect() on that same name
+// reports "called 0 times" even though the code under test called it. It fails
+// by test order, which is how it stayed hidden.
+//
+// Declare the stubs a test needs inside that test.
 
 // Create a mock WP_Query class for testing WordPress queries.
 if ( ! class_exists( 'WP_Query' ) ) {
