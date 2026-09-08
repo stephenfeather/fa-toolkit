@@ -22,38 +22,9 @@ class SetupBusinessBloomer {
 	 * Constructor
 	 */
 	public function __construct() {
-		add_action( 'woocommerce_single_product_summary', array( $this, 'bloomer_echo_product_date' ), 25 );
 		add_filter( 'woocommerce_get_price_html', array( $this, 'bbloomer_hide_price_if_out_stock_frontend' ), 9999, 2 );
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'bbloomer_save_weight_order' ) );
 		add_action( 'woocommerce_admin_order_data_after_billing_address', array( $this, 'bbloomer_delivery_weight_display_admin_order_meta' ), 10, 1 );
-	}
-
-	/**
-	 * WooCommerce: Show Product Published Date
-	 *
-	 * @author        Rodolfo Melogli
-	 * @compatible    WooCommerce 5
-	 * @donate $9     https://businessbloomer.com/bloomer-armada/
-	 */
-	public function bloomer_echo_product_date() {
-		if ( true !== is_product() ) {
-			return;
-		}
-
-		// Ask for the bare date and build the markup in the format string.
-		// Passing the <span> to the_modified_date() and then running the whole
-		// thing through esc_html() escapes our own tags, which renders the
-		// literal markup to the shopper.
-		$modified_date = the_modified_date( '', '', '', false );
-
-		if ( empty( $modified_date ) ) {
-			return;
-		}
-
-		printf(
-			'<span class="single_product_date_published">Updated: %s</span>',
-			esc_html( $modified_date )
-		);
 	}
 
 	/**
