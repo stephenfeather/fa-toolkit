@@ -66,6 +66,18 @@ if ( false === class_exists( \FAToolkit\Admin\Custom_Admin_Menu::class ) ) {
 // classes must not half-apply. (The two define() calls above are exempt because
 // they register nothing and leave no observable behaviour behind.)
 
+// Admin.
+//
+// Custom_Admin_Menu stays FIRST below the guard. The guard tests that exact
+// class, and its comment claims the tested class is the first one instantiated
+// — put anything ahead of it and that claim quietly stops being true.
+new \FAToolkit\Admin\Custom_Admin_Menu();
+new \FAToolkit\Admin\Attachment_SHA256_Hash_Meta_Box();
+new \FAToolkit\Admin\Product_Display_Vendor();
+new \FAToolkit\Admin\Product_Display_Id();
+new \FAToolkit\Admin\Product_Category_Counts();
+new \FAToolkit\Admin\Admin_Meta_Boxes();
+
 // WooCommerce feature compatibility.
 //
 // Sits BELOW the guard, with the other side effects, rather than above it with
@@ -74,14 +86,6 @@ if ( false === class_exists( \FAToolkit\Admin\Custom_Admin_Menu::class ) ) {
 // registers nothing and touches no orders, so having made no claim is correct
 // rather than merely acceptable.
 new \FAToolkit\Compat\HposCompatibility();
-
-// Admin.
-new \FAToolkit\Admin\Custom_Admin_Menu();
-new \FAToolkit\Admin\Attachment_SHA256_Hash_Meta_Box();
-new \FAToolkit\Admin\Product_Display_Vendor();
-new \FAToolkit\Admin\Product_Display_Id();
-new \FAToolkit\Admin\Product_Category_Counts();
-new \FAToolkit\Admin\Admin_Meta_Boxes();
 
 // Media.
 new \FAToolkit\Media\AutoAttachUploadedMedia();
