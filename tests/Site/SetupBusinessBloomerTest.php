@@ -9,6 +9,8 @@ namespace FAToolkit\Tests\Site;
 
 use FAToolkit\Site\SetupBusinessBloomer;
 use FAToolkit\Tests\TestCase;
+use Brain\Monkey\Actions;
+use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
 use Mockery;
 
@@ -274,5 +276,162 @@ class SetupBusinessBloomerTest extends TestCase {
 		// Verify output even with empty weight.
 		$this->assertStringContainsString( '<strong>Order Weight:</strong>', $output );
 		$this->assertStringContainsString( 'kg', $output );
+	}
+
+	/**
+	 * Matcher for a callback bound to a SetupBusinessBloomer method.
+	 *
+	 * The constructor originally registered these four callbacks as bare
+	 * function-name strings. Nothing in PHP or WordPress rejects that at
+	 * registration time — add_action() stores whatever it is given — so the
+	 * class instantiated cleanly and every direct-invocation test passed at
+	 * 100% coverage. The failure only surfaced when WordPress tried to call
+	 * one: call_user_func_array() in class-wp-hook.php fatals on a function
+	 * name that does not exist at global scope, which is why every product
+	 * surface returned HTTP 500 while the suite stayed green.
+	 *
+	 * Asserting on the shape of the callback, not just on the behaviour of
+	 * the method it points at, is what closes that gap.
+	 *
+	 * @param string $method Method name expected in the callback array.
+	 * @return \Mockery\Matcher\Closure
+	 */
+	private function callback_to( $method ) {
+		return Mockery::on(
+			function ( $callback ) use ( $method ) {
+				return is_array( $callback )
+					&& 2 === count( $callback )
+					&& $callback[0] instanceof SetupBusinessBloomer
+					&& $method === $callback[1]
+					&& is_callable( $callback );
+			}
+		);
+	}
+
+	/**
+	 * Test that the product date action is registered as a bound callback.
+	 *
+	 * @return void
+	 */
+	public function test_constructor_registers_product_date_action() {
+		Actions\expectAdded( 'woocommerce_single_product_summary' )
+			->once()
+			->with( $this->callback_to( 'bloomer_echo_product_date' ), 25 );
+
+		new SetupBusinessBloomer();
+	}
+
+	/**
+	 * Test that the price filter is registered as a bound callback.
+	 *
+	 * @return void
+	 */
+	public function test_constructor_registers_price_filter() {
+		Filters\expectAdded( 'woocommerce_get_price_html' )
+			->once()
+			->with( $this->callback_to( 'bbloomer_hide_price_if_out_stock_frontend' ), 9999, 2 );
+
+		new SetupBusinessBloomer();
+	}
+
+	/**
+	 * Test that the order weight save action is registered as a bound callback.
+	 *
+	 * @return void
+	 */
+	public function test_constructor_registers_save_weight_action() {
+		Actions\expectAdded( 'woocommerce_checkout_update_order_meta' )
+			->once()
+			->with( $this->callback_to( 'bbloomer_save_weight_order' ) );
+
+		new SetupBusinessBloomer();
+	}
+
+	/**
+	 * Test that the admin order weight display action is registered as a bound callback.
+	 *
+	 * @return void
+	 */
+	public function test_constructor_registers_admin_weight_display_action() {
+		Actions\expectAdded( 'woocommerce_admin_order_data_after_billing_address' )
+			->once()
+			->with( $this->callback_to( 'bbloomer_delivery_weight_display_admin_order_meta' ), 10, 1 );
+
+		new SetupBusinessBloomer();
+	}
+
+	/**
+	 * Test that every registered callback is actually invocable.
+	 *
+	 * This is the assertion that maps directly onto the production failure:
+	 * WordPress does not care what a callback looks like until it calls it,
+	 * and a bare string naming a method that exists only on the class fatals
+	 * at that moment. is_callable() on each registered callback is the cheap
+	 * check that would have caught all four at once.
+	 *
+	 * @return void
+	 */
+	public function test_all_registered_callbacks_are_invocable() {
+		$registered = array();
+
+		$capture = function ( $callback ) use ( &$registered ) {
+			$registered[] = $callback;
+		};
+
+		Actions\expectAdded( 'woocommerce_single_product_summary' )->once()->whenHappen( $capture );
+		Filters\expectAdded( 'woocommerce_get_price_html' )->once()->whenHappen( $capture );
+		Actions\expectAdded( 'woocommerce_checkout_update_order_meta' )->once()->whenHappen( $capture );
+		Actions\expectAdded( 'woocommerce_admin_order_data_after_billing_address' )->once()->whenHappen( $capture );
+
+		new SetupBusinessBloomer();
+
+		$this->assertCount( 4, $registered, 'Expected all four hooks to be registered.' );
+
+		foreach ( $registered as $callback ) {
+			$this->assertIsCallable(
+				$callback,
+				sprintf(
+					'Registered callback %s is not invocable; WordPress would fatal on it.',
+					is_array( $callback ) ? implode( '::', array( get_class( $callback[0] ), $callback[1] ) ) : var_export( $callback, true )
+				)
+			);
+		}
+	}
+
+	/**
+	 * Test that the registered price callback survives WordPress-style dispatch.
+	 *
+	 * This is the closest local analogue to "the HTTP 500 is gone". The
+	 * production fatal happened inside WP_Hook::apply_filters(), which does
+	 * call_user_func_array() on whatever was registered — it is the dispatch,
+	 * not the registration, that blows up. Asserting is_callable() alone would
+	 * not catch a callback that is callable but wrongly bound, so this test
+	 * takes the callback exactly as WordPress stored it and calls it the same
+	 * way, on the specific hook that fataled on every price render.
+	 *
+	 * @return void
+	 */
+	public function test_registered_price_callback_dispatches_without_fatal() {
+		$callback = null;
+
+		Filters\expectAdded( 'woocommerce_get_price_html' )
+			->once()
+			->whenHappen(
+				function ( $registered ) use ( &$callback ) {
+					$callback = $registered;
+				}
+			);
+
+		new SetupBusinessBloomer();
+
+		Functions\when( 'is_admin' )->justReturn( false );
+
+		$product = Mockery::mock( 'WC_Product' );
+		$product->shouldReceive( 'is_in_stock' )->once()->andReturn( true );
+
+		// Dispatch exactly as WP_Hook::apply_filters() does.
+		$result = call_user_func_array( $callback, array( '<span>$19.99</span>', $product ) );
+
+		$this->assertSame( '<span>$19.99</span>', $result );
 	}
 }
