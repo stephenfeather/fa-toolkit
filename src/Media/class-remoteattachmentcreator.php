@@ -112,23 +112,50 @@ class RemoteAttachmentCreator {
 			if ( $existing > 0 ) {
 				++$result['existing'];
 				$attachment_ids[] = $existing;
+
+				// Refresh rather than skip. insert() is the only other writer of
+				// these fields, so an attachment created before the entry carried
+				// dimensions or alt would otherwise stay on the degraded path for
+				// ever — the enrichment would land in _fa_media and never reach
+				// WordPress. A re-run is how those attachments improve.
+				if ( true !== $this->dry_run ) {
+					$this->write_entry_meta( $existing, $entry );
+				}
+
 				continue;
 			}
 
 			++$result['created'];
 
 			if ( true === $this->dry_run ) {
+				// A placeholder id, so the bookkeeping below sees that this
+				// product WOULD have images. Without it a dry run reports
+				// no_usable_image on a product whose images are perfectly fine.
+				$attachment_ids[] = 0;
 				continue;
 			}
 
-			$attachment_ids[] = $this->insert( $product_id, $entry );
+			$inserted = $this->insert( $product_id, $entry );
+
+			if ( $inserted > 0 ) {
+				$attachment_ids[] = $inserted;
+			}
 		}
 
 		if ( array() === $attachment_ids ) {
-			// Every image was unreachable. Leave the product wired to nothing
-			// so WooCommerce shows its placeholder, and report it: a broken
-			// image looks deliberate, a placeholder does not.
+			// Every image was unreachable. Clear any wiring from an earlier run
+			// as well as declining to add new: leaving _thumbnail_id pointing at
+			// an attachment whose URL has since died renders a broken image and
+			// looks deliberate, which is the one outcome worse than the
+			// placeholder. Without this, --recheck-all cannot repair the exact
+			// previously-good-then-dead case it exists for.
 			$result['no_usable_image'] = 0 < $result['unreachable'];
+
+			if ( true !== $this->dry_run && true === $result['no_usable_image'] ) {
+				delete_post_meta( $product_id, '_thumbnail_id' );
+				delete_post_meta( $product_id, '_product_image_gallery' );
+			}
+
 			return $result;
 		}
 
@@ -144,21 +171,51 @@ class RemoteAttachmentCreator {
 	 *
 	 * @param int   $product_id Product post id.
 	 * @param array $entry      Media entry.
-	 * @return int Attachment id.
+	 * @return int Attachment id, or 0 on failure.
 	 */
 	private function insert( $product_id, array $entry ) {
-		$attachment_id = (int) wp_insert_attachment(
+		$attachment_id = wp_insert_attachment(
 			array(
 				'post_title'     => (string) ( $entry['title'] ?? '' ),
-				'post_mime_type' => 'image/jpeg',
+				'post_mime_type' => $this->mime_type( $entry['url'] ),
 				'post_status'    => 'inherit',
 			),
 			false,
 			$product_id
 		);
 
+		// wp_insert_attachment() returns 0 or a WP_Error on failure. Without
+		// this guard the meta writes below would land on post 0 and the caller
+		// would wire the product to an attachment that does not exist.
+		if ( true === is_wp_error( $attachment_id ) || (int) $attachment_id < 1 ) {
+			return 0;
+		}
+
+		$attachment_id = (int) $attachment_id;
+
 		update_post_meta( $attachment_id, '_fa_remote_url', $entry['url'] );
 		update_post_meta( $attachment_id, '_fa_media_sha256', $entry['sha256'] );
+
+		$this->write_entry_meta( $attachment_id, $entry );
+
+		return $attachment_id;
+	}
+
+	/**
+	 * Write the optional, refreshable fields of an entry.
+	 *
+	 * Shared by insert() and by the reuse path, so that an attachment created
+	 * before the entry carried dimensions or alt is enriched by a later re-run
+	 * rather than staying degraded for ever.
+	 *
+	 * @param int   $attachment_id Attachment id.
+	 * @param array $entry         Media entry.
+	 * @return void
+	 */
+	private function write_entry_meta( $attachment_id, array $entry ) {
+		// The URL can change while the bytes do not — the same image lives at
+		// two s3 keys for 2,306 of these — so it is refreshed, not assumed.
+		update_post_meta( $attachment_id, '_fa_remote_url', $entry['url'] );
 
 		// Dimensions travel in the media cell because they live in the
 		// migration database, which WordPress cannot see. Absent is handled
@@ -170,12 +227,36 @@ class RemoteAttachmentCreator {
 
 		// Alt is written only when it is real. The titles are vendor filenames
 		// like "BX30264.jpg", and a screen reader announces alt text verbatim,
-		// so an invented one is worse than none.
+		// so an invented one is worse than none. Never cleared when absent:
+		// alt edited by hand in WordPress must survive a re-run.
 		if ( '' !== (string) ( $entry['alt'] ?? '' ) ) {
 			update_post_meta( $attachment_id, '_wp_attachment_image_alt', $entry['alt'] );
 		}
+	}
 
-		return $attachment_id;
+	/**
+	 * Mime type for a remote image, from its extension.
+	 *
+	 * Hard-coding image/jpeg would mislabel every png and webp in the
+	 * catalogue, and WordPress uses this to decide what an attachment is.
+	 *
+	 * @param string $url Remote URL.
+	 * @return string
+	 */
+	private function mime_type( $url ) {
+		$path      = (string) wp_parse_url( $url, PHP_URL_PATH );
+		$extension = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+
+		$known = array(
+			'jpg'  => 'image/jpeg',
+			'jpeg' => 'image/jpeg',
+			'png'  => 'image/png',
+			'gif'  => 'image/gif',
+			'webp' => 'image/webp',
+			'avif' => 'image/avif',
+		);
+
+		return $known[ $extension ] ?? 'image/jpeg';
 	}
 
 	/**
@@ -196,6 +277,10 @@ class RemoteAttachmentCreator {
 
 		if ( array() !== $gallery ) {
 			update_post_meta( $product_id, '_product_image_gallery', implode( ',', $gallery ) );
+			return;
 		}
+
+		// Gallery images removed upstream, or died, must stop being referenced.
+		delete_post_meta( $product_id, '_product_image_gallery' );
 	}
 }

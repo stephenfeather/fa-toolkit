@@ -25,9 +25,10 @@ if ( defined( 'ABSPATH' ) === false ) {
  * - Array order. The hero is found by role. Today it is always first, but
  *   ordering is an incidental property of the exporter, not a contract, and
  *   a silently reordered array would otherwise pick the wrong hero image.
- * - Entry kind. The array carries documents on purpose, so that documents
- *   need no re-export the day they get a WooCommerce slot. Filtering them is
- *   the consumer's job.
+ * - Entry kind. The array carries documents on purpose, so that they need no
+ *   re-export the day documents get a WooCommerce slot. The EXPORTER therefore
+ *   does not filter them, and this class does — every accessor below returns
+ *   images only.
  */
 class RemoteMedia {
 

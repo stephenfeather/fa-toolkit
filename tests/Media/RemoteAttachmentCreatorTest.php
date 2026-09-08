@@ -10,7 +10,6 @@ namespace FAToolkit\Tests\Media;
 use FAToolkit\Media\RemoteAttachmentCreator;
 use FAToolkit\Tests\TestCase;
 use Brain\Monkey\Functions;
-use Mockery;
 
 /**
  * Test case for RemoteAttachmentCreator.
@@ -69,6 +68,7 @@ class RemoteAttachmentCreatorTest extends TestCase {
 			'next_id'   => 100,
 			'existing'  => $existing,
 			'reachable' => true,
+			'deleted'   => array(),
 		);
 		$ref   = new \ArrayObject( $state );
 
@@ -92,8 +92,22 @@ class RemoteAttachmentCreatorTest extends TestCase {
 			}
 		);
 
+		Functions\when( 'delete_post_meta' )->alias(
+			function ( $post_id, $key ) use ( $ref ) {
+				$meta = $ref['meta'];
+				unset( $meta[ $post_id . ':' . $key ] );
+				$ref['meta']    = $meta;
+				$deleted        = $ref['deleted'];
+				$deleted[]      = $post_id . ':' . $key;
+				$ref['deleted'] = $deleted;
+				return true;
+			}
+		);
+
 		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'wp_update_post' )->justReturn( 1 );
+		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+		Functions\when( 'is_wp_error' )->justReturn( false );
 
 		return $ref;
 	}
@@ -345,5 +359,206 @@ class RemoteAttachmentCreatorTest extends TestCase {
 		$this->assertSame( 2, $result['created'] );
 		$this->assertCount( 0, $ref['inserted'] );
 		$this->assertSame( array(), $ref['meta'] );
+	}
+
+	/**
+	 * Test that stale wiring is cleared when every url has died.
+	 *
+	 * Without this, --recheck-all cannot repair the case it exists for: a
+	 * product whose images were fine at import and have since 404'd keeps
+	 * rendering broken images, because _thumbnail_id still points at them.
+	 *
+	 * @return void
+	 */
+	public function test_all_urls_dead_clears_existing_wiring() {
+		$ref = $this->stub_wp();
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return false; } );
+		$creator->create_for_product( 55, $this->cell() );
+
+		$this->assertContains( '55:_thumbnail_id', (array) $ref['deleted'] );
+		$this->assertContains( '55:_product_image_gallery', (array) $ref['deleted'] );
+	}
+
+	/**
+	 * Test that a product with no media at all is left completely alone.
+	 *
+	 * An empty cell means "nothing to say about this product's images", not
+	 * "this product has no images" — a product may have had its thumbnail set
+	 * by hand, and an empty import must not strip it.
+	 *
+	 * @return void
+	 */
+	public function test_empty_cell_does_not_clear_wiring() {
+		$ref = $this->stub_wp();
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return false; } );
+		$creator->create_for_product( 55, '' );
+
+		$this->assertSame( array(), (array) $ref['deleted'] );
+	}
+
+	/**
+	 * Test that a gallery emptied upstream stops being referenced.
+	 *
+	 * @return void
+	 */
+	public function test_single_image_clears_a_previous_gallery() {
+		$ref = $this->stub_wp();
+
+		$json = wp_json_encode(
+			array(
+				array(
+					'role'   => 'hero',
+					'kind'   => 'image',
+					'url'    => self::HERO,
+					'title'  => 'hero.jpg',
+					'sha256' => 'aaa',
+				),
+			)
+		);
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$creator->create_for_product( 55, $json );
+
+		$this->assertContains( '55:_product_image_gallery', (array) $ref['deleted'] );
+	}
+
+	/**
+	 * Test that a re-run enriches an attachment created before the data existed.
+	 *
+	 * Attachments made before `_fa_media` carried dimensions and alt would
+	 * otherwise stay on the degraded path permanently: the enrichment would
+	 * land in postmeta and never reach the attachment, because insert() is
+	 * only reached for attachments that do not yet exist.
+	 *
+	 * @return void
+	 */
+	public function test_rerun_refreshes_dimensions_and_alt_on_existing_attachments() {
+		$ref = $this->stub_wp();
+
+		$finder = function ( $product_id, $sha ) {
+			return 'aaa' === $sha ? 900 : 901;
+		};
+
+		$cell = $this->cell(
+			array(
+				'width'  => 1200,
+				'height' => 800,
+				'alt'    => 'Burris XTR III Scope 3.3-18x50mm SCR 2 MIL Illum',
+			)
+		);
+
+		$creator = new RemoteAttachmentCreator( $finder, function () { return true; } );
+		$result  = $creator->create_for_product( 55, $cell );
+
+		$this->assertSame( 2, $result['existing'] );
+
+		$meta = $ref['meta'];
+		$this->assertSame( 1200, $meta['900:_fa_remote_width'] );
+		$this->assertSame( 800, $meta['900:_fa_remote_height'] );
+		$this->assertSame( 'Burris XTR III Scope 3.3-18x50mm SCR 2 MIL Illum', $meta['900:_wp_attachment_image_alt'] );
+	}
+
+	/**
+	 * Test that a changed url on an unchanged image is picked up.
+	 *
+	 * 2,306 images live at more than one s3 key with identical bytes, so the
+	 * sha can stay put while the url moves.
+	 *
+	 * @return void
+	 */
+	public function test_rerun_refreshes_a_changed_url() {
+		$ref = $this->stub_wp();
+
+		// Distinct ids per sha: one finder id for both would let the gallery
+		// entry overwrite the hero's meta and the assertion would test nothing.
+		$finder  = function ( $product_id, $sha ) { return 'aaa' === $sha ? 900 : 901; };
+		$creator = new RemoteAttachmentCreator( $finder, function () { return true; } );
+		$creator->create_for_product( 55, $this->cell() );
+
+		$this->assertSame( self::HERO, $ref['meta']['900:_fa_remote_url'] );
+	}
+
+	/**
+	 * Test that a dry run does not report a healthy product as unusable.
+	 *
+	 * @return void
+	 */
+	public function test_dry_run_does_not_report_no_usable_image() {
+		$this->stub_wp();
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$creator->set_dry_run( true );
+		$result = $creator->create_for_product( 55, $this->cell() );
+
+		$this->assertFalse( $result['no_usable_image'] );
+	}
+
+	/**
+	 * Test that a dry run with one dead image still reports the product usable.
+	 *
+	 * @return void
+	 */
+	public function test_dry_run_with_one_dead_image_is_still_usable() {
+		$this->stub_wp();
+
+		$probe   = function ( $url ) { return self::HERO !== $url; };
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), $probe );
+		$creator->set_dry_run( true );
+		$result = $creator->create_for_product( 55, $this->cell() );
+
+		$this->assertSame( 1, $result['created'] );
+		$this->assertFalse( $result['no_usable_image'] );
+	}
+
+	/**
+	 * Test that a failed insert wires nothing.
+	 *
+	 * wp_insert_attachment() returns 0 or a WP_Error on failure. Writing meta
+	 * against that would land on post 0 and wire the product to an attachment
+	 * that does not exist.
+	 *
+	 * @return void
+	 */
+	public function test_failed_insert_is_not_wired() {
+		$ref = $this->stub_wp();
+		Functions\when( 'wp_insert_attachment' )->justReturn( 0 );
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$creator->create_for_product( 55, $this->cell() );
+
+		$this->assertArrayNotHasKey( '55:_thumbnail_id', (array) $ref['meta'] );
+		$this->assertArrayNotHasKey( '0:_fa_remote_url', (array) $ref['meta'] );
+	}
+
+	/**
+	 * Test that the mime type follows the file extension.
+	 *
+	 * Hard-coding image/jpeg would mislabel every png in the catalogue.
+	 *
+	 * @return void
+	 */
+	public function test_mime_type_follows_the_extension() {
+		$ref = $this->stub_wp();
+
+		$json = wp_json_encode(
+			array(
+				array(
+					'role'   => 'hero',
+					'kind'   => 'image',
+					'url'    => 'https://cdn.test/a.png?v=2',
+					'title'  => 'a.png',
+					'sha256' => 'aaa',
+				),
+			)
+		);
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$creator->create_for_product( 55, $json );
+
+		$inserted = (array) $ref['inserted'];
+		$row      = reset( $inserted );
+		$this->assertSame( 'image/png', $row['args']['post_mime_type'] );
 	}
 }

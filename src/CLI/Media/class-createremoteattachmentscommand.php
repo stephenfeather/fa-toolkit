@@ -205,8 +205,13 @@ class CreateRemoteAttachmentsCommand {
 		// A tiny transform rather than the original: ImageKit 404s on a missing
 		// source whatever the transform, so this answers the same question for
 		// a fraction of the bytes.
+		// Separator chosen, not assumed: appending "?tr=" to a URL that already
+		// carries a query string produces a second "?" and a 4xx, which would
+		// read as a dead image rather than a malformed request.
+		$separator = false === strpos( $url, '?' ) ? '?' : '&';
+
 		$response = wp_remote_get(
-			$url . '?tr=w-10',
+			$url . $separator . 'tr=w-10',
 			array( 'timeout' => 20 )
 		);
 

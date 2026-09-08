@@ -44,6 +44,14 @@ class RemoteAttachmentUrls {
 	 * Constructor.
 	 */
 	public function __construct() {
+		// FIRST, and load-bearing. Core bails out of wp_calculate_image_srcset()
+		// and wp_calculate_image_sizes() BEFORE applying their filters when an
+		// attachment has no metadata — srcset guards on $image_meta['sizes'] and
+		// ['file'], sizes computes a width of 0 and returns false. Pointer
+		// attachments have no metadata, so without this the two filters below
+		// are never reached in production, however well they test in isolation.
+		add_filter( 'wp_get_attachment_metadata', array( $this, 'attachment_metadata' ), 10, 2 );
+		add_filter( 'wp_calculate_image_srcset_meta', array( $this, 'srcset_meta' ), 10, 4 );
 		add_filter( 'wp_get_attachment_url', array( $this, 'attachment_url' ), 10, 2 );
 		add_filter( 'image_downsize', array( $this, 'downsize' ), 10, 3 );
 		add_filter( 'wp_calculate_image_srcset', array( $this, 'srcset' ), 10, 5 );
@@ -93,7 +101,111 @@ class RemoteAttachmentUrls {
 	 * @return string
 	 */
 	private function transform( $url, $width ) {
-		return $url . '?tr=w-' . (int) $width;
+		$separator = false === strpos( $url, '?' ) ? '?' : '&';
+
+		return $url . $separator . 'tr=w-' . (int) $width;
+	}
+
+	/**
+	 * Give a pointer attachment enough metadata for core to proceed.
+	 *
+	 * This exists because of where core's guards sit, not because the metadata
+	 * is useful in itself:
+	 *
+	 * - `wp_calculate_image_srcset()` returns false when `$image_meta['sizes']`
+	 *   is empty or `['file']` is unset — BEFORE applying its own filter.
+	 * - `wp_calculate_image_sizes()` resolves a named size through
+	 *   `wp_get_attachment_metadata()`, computes a width of 0 without it, and
+	 *   returns false — again before applying its filter.
+	 *
+	 * A pointer attachment has no metadata at all, so both bail early and the
+	 * srcset and sizes filters below are never reached in production. Supplying
+	 * a synthetic record clears the guards; the filters then replace whatever
+	 * core computed with real ImageKit URLs.
+	 *
+	 * The `sizes` entries are deliberately minimal. Core would otherwise build
+	 * size URLs by swapping the basename within the same directory, which is
+	 * wrong for a transform carried in a query string — so the values only need
+	 * to exist, not to be usable.
+	 *
+	 * @param array|false $data          Existing metadata.
+	 * @param int         $attachment_id Attachment id.
+	 * @return array|false
+	 */
+	public function attachment_metadata( $data, $attachment_id ) {
+		$remote = $this->remote_url( $attachment_id );
+
+		if ( '' === $remote ) {
+			return $data;
+		}
+
+		$dimensions = $this->dimensions( $attachment_id );
+
+		if ( null === $dimensions ) {
+			return $data;
+		}
+
+		list( $width, $height ) = $dimensions;
+
+		$sizes = array();
+
+		foreach ( self::SRCSET_WIDTHS as $candidate ) {
+			if ( $candidate > $width ) {
+				continue;
+			}
+
+			$sizes[ 'fa-' . $candidate ] = array(
+				'file'      => wp_basename( $remote ),
+				'width'     => $candidate,
+				'height'    => (int) round( $height * ( $candidate / $width ) ),
+				'mime-type' => 'image/jpeg',
+			);
+		}
+
+		if ( array() === $sizes ) {
+			// Smaller than every candidate. One entry so the guard still clears.
+			$sizes['fa-full'] = array(
+				'file'      => wp_basename( $remote ),
+				'width'     => $width,
+				'height'    => $height,
+				'mime-type' => 'image/jpeg',
+			);
+		}
+
+		return array(
+			'width'  => $width,
+			'height' => $height,
+			'file'   => wp_basename( $remote ),
+			'sizes'  => $sizes,
+		);
+	}
+
+	/**
+	 * Ensure srcset metadata survives to the guard.
+	 *
+	 * `wp_calculate_image_srcset()` applies this filter to `$image_meta` and
+	 * then immediately guards on it. Callers that pass metadata in directly,
+	 * rather than letting core fetch it, would otherwise skip
+	 * attachment_metadata() entirely.
+	 *
+	 * @param array  $image_meta    Metadata.
+	 * @param array  $size_array    Requested size.
+	 * @param string $image_src     Image src.
+	 * @param int    $attachment_id Attachment id.
+	 * @return array
+	 */
+	public function srcset_meta( $image_meta, $size_array, $image_src, $attachment_id ) {
+		if ( '' === $this->remote_url( $attachment_id ) ) {
+			return $image_meta;
+		}
+
+		if ( true === is_array( $image_meta ) && false === empty( $image_meta['sizes'] ) && isset( $image_meta['file'] ) ) {
+			return $image_meta;
+		}
+
+		$synthetic = $this->attachment_metadata( $image_meta, $attachment_id );
+
+		return true === is_array( $synthetic ) ? $synthetic : $image_meta;
 	}
 
 	/**
@@ -237,7 +349,8 @@ class RemoteAttachmentUrls {
 			return $sizes;
 		}
 
-		$width = true === is_array( $size ) && isset( $size[0] ) ? (int) $size[0] : 0;
+		$dimensions = $this->dimensions( $attachment_id );
+		$width      = $this->target_width( $size, null === $dimensions ? 0 : $dimensions[0] );
 
 		if ( $width < 1 ) {
 			return $sizes;

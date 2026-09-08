@@ -33,6 +33,12 @@ class RemoteAttachmentUrlsTest extends TestCase {
 	 * @return void
 	 */
 	private function stub_meta( $id, $url, $width = '', $height = '' ) {
+		Functions\when( 'wp_basename' )->alias(
+			function ( $path ) {
+				return basename( parse_url( $path, PHP_URL_PATH ) ?? $path );
+			}
+		);
+
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) use ( $id, $url, $width, $height ) {
 				if ( $post_id !== $id ) {
@@ -246,5 +252,169 @@ class RemoteAttachmentUrlsTest extends TestCase {
 		$urls = new RemoteAttachmentUrls();
 
 		$this->assertSame( '(max-width: 99px) 100vw, 99px', $urls->sizes( '(max-width: 99px) 100vw, 99px', array( 99, 99 ), '', array(), 7 ) );
+	}
+
+	/**
+	 * Test that the metadata filter is registered.
+	 *
+	 * This is the one that makes the srcset and sizes filters reachable at all.
+	 * Core bails out of wp_calculate_image_srcset() when $image_meta has no
+	 * 'sizes'/'file', and out of wp_calculate_image_sizes() when a named size
+	 * resolves to no width — both BEFORE applying their own filters. Without
+	 * synthetic metadata those two callbacks are dead in production while
+	 * passing every direct-invocation test.
+	 *
+	 * @return void
+	 */
+	public function test_registers_the_metadata_filters() {
+		$captured = array();
+
+		foreach ( array( 'wp_get_attachment_metadata', 'wp_calculate_image_srcset_meta' ) as $hook ) {
+			Filters\expectAdded( $hook )
+				->once()
+				->whenHappen(
+					function ( $callback ) use ( &$captured, $hook ) {
+						$captured[ $hook ] = $callback;
+					}
+				);
+		}
+
+		$urls = new RemoteAttachmentUrls();
+
+		$this->assertCount( 2, $captured );
+		foreach ( $captured as $hook => $callback ) {
+			$this->assertSame( $urls, $callback[0], "Callback for {$hook} is bound to the wrong instance." );
+		}
+	}
+
+	/**
+	 * Test that synthetic metadata clears core's guards.
+	 *
+	 * @return void
+	 */
+	public function test_synthetic_metadata_satisfies_cores_guards() {
+		$this->stub_meta( 7, self::URL, 1200, 600 );
+
+		$urls = new RemoteAttachmentUrls();
+		$meta = $urls->attachment_metadata( false, 7 );
+
+		$this->assertIsArray( $meta );
+		// The two conditions wp_calculate_image_srcset() tests before it will
+		// proceed far enough to apply its filter.
+		$this->assertNotEmpty( $meta['sizes'] );
+		$this->assertArrayHasKey( 'file', $meta );
+		$this->assertGreaterThanOrEqual( 4, strlen( $meta['file'] ) );
+		$this->assertSame( 1200, $meta['width'] );
+		$this->assertSame( 600, $meta['height'] );
+	}
+
+	/**
+	 * Test that a small original still yields metadata that clears the guard.
+	 *
+	 * @return void
+	 */
+	public function test_small_image_still_yields_non_empty_sizes() {
+		$this->stub_meta( 7, self::URL, 80, 80 );
+
+		$urls = new RemoteAttachmentUrls();
+		$meta = $urls->attachment_metadata( false, 7 );
+
+		$this->assertNotEmpty( $meta['sizes'], 'An image smaller than every candidate must still clear the guard.' );
+	}
+
+	/**
+	 * Test that metadata is not invented for local attachments.
+	 *
+	 * @return void
+	 */
+	public function test_metadata_untouched_for_local_attachments() {
+		$this->stub_meta( 7, '' );
+
+		$urls = new RemoteAttachmentUrls();
+
+		$this->assertFalse( $urls->attachment_metadata( false, 7 ) );
+	}
+
+	/**
+	 * Test that metadata is not invented when dimensions are unknown.
+	 *
+	 * @return void
+	 */
+	public function test_metadata_untouched_without_dimensions() {
+		$this->stub_meta( 7, self::URL );
+
+		$urls = new RemoteAttachmentUrls();
+
+		$this->assertFalse( $urls->attachment_metadata( false, 7 ) );
+	}
+
+	/**
+	 * Test that srcset_meta fills in for callers that pass metadata directly.
+	 *
+	 * @return void
+	 */
+	public function test_srcset_meta_supplies_missing_metadata() {
+		$this->stub_meta( 7, self::URL, 1200, 600 );
+
+		$urls = new RemoteAttachmentUrls();
+		$meta = $urls->srcset_meta( array(), array( 600, 300 ), self::URL, 7 );
+
+		$this->assertNotEmpty( $meta['sizes'] );
+	}
+
+	/**
+	 * Test that srcset_meta leaves real metadata alone.
+	 *
+	 * @return void
+	 */
+	public function test_srcset_meta_leaves_real_metadata_alone() {
+		$this->stub_meta( 7, self::URL, 1200, 600 );
+		$real = array( 'file' => 'real.jpg', 'sizes' => array( 'medium' => array( 'width' => 300 ) ) );
+
+		$urls = new RemoteAttachmentUrls();
+
+		$this->assertSame( $real, $urls->srcset_meta( $real, array( 600, 300 ), self::URL, 7 ) );
+	}
+
+	/**
+	 * Test that a url already carrying a query string is not corrupted.
+	 *
+	 * Appending "?tr=" to a url that already has "?" produces two of them and
+	 * a 4xx, which would read as a dead image rather than a bad request.
+	 *
+	 * @return void
+	 */
+	public function test_transform_respects_an_existing_query_string() {
+		$url = 'https://cdn.test/a.jpg?v=2';
+		$this->stub_meta( 7, $url, 1000, 500 );
+		Functions\when( 'wp_get_registered_image_subsizes' )->justReturn(
+			array( 'medium' => array( 'width' => 300, 'height' => 300, 'crop' => false ) )
+		);
+
+		$urls   = new RemoteAttachmentUrls();
+		$result = $urls->downsize( false, 7, 'medium' );
+
+		$this->assertSame( $url . '&tr=w-300', $result[0] );
+		$this->assertSame( 1, substr_count( $result[0], '?' ) );
+	}
+
+	/**
+	 * Test that a named size produces a sizes attribute.
+	 *
+	 * WordPress passes named sizes as strings here, not only arrays. Handling
+	 * arrays alone reintroduces the empty sizes attribute this class exists to
+	 * prevent.
+	 *
+	 * @return void
+	 */
+	public function test_sizes_handles_a_named_size() {
+		$this->stub_meta( 7, self::URL, 1200, 600 );
+		Functions\when( 'wp_get_registered_image_subsizes' )->justReturn(
+			array( 'woocommerce_thumbnail' => array( 'width' => 324, 'height' => 324, 'crop' => true ) )
+		);
+
+		$urls = new RemoteAttachmentUrls();
+
+		$this->assertStringContainsString( '324px', $urls->sizes( '', 'woocommerce_thumbnail', '', array(), 7 ) );
 	}
 }
