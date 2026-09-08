@@ -66,6 +66,15 @@ if ( false === class_exists( \FAToolkit\Admin\Custom_Admin_Menu::class ) ) {
 // classes must not half-apply. (The two define() calls above are exempt because
 // they register nothing and leave no observable behaviour behind.)
 
+// WooCommerce feature compatibility.
+//
+// Sits BELOW the guard, with the other side effects, rather than above it with
+// the constants. Registering a hook is a side effect, and the invariant above
+// admits no exceptions. Nothing is lost by it: if the guard bails, the plugin
+// registers nothing and touches no orders, so having made no claim is correct
+// rather than merely acceptable.
+new \FAToolkit\Compat\HposCompatibility();
+
 // Admin.
 new \FAToolkit\Admin\Custom_Admin_Menu();
 new \FAToolkit\Admin\Attachment_SHA256_Hash_Meta_Box();

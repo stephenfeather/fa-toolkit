@@ -142,6 +142,16 @@ if ( ! class_exists( 'WP_CLI' ) ) {
 	}
 }
 
+// Load the FeaturesUtil test double.
+//
+// A class in its own file, not a Functions\when() stub — the note above concerns
+// function stubs bound to the bootstrap-era Brain Monkey container, which does
+// not apply to a plain class declaration.
+if ( ! class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_require_once
+	require_once __DIR__ . '/fixtures/class-featuresutil-stub.php';
+}
+
 // Create a mock WP_Error class for testing WordPress errors.
 if ( ! class_exists( 'WP_Error' ) ) {
 	class WP_Error {
