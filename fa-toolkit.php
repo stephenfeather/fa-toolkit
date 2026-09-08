@@ -90,6 +90,10 @@ new \FAToolkit\Compat\HposCompatibility();
 // Media.
 new \FAToolkit\Media\AutoAttachUploadedMedia();
 
+// Serves URLs for attachments whose image lives on s3 rather than on disk.
+// Registers filters only; it is inert for every ordinary local attachment.
+new \FAToolkit\Media\RemoteAttachmentUrls();
+
 // Media (WP-CLI dependent - only load if WP-CLI is active).
 if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\Media\Media_Fix_Ilab_Metadata();
