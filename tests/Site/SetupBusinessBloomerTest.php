@@ -13,6 +13,7 @@ use Brain\Monkey\Actions;
 use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
 use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Test case for SetupBusinessBloomer.
@@ -227,7 +228,10 @@ class SetupBusinessBloomerTest extends TestCase {
 		$order->shouldReceive( 'update_meta_data' )
 			->once()
 			->with( '_cart_weight', 12.5 );
-		$order->shouldReceive( 'save' )->once();
+		$order->shouldReceive( 'save_meta_data' )->once();
+		// A full save() here would re-persist the whole order mid-checkout
+		// and fire woocommerce_update_order; only the meta may be written.
+		$order->shouldNotReceive( 'save' );
 
 		Functions\expect( 'wc_get_order' )
 			->once()
@@ -254,10 +258,10 @@ class SetupBusinessBloomerTest extends TestCase {
 		Functions\expect( 'WC' )->never();
 
 		$bloomer = new SetupBusinessBloomer();
-		$bloomer->bbloomer_save_weight_order( 404 );
 
-		// Reaching here without a fatal on false->update_meta_data() is the assertion.
-		$this->assertTrue( true );
+		// Returning cleanly is the behaviour under test: without the guard this
+		// would fatal calling update_meta_data() on false.
+		$this->assertNull( $bloomer->bbloomer_save_weight_order( 404 ) );
 	}
 
 	/**
@@ -282,7 +286,10 @@ class SetupBusinessBloomerTest extends TestCase {
 		$order->shouldReceive( 'update_meta_data' )
 			->once()
 			->with( '_cart_weight', 0 );
-		$order->shouldReceive( 'save' )->once();
+		$order->shouldReceive( 'save_meta_data' )->once();
+		// A full save() here would re-persist the whole order mid-checkout
+		// and fire woocommerce_update_order; only the meta may be written.
+		$order->shouldNotReceive( 'save' );
 
 		Functions\expect( 'wc_get_order' )
 			->once()
@@ -393,9 +400,23 @@ class SetupBusinessBloomerTest extends TestCase {
 	}
 
 	/**
-	 * Matcher for a callback bound to a SetupBusinessBloomer method.
+	 * Every hook the constructor is responsible for registering.
 	 *
-	 * The constructor originally registered these four callbacks as bare
+	 * @return array<string, array{0:string,1:string,2:string,3:int,4:int}>
+	 */
+	public static function hook_registration_provider() {
+		return array(
+			'product date'      => array( 'action', 'woocommerce_single_product_summary', 'bloomer_echo_product_date', 25, 1 ),
+			'price filter'      => array( 'filter', 'woocommerce_get_price_html', 'bbloomer_hide_price_if_out_stock_frontend', 9999, 2 ),
+			'save order weight' => array( 'action', 'woocommerce_checkout_update_order_meta', 'bbloomer_save_weight_order', 10, 1 ),
+			'admin weight'      => array( 'action', 'woocommerce_admin_order_data_after_billing_address', 'bbloomer_delivery_weight_display_admin_order_meta', 10, 1 ),
+		);
+	}
+
+	/**
+	 * Test that each hook is registered as a callback bound to this instance.
+	 *
+	 * The constructor originally registered all four callbacks as bare
 	 * function-name strings. Nothing in PHP or WordPress rejects that at
 	 * registration time — add_action() stores whatever it is given — so the
 	 * class instantiated cleanly and every direct-invocation test passed at
@@ -404,74 +425,45 @@ class SetupBusinessBloomerTest extends TestCase {
 	 * name that does not exist at global scope, which is why every product
 	 * surface returned HTTP 500 while the suite stayed green.
 	 *
-	 * Asserting on the shape of the callback, not just on the behaviour of
-	 * the method it points at, is what closes that gap.
+	 * Asserting on the shape of the registered callback, rather than only on
+	 * the behaviour of the method it points at, is what closes that gap.
 	 *
-	 * @param string $method Method name expected in the callback array.
-	 * @return \Mockery\Matcher\Closure
+	 * @param string $type     Either 'action' or 'filter'.
+	 * @param string $hook     Hook name.
+	 * @param string $method   Method expected to be bound to the hook.
+	 * @param int    $priority Expected priority.
+	 * @param int    $args     Expected accepted argument count.
+	 * @return void
 	 */
-	private function callback_to( $method ) {
-		return Mockery::on(
-			function ( $callback ) use ( $method ) {
-				return is_array( $callback )
-					&& 2 === count( $callback )
-					&& $callback[0] instanceof SetupBusinessBloomer
-					&& $method === $callback[1]
-					&& is_callable( $callback );
+	#[DataProvider( 'hook_registration_provider' )]
+	public function test_constructor_registers_hook_as_bound_callback( $type, $hook, $method, $priority, $args ) {
+		$captured = array();
+
+		$expectation = 'filter' === $type
+			? Filters\expectAdded( $hook )
+			: Actions\expectAdded( $hook );
+
+		$expectation->once()->whenHappen(
+			function ( $callback, $registered_priority, $accepted_args ) use ( &$captured ) {
+				$captured = array( $callback, $registered_priority, $accepted_args );
 			}
 		);
-	}
 
-	/**
-	 * Test that the product date action is registered as a bound callback.
-	 *
-	 * @return void
-	 */
-	public function test_constructor_registers_product_date_action() {
-		Actions\expectAdded( 'woocommerce_single_product_summary' )
-			->once()
-			->with( $this->callback_to( 'bloomer_echo_product_date' ), 25 );
+		$bloomer = new SetupBusinessBloomer();
 
-		new SetupBusinessBloomer();
-	}
+		$this->assertNotEmpty( $captured, sprintf( 'Hook "%s" was never registered.', $hook ) );
 
-	/**
-	 * Test that the price filter is registered as a bound callback.
-	 *
-	 * @return void
-	 */
-	public function test_constructor_registers_price_filter() {
-		Filters\expectAdded( 'woocommerce_get_price_html' )
-			->once()
-			->with( $this->callback_to( 'bbloomer_hide_price_if_out_stock_frontend' ), 9999, 2 );
-
-		new SetupBusinessBloomer();
-	}
-
-	/**
-	 * Test that the order weight save action is registered as a bound callback.
-	 *
-	 * @return void
-	 */
-	public function test_constructor_registers_save_weight_action() {
-		Actions\expectAdded( 'woocommerce_checkout_update_order_meta' )
-			->once()
-			->with( $this->callback_to( 'bbloomer_save_weight_order' ) );
-
-		new SetupBusinessBloomer();
-	}
-
-	/**
-	 * Test that the admin order weight display action is registered as a bound callback.
-	 *
-	 * @return void
-	 */
-	public function test_constructor_registers_admin_weight_display_action() {
-		Actions\expectAdded( 'woocommerce_admin_order_data_after_billing_address' )
-			->once()
-			->with( $this->callback_to( 'bbloomer_delivery_weight_display_admin_order_meta' ), 10, 1 );
-
-		new SetupBusinessBloomer();
+		// The bound instance must be the object that did the registering, not
+		// merely some SetupBusinessBloomer — a callback bound to a different
+		// instance would dispatch, but against the wrong object.
+		$this->assertSame(
+			array( $bloomer, $method ),
+			$captured[0],
+			sprintf( 'Hook "%s" must be bound to $this and method "%s".', $hook, $method )
+		);
+		$this->assertIsCallable( $captured[0], sprintf( 'Callback for "%s" is not invocable.', $hook ) );
+		$this->assertSame( $priority, $captured[1], sprintf( 'Wrong priority for "%s".', $hook ) );
+		$this->assertSame( $args, $captured[2], sprintf( 'Wrong accepted arg count for "%s".', $hook ) );
 	}
 
 	/**
@@ -497,19 +489,43 @@ class SetupBusinessBloomerTest extends TestCase {
 		Actions\expectAdded( 'woocommerce_checkout_update_order_meta' )->once()->whenHappen( $capture );
 		Actions\expectAdded( 'woocommerce_admin_order_data_after_billing_address' )->once()->whenHappen( $capture );
 
-		new SetupBusinessBloomer();
+		$bloomer = new SetupBusinessBloomer();
 
 		$this->assertCount( 4, $registered, 'Expected all four hooks to be registered.' );
 
 		foreach ( $registered as $callback ) {
+			// describe_callback() must not itself fatal on a malformed callback:
+			// this runs on the failure path, and a formatter that throws would
+			// replace the real assertion message with an unrelated TypeError.
 			$this->assertIsCallable(
 				$callback,
 				sprintf(
 					'Registered callback %s is not invocable; WordPress would fatal on it.',
-					is_array( $callback ) ? implode( '::', array( get_class( $callback[0] ), $callback[1] ) ) : var_export( $callback, true )
+					$this->describe_callback( $callback )
 				)
 			);
+			$this->assertSame( $bloomer, $callback[0], 'Callback is bound to the wrong instance.' );
 		}
+	}
+
+	/**
+	 * Render any callback as a readable string, without assuming its shape.
+	 *
+	 * @param mixed $callback Whatever was registered.
+	 * @return string
+	 */
+	private function describe_callback( $callback ) {
+		if ( is_string( $callback ) ) {
+			return sprintf( 'string("%s")', $callback );
+		}
+
+		if ( is_array( $callback ) && 2 === count( $callback ) ) {
+			$target = is_object( $callback[0] ) ? get_class( $callback[0] ) : var_export( $callback[0], true );
+
+			return sprintf( '%s::%s', $target, is_string( $callback[1] ) ? $callback[1] : var_export( $callback[1], true ) );
+		}
+
+		return get_debug_type( $callback );
 	}
 
 	/**
@@ -536,7 +552,16 @@ class SetupBusinessBloomerTest extends TestCase {
 				}
 			);
 
-		new SetupBusinessBloomer();
+		$bloomer = new SetupBusinessBloomer();
+
+		// Assert the capture succeeded before dispatching. Without this, a
+		// filter that was never registered fails as a TypeError from
+		// call_user_func_array( null, ... ), which hides the actual cause.
+		$this->assertSame(
+			array( $bloomer, 'bbloomer_hide_price_if_out_stock_frontend' ),
+			$callback,
+			'The price filter was not registered as a bound callback.'
+		);
 
 		Functions\when( 'is_admin' )->justReturn( false );
 

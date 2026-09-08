@@ -94,16 +94,22 @@ class SetupBusinessBloomer {
 
 		$weight = WC()->cart->get_cart_contents_weight();
 		$order->update_meta_data( '_cart_weight', $weight );
-		$order->save();
+
+		// save_meta_data(), not save(). By the time this hook fires the order
+		// has already been created and persisted, so a full save() would issue
+		// a second order write and fire woocommerce_update_order — which can
+		// dispatch order.updated webhooks to integrations while payment is
+		// still being processed. Only the meta is dirty, so only the meta is
+		// written. This is HPOS-safe in the same way update_meta_data() is.
+		$order->save_meta_data();
 	}
 
 	/**
-	 * Save Order Total Weight - WooCommerce Order
+	 * Display Order Total Weight - WooCommerce Admin Order Screen
 	 *
 	 * @author        Rodolfo Melogli
 	 * @compatible    WooCommerce 3.6.4
-	 * @p
-	 * @param int $order Order.
+	 * @param \WC_Order $order Order object passed by the admin order data hook.
 	 */
 	public function bbloomer_delivery_weight_display_admin_order_meta( $order ) {
 		// Read through the order object for the same HPOS reason as the write.
