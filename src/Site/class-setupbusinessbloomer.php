@@ -22,10 +22,10 @@ class SetupBusinessBloomer {
 	 * Constructor
 	 */
 	public function __construct() {
-		add_action( 'woocommerce_single_product_summary', 'bloomer_echo_product_date', 25 );
-		add_filter( 'woocommerce_get_price_html', 'bbloomer_hide_price_if_out_stock_frontend', 9999, 2 );
-		add_action( 'woocommerce_checkout_update_order_meta', 'bbloomer_save_weight_order' );
-		add_action( 'woocommerce_admin_order_data_after_billing_address', 'bbloomer_delivery_weight_display_admin_order_meta', 10, 1 );
+		add_action( 'woocommerce_single_product_summary', array( $this, 'bloomer_echo_product_date' ), 25 );
+		add_filter( 'woocommerce_get_price_html', array( $this, 'bbloomer_hide_price_if_out_stock_frontend' ), 9999, 2 );
+		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'bbloomer_save_weight_order' ) );
+		add_action( 'woocommerce_admin_order_data_after_billing_address', array( $this, 'bbloomer_delivery_weight_display_admin_order_meta' ), 10, 1 );
 	}
 
 	/**
@@ -36,9 +36,24 @@ class SetupBusinessBloomer {
 	 * @donate $9     https://businessbloomer.com/bloomer-armada/
 	 */
 	public function bloomer_echo_product_date() {
-		if ( true === is_product() ) {
-			printf( '%s', esc_html( the_modified_date( '', '<span class="single_product_date_published">Updated: ', '</span>', false ) ) );
+		if ( true !== is_product() ) {
+			return;
 		}
+
+		// Ask for the bare date and build the markup in the format string.
+		// Passing the <span> to the_modified_date() and then running the whole
+		// thing through esc_html() escapes our own tags, which renders the
+		// literal markup to the shopper.
+		$modified_date = the_modified_date( '', '', '', false );
+
+		if ( empty( $modified_date ) ) {
+			return;
+		}
+
+		printf(
+			'<span class="single_product_date_published">Updated: %s</span>',
+			esc_html( $modified_date )
+		);
 	}
 
 	/**
@@ -67,19 +82,50 @@ class SetupBusinessBloomer {
 	 * @param int $order_id Order ID.
 	 */
 	public function bbloomer_save_weight_order( $order_id ) {
+		// Written through the order object rather than update_post_meta() so it
+		// works under High-Performance Order Storage. With custom order tables
+		// enabled, post meta written against an order id is not where
+		// WooCommerce looks for it, and the value silently goes missing.
+		$order = wc_get_order( $order_id );
+
+		if ( false === $order ) {
+			return;
+		}
+
 		$weight = WC()->cart->get_cart_contents_weight();
-		update_post_meta( $order_id, '_cart_weight', $weight );
+		$order->update_meta_data( '_cart_weight', $weight );
+
+		// save_meta_data(), not save(). By the time this hook fires the order
+		// has already been created and persisted, so a full save() would issue
+		// a second order write and fire woocommerce_update_order — which can
+		// dispatch order.updated webhooks to integrations while payment is
+		// still being processed. Only the meta is dirty, so only the meta is
+		// written. This is HPOS-safe in the same way update_meta_data() is.
+		$order->save_meta_data();
 	}
 
 	/**
-	 * Save Order Total Weight - WooCommerce Order
+	 * Display Order Total Weight - WooCommerce Admin Order Screen
 	 *
 	 * @author        Rodolfo Melogli
 	 * @compatible    WooCommerce 3.6.4
-	 * @p
-	 * @param int $order Order.
+	 * @param \WC_Order $order Order object passed by the admin order data hook.
 	 */
 	public function bbloomer_delivery_weight_display_admin_order_meta( $order ) {
-		printf( '<p><strong>Order Weight:</strong> %s %s</p>', esc_html( get_post_meta( $order->get_id(), '_cart_weight', true ) ), esc_html( get_option( 'woocommerce_weight_unit' ) ) );
+		// Read through the order object for the same HPOS reason as the write.
+		$weight = $order->get_meta( '_cart_weight' );
+
+		// Every order placed before this hook worked has no stored weight, so
+		// print nothing rather than a bare "Order Weight:  lb". Zero is a real
+		// measurement and must still render, which rules out empty().
+		if ( '' === $weight || null === $weight ) {
+			return;
+		}
+
+		printf(
+			'<p><strong>Order Weight:</strong> %s %s</p>',
+			esc_html( $weight ),
+			esc_html( get_option( 'woocommerce_weight_unit' ) )
+		);
 	}
 }
