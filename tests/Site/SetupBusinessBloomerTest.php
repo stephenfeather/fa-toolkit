@@ -29,9 +29,11 @@ class SetupBusinessBloomerTest extends TestCase {
 			->once()
 			->andReturn( true );
 
+		// The markup is now built in the printf format string, so the date is
+		// requested bare — no before/after wrapper handed to the_modified_date().
 		Functions\expect( 'the_modified_date' )
 			->once()
-			->with( '', '<span class="single_product_date_published">Updated: ', '</span>', false )
+			->with( '', '', '', false )
 			->andReturn( 'January 1, 2026' );
 
 		// esc_html must be stubbed HERE, not relied on from tests/bootstrap.php.
@@ -47,6 +49,61 @@ class SetupBusinessBloomerTest extends TestCase {
 
 		// Verify the date is output.
 		$this->assertStringContainsString( 'January 1, 2026', $output );
+	}
+
+	/**
+	 * Test that the product date renders real markup, not escaped markup.
+	 *
+	 * The original form wrapped esc_html() around a string that already
+	 * contained the <span>, so repairing the hook registration would have
+	 * shown shoppers the literal tag text on every product page. This asserts
+	 * the span survives as markup and that no escaped angle bracket appears.
+	 *
+	 * @return void
+	 */
+	public function test_bloomer_echo_product_date_outputs_unescaped_markup() {
+		Functions\expect( 'is_product' )->once()->andReturn( true );
+
+		Functions\expect( 'the_modified_date' )
+			->once()
+			->with( '', '', '', false )
+			->andReturn( 'January 1, 2026' );
+
+		Functions\when( 'esc_html' )->returnArg();
+
+		$bloomer = new SetupBusinessBloomer();
+
+		ob_start();
+		$bloomer->bloomer_echo_product_date();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString(
+			'<span class="single_product_date_published">Updated: January 1, 2026</span>',
+			$output
+		);
+		$this->assertStringNotContainsString( '&lt;span', $output );
+	}
+
+	/**
+	 * Test that the product date prints nothing when no date is available.
+	 *
+	 * @return void
+	 */
+	public function test_bloomer_echo_product_date_skips_empty_date() {
+		Functions\expect( 'is_product' )->once()->andReturn( true );
+
+		Functions\expect( 'the_modified_date' )
+			->once()
+			->with( '', '', '', false )
+			->andReturn( '' );
+
+		$bloomer = new SetupBusinessBloomer();
+
+		ob_start();
+		$bloomer->bloomer_echo_product_date();
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output, 'An empty date must not produce an empty span.' );
 	}
 
 	/**
@@ -163,12 +220,44 @@ class SetupBusinessBloomerTest extends TestCase {
 			->once()
 			->andReturn( $wc );
 
-		Functions\expect( 'update_post_meta' )
+		// HPOS-safe: the weight goes through the order object's CRUD methods,
+		// not update_post_meta(). With custom order tables enabled, a post-meta
+		// write against an order id does not land where WooCommerce reads it.
+		$order = Mockery::mock( 'WC_Order' );
+		$order->shouldReceive( 'update_meta_data' )
 			->once()
-			->with( 123, '_cart_weight', 12.5 );
+			->with( '_cart_weight', 12.5 );
+		$order->shouldReceive( 'save' )->once();
+
+		Functions\expect( 'wc_get_order' )
+			->once()
+			->with( 123 )
+			->andReturn( $order );
+
+		Functions\expect( 'update_post_meta' )->never();
 
 		$bloomer = new SetupBusinessBloomer();
 		$bloomer->bbloomer_save_weight_order( 123 );
+	}
+
+	/**
+	 * Test that save_weight_order bails when the order cannot be loaded.
+	 *
+	 * @return void
+	 */
+	public function test_save_weight_order_bails_on_missing_order() {
+		Functions\expect( 'wc_get_order' )
+			->once()
+			->with( 404 )
+			->andReturn( false );
+
+		Functions\expect( 'WC' )->never();
+
+		$bloomer = new SetupBusinessBloomer();
+		$bloomer->bbloomer_save_weight_order( 404 );
+
+		// Reaching here without a fatal on false->update_meta_data() is the assertion.
+		$this->assertTrue( true );
 	}
 
 	/**
@@ -189,9 +278,16 @@ class SetupBusinessBloomerTest extends TestCase {
 			->once()
 			->andReturn( $wc );
 
-		Functions\expect( 'update_post_meta' )
+		$order = Mockery::mock( 'WC_Order' );
+		$order->shouldReceive( 'update_meta_data' )
 			->once()
-			->with( 456, '_cart_weight', 0 );
+			->with( '_cart_weight', 0 );
+		$order->shouldReceive( 'save' )->once();
+
+		Functions\expect( 'wc_get_order' )
+			->once()
+			->with( 456 )
+			->andReturn( $order );
 
 		$bloomer = new SetupBusinessBloomer();
 		$bloomer->bbloomer_save_weight_order( 456 );
@@ -204,14 +300,12 @@ class SetupBusinessBloomerTest extends TestCase {
 	 */
 	public function test_delivery_weight_display_outputs_weight() {
 		$order = Mockery::mock( 'WC_Order' );
-		$order->shouldReceive( 'get_id' )
+		$order->shouldReceive( 'get_meta' )
 			->once()
-			->andReturn( 789 );
-
-		Functions\expect( 'get_post_meta' )
-			->once()
-			->with( 789, '_cart_weight', true )
+			->with( '_cart_weight' )
 			->andReturn( '15.75' );
+
+		Functions\expect( 'get_post_meta' )->never();
 
 		Functions\expect( 'get_option' )
 			->once()
@@ -239,33 +333,22 @@ class SetupBusinessBloomerTest extends TestCase {
 	}
 
 	/**
-	 * Test that bbloomer_delivery_weight_display_admin_order_meta handles empty weight.
+	 * Test that the admin weight display prints nothing when meta is absent.
+	 *
+	 * Every order placed before this hook worked has no _cart_weight, which is
+	 * all of them. The previous behaviour printed a bare "Order Weight:  kg"
+	 * on each one. Absent meta must now render nothing at all.
 	 *
 	 * @return void
 	 */
 	public function test_delivery_weight_display_handles_empty_weight() {
 		$order = Mockery::mock( 'WC_Order' );
-		$order->shouldReceive( 'get_id' )
+		$order->shouldReceive( 'get_meta' )
 			->once()
-			->andReturn( 999 );
-
-		Functions\expect( 'get_post_meta' )
-			->once()
-			->with( 999, '_cart_weight', true )
+			->with( '_cart_weight' )
 			->andReturn( '' );
 
-		Functions\expect( 'get_option' )
-			->once()
-			->with( 'woocommerce_weight_unit' )
-			->andReturn( 'kg' );
-
-		Functions\expect( 'esc_html' )
-			->times( 2 )
-			->andReturnUsing(
-				function ( $value ) {
-					return $value;
-				}
-			);
+		Functions\expect( 'get_option' )->never();
 
 		$bloomer = new SetupBusinessBloomer();
 
@@ -273,8 +356,39 @@ class SetupBusinessBloomerTest extends TestCase {
 		$bloomer->bbloomer_delivery_weight_display_admin_order_meta( $order );
 		$output = ob_get_clean();
 
-		// Verify output even with empty weight.
+		$this->assertEmpty( $output, 'Absent cart weight must render nothing.' );
+	}
+
+	/**
+	 * Test that a zero weight still renders.
+	 *
+	 * Zero is a real measurement, not absent meta, so the guard must not
+	 * swallow it — otherwise a genuinely weightless order looks unrecorded.
+	 *
+	 * @return void
+	 */
+	public function test_delivery_weight_display_renders_zero_weight() {
+		$order = Mockery::mock( 'WC_Order' );
+		$order->shouldReceive( 'get_meta' )
+			->once()
+			->with( '_cart_weight' )
+			->andReturn( 0 );
+
+		Functions\expect( 'get_option' )
+			->once()
+			->with( 'woocommerce_weight_unit' )
+			->andReturn( 'kg' );
+
+		Functions\when( 'esc_html' )->returnArg();
+
+		$bloomer = new SetupBusinessBloomer();
+
+		ob_start();
+		$bloomer->bbloomer_delivery_weight_display_admin_order_meta( $order );
+		$output = ob_get_clean();
+
 		$this->assertStringContainsString( '<strong>Order Weight:</strong>', $output );
+		$this->assertStringContainsString( '0', $output );
 		$this->assertStringContainsString( 'kg', $output );
 	}
 
