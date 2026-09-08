@@ -21,116 +21,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 class SetupBusinessBloomerTest extends TestCase {
 
 	/**
-	 * Test that bloomer_echo_product_date outputs date on product pages.
-	 *
-	 * @return void
-	 */
-	public function test_bloomer_echo_product_date_outputs_on_product_page() {
-		Functions\expect( 'is_product' )
-			->once()
-			->andReturn( true );
-
-		// The markup is now built in the printf format string, so the date is
-		// requested bare — no before/after wrapper handed to the_modified_date().
-		Functions\expect( 'the_modified_date' )
-			->once()
-			->with( '', '', '', false )
-			->andReturn( 'January 1, 2026' );
-
-		// esc_html must be stubbed HERE, not relied on from tests/bootstrap.php.
-		// Brain Monkey's setUp() resets every stub before each test, so the
-		// when( 'esc_html' ) call at bootstrap scope never reaches this test.
-		Functions\when( 'esc_html' )->returnArg();
-
-		$bloomer = new SetupBusinessBloomer();
-
-		ob_start();
-		$bloomer->bloomer_echo_product_date();
-		$output = ob_get_clean();
-
-		// Verify the date is output.
-		$this->assertStringContainsString( 'January 1, 2026', $output );
-	}
-
-	/**
-	 * Test that the product date renders real markup, not escaped markup.
-	 *
-	 * The original form wrapped esc_html() around a string that already
-	 * contained the <span>, so repairing the hook registration would have
-	 * shown shoppers the literal tag text on every product page. This asserts
-	 * the span survives as markup and that no escaped angle bracket appears.
-	 *
-	 * @return void
-	 */
-	public function test_bloomer_echo_product_date_outputs_unescaped_markup() {
-		Functions\expect( 'is_product' )->once()->andReturn( true );
-
-		Functions\expect( 'the_modified_date' )
-			->once()
-			->with( '', '', '', false )
-			->andReturn( 'January 1, 2026' );
-
-		Functions\when( 'esc_html' )->returnArg();
-
-		$bloomer = new SetupBusinessBloomer();
-
-		ob_start();
-		$bloomer->bloomer_echo_product_date();
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString(
-			'<span class="single_product_date_published">Updated: January 1, 2026</span>',
-			$output
-		);
-		$this->assertStringNotContainsString( '&lt;span', $output );
-	}
-
-	/**
-	 * Test that the product date prints nothing when no date is available.
-	 *
-	 * @return void
-	 */
-	public function test_bloomer_echo_product_date_skips_empty_date() {
-		Functions\expect( 'is_product' )->once()->andReturn( true );
-
-		Functions\expect( 'the_modified_date' )
-			->once()
-			->with( '', '', '', false )
-			->andReturn( '' );
-
-		$bloomer = new SetupBusinessBloomer();
-
-		ob_start();
-		$bloomer->bloomer_echo_product_date();
-		$output = ob_get_clean();
-
-		$this->assertEmpty( $output, 'An empty date must not produce an empty span.' );
-	}
-
-	/**
-	 * Test that bloomer_echo_product_date does nothing on non-product pages.
-	 *
-	 * @return void
-	 */
-	public function test_bloomer_echo_product_date_skips_non_product_page() {
-		Functions\expect( 'is_product' )
-			->once()
-			->andReturn( false );
-
-		Functions\expect( 'the_modified_date' )
-			->never();
-
-		$bloomer = new SetupBusinessBloomer();
-
-		ob_start();
-		$bloomer->bloomer_echo_product_date();
-		$output = ob_get_clean();
-
-		// Verify nothing is output.
-		$this->assertEmpty( $output );
-	}
-
-	/**
 	 * Test that bbloomer_hide_price_if_out_stock_frontend returns price on admin.
 	 *
 	 * @return void
@@ -406,7 +296,6 @@ class SetupBusinessBloomerTest extends TestCase {
 	 */
 	public static function hook_registration_provider() {
 		return array(
-			'product date'      => array( 'action', 'woocommerce_single_product_summary', 'bloomer_echo_product_date', 25, 1 ),
 			'price filter'      => array( 'filter', 'woocommerce_get_price_html', 'bbloomer_hide_price_if_out_stock_frontend', 9999, 2 ),
 			'save order weight' => array( 'action', 'woocommerce_checkout_update_order_meta', 'bbloomer_save_weight_order', 10, 1 ),
 			'admin weight'      => array( 'action', 'woocommerce_admin_order_data_after_billing_address', 'bbloomer_delivery_weight_display_admin_order_meta', 10, 1 ),
@@ -473,7 +362,7 @@ class SetupBusinessBloomerTest extends TestCase {
 	 * WordPress does not care what a callback looks like until it calls it,
 	 * and a bare string naming a method that exists only on the class fatals
 	 * at that moment. is_callable() on each registered callback is the cheap
-	 * check that would have caught all four at once.
+	 * check that would have caught all of them at once.
 	 *
 	 * @return void
 	 */
@@ -484,14 +373,13 @@ class SetupBusinessBloomerTest extends TestCase {
 			$registered[] = $callback;
 		};
 
-		Actions\expectAdded( 'woocommerce_single_product_summary' )->once()->whenHappen( $capture );
 		Filters\expectAdded( 'woocommerce_get_price_html' )->once()->whenHappen( $capture );
 		Actions\expectAdded( 'woocommerce_checkout_update_order_meta' )->once()->whenHappen( $capture );
 		Actions\expectAdded( 'woocommerce_admin_order_data_after_billing_address' )->once()->whenHappen( $capture );
 
 		$bloomer = new SetupBusinessBloomer();
 
-		$this->assertCount( 4, $registered, 'Expected all four hooks to be registered.' );
+		$this->assertCount( 3, $registered, 'Expected all three hooks to be registered.' );
 
 		foreach ( $registered as $callback ) {
 			// describe_callback() must not itself fatal on a malformed callback:
