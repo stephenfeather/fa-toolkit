@@ -151,6 +151,22 @@ class CreateRemoteAttachmentsCommand {
 	/**
 	 * Products to process.
 	 *
+	 * Selected by the PRESENCE OF `_fa_media`, deliberately, and never by an
+	 * Akeneo uuid. That is not an oversight to be tidied up later.
+	 *
+	 * The import writes `_fa_media` keyed on `_fa_akeneo_uuid` and aborts
+	 * rather than guess when that is blank, so a product carrying the cell is
+	 * by construction a product the import positively identified. Selecting on
+	 * the cell inherits that guarantee for free.
+	 *
+	 * Selecting on a uuid instead would invite a specific and quiet failure.
+	 * This site carries products under an EARLIER meta key, `_akeneo_uuid`,
+	 * from an import profile that predates the `_fa_` prefix — 60 of them at
+	 * the time of writing, every one a duplicate of a canonical product with
+	 * the same uuid under the current key. A uuid check is exactly the place
+	 * someone later adds an `_akeneo_uuid` fallback "so we don't miss any",
+	 * and starts writing attachments onto both halves of every duplicate pair.
+	 *
 	 * @param array $assoc_args Flags.
 	 * @param int   $limit      Maximum products, 0 for all.
 	 * @return array<int, int>
