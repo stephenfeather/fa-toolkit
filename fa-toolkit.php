@@ -67,12 +67,25 @@ if ( false === class_exists( \FAToolkit\Admin\Custom_Admin_Menu::class ) ) {
 // they register nothing and leave no observable behaviour behind.)
 
 // Admin.
+//
+// Custom_Admin_Menu stays FIRST below the guard. The guard tests that exact
+// class, and its comment claims the tested class is the first one instantiated
+// — put anything ahead of it and that claim quietly stops being true.
 new \FAToolkit\Admin\Custom_Admin_Menu();
 new \FAToolkit\Admin\Attachment_SHA256_Hash_Meta_Box();
 new \FAToolkit\Admin\Product_Display_Vendor();
 new \FAToolkit\Admin\Product_Display_Id();
 new \FAToolkit\Admin\Product_Category_Counts();
 new \FAToolkit\Admin\Admin_Meta_Boxes();
+
+// WooCommerce feature compatibility.
+//
+// Sits BELOW the guard, with the other side effects, rather than above it with
+// the constants. Registering a hook is a side effect, and the invariant above
+// admits no exceptions. Nothing is lost by it: if the guard bails, the plugin
+// registers nothing and touches no orders, so having made no claim is correct
+// rather than merely acceptable.
+new \FAToolkit\Compat\HposCompatibility();
 
 // Media.
 new \FAToolkit\Media\AutoAttachUploadedMedia();
