@@ -148,6 +148,7 @@ if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\CLI\Media\FindMediaForProductCommand();
 	new \FAToolkit\CLI\Media\AttachMediaToDraftProductsCommand();
 	new \FAToolkit\CLI\Media\ExportDraftProductImageSourcesCommand();
+	new \FAToolkit\CLI\Media\CreateRemoteAttachmentsCommand();
 	// Scrape_Product_Data_Command registers its own command at file scope
 	// (src/CLI/Commands/class-scrapeproductdata.php:155), outside the class
 	// body — so including the file IS the registration, and this class is not
