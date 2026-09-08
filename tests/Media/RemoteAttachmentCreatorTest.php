@@ -561,4 +561,81 @@ class RemoteAttachmentCreatorTest extends TestCase {
 		$row      = reset( $inserted );
 		$this->assertSame( 'image/png', $row['args']['post_mime_type'] );
 	}
+
+	/**
+	 * Test that a failed insert is not counted as created.
+	 *
+	 * `created` is the number an operator reads to decide whether a run
+	 * worked. Counting an attachment that was never made reports success for
+	 * a product that ended up with nothing.
+	 *
+	 * @return void
+	 */
+	public function test_failed_insert_is_not_counted_as_created() {
+		$this->stub_wp();
+		Functions\when( 'wp_insert_attachment' )->justReturn( 0 );
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$result  = $creator->create_for_product( 55, $this->cell() );
+
+		$this->assertSame( 0, $result['created'] );
+		$this->assertSame( 2, $result['failed'] );
+	}
+
+	/**
+	 * Test that all-inserts-failed is reported, not silently passed over.
+	 *
+	 * Every URL was reachable, so the unreachable count is zero — the product
+	 * still ended up with no images and has to appear in the report.
+	 *
+	 * @return void
+	 */
+	public function test_all_inserts_failing_reports_no_usable_image() {
+		$this->stub_wp();
+		Functions\when( 'wp_insert_attachment' )->justReturn( 0 );
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$result  = $creator->create_for_product( 55, $this->cell() );
+
+		$this->assertTrue( $result['no_usable_image'] );
+		$this->assertSame( 0, $result['unreachable'] );
+	}
+
+	/**
+	 * Test that a failed insert does NOT clear existing wiring.
+	 *
+	 * The distinction that matters: a dead URL is a durable fact about the
+	 * image and justifies clearing, but a failed insert is a transient fact
+	 * about this run. Deleting a product's wiring because our own write failed
+	 * turns a retryable error into data loss.
+	 *
+	 * @return void
+	 */
+	public function test_failed_insert_does_not_clear_existing_wiring() {
+		$ref = $this->stub_wp();
+		Functions\when( 'wp_insert_attachment' )->justReturn( 0 );
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$creator->create_for_product( 55, $this->cell() );
+
+		$this->assertSame( array(), (array) $ref['deleted'], 'A transient write failure must not destroy wiring.' );
+	}
+
+	/**
+	 * Test that a WP_Error from wp_insert_attachment is handled like a failure.
+	 *
+	 * @return void
+	 */
+	public function test_wp_error_insert_is_treated_as_failure() {
+		$this->stub_wp();
+		Functions\when( 'wp_insert_attachment' )->justReturn( 'error-object' );
+		Functions\when( 'is_wp_error' )->justReturn( true );
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$result  = $creator->create_for_product( 55, $this->cell() );
+
+		$this->assertSame( 0, $result['created'] );
+		$this->assertSame( 2, $result['failed'] );
+		$this->assertTrue( $result['no_usable_image'] );
+	}
 }

@@ -92,7 +92,7 @@ class CreateRemoteAttachmentsCommand {
 		);
 		$creator->set_dry_run( $dry_run );
 
-		$totals  = array( 'created' => 0, 'existing' => 0, 'unreachable' => 0 );
+		$totals  = array( 'created' => 0, 'existing' => 0, 'unreachable' => 0, 'failed' => 0 );
 		$stranded = array();
 
 		$progress = \WP_CLI\Utils\make_progress_bar( 'Creating attachments', count( $product_ids ) );
@@ -104,6 +104,7 @@ class CreateRemoteAttachmentsCommand {
 			$totals['created']     += $result['created'];
 			$totals['existing']    += $result['existing'];
 			$totals['unreachable'] += $result['unreachable'];
+			$totals['failed']      += $result['failed'];
 
 			if ( true === $result['no_usable_image'] ) {
 				$stranded[] = $product_id;
@@ -116,11 +117,12 @@ class CreateRemoteAttachmentsCommand {
 
 		\WP_CLI::log(
 			sprintf(
-				'products %d | attachments created %d | already present %d | unreachable urls %d',
+				'products %d | attachments created %d | already present %d | unreachable urls %d | insert failures %d',
 				count( $product_ids ),
 				$totals['created'],
 				$totals['existing'],
-				$totals['unreachable']
+				$totals['unreachable'],
+				$totals['failed']
 			)
 		);
 
@@ -130,6 +132,12 @@ class CreateRemoteAttachmentsCommand {
 		if ( array() !== $stranded ) {
 			\WP_CLI::warning( sprintf( '%d products have no reachable image:', count( $stranded ) ) );
 			\WP_CLI::log( implode( ',', $stranded ) );
+		}
+
+		// Surfaced separately from unreachable URLs: a write failure is ours and
+		// is retryable, a dead URL is the data's and is not.
+		if ( 0 < $totals['failed'] ) {
+			\WP_CLI::warning( sprintf( '%d attachments failed to insert. Re-running is safe and will retry them.', $totals['failed'] ) );
 		}
 
 		if ( true === $dry_run ) {

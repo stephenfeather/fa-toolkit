@@ -79,13 +79,14 @@ class RemoteAttachmentCreator {
 	 *
 	 * @param int    $product_id Product post id.
 	 * @param string $raw_media  Raw `_fa_media` postmeta value.
-	 * @return array{created:int,existing:int,unreachable:int,no_usable_image:bool}
+	 * @return array{created:int,existing:int,unreachable:int,failed:int,no_usable_image:bool}
 	 */
 	public function create_for_product( $product_id, $raw_media ) {
 		$result = array(
 			'created'         => 0,
 			'existing'        => 0,
 			'unreachable'     => 0,
+			'failed'          => 0,
 			'no_usable_image' => false,
 		);
 
@@ -125,33 +126,48 @@ class RemoteAttachmentCreator {
 				continue;
 			}
 
-			++$result['created'];
-
 			if ( true === $this->dry_run ) {
 				// A placeholder id, so the bookkeeping below sees that this
 				// product WOULD have images. Without it a dry run reports
 				// no_usable_image on a product whose images are perfectly fine.
+				++$result['created'];
 				$attachment_ids[] = 0;
 				continue;
 			}
 
 			$inserted = $this->insert( $product_id, $entry );
 
+			// Counted only once it exists. Incrementing before the insert
+			// reports attachments that were never created, which is the one
+			// number an operator uses to decide whether a run worked.
 			if ( $inserted > 0 ) {
+				++$result['created'];
 				$attachment_ids[] = $inserted;
+				continue;
 			}
+
+			++$result['failed'];
 		}
 
 		if ( array() === $attachment_ids ) {
-			// Every image was unreachable. Clear any wiring from an earlier run
-			// as well as declining to add new: leaving _thumbnail_id pointing at
-			// an attachment whose URL has since died renders a broken image and
-			// looks deliberate, which is the one outcome worse than the
-			// placeholder. Without this, --recheck-all cannot repair the exact
-			// previously-good-then-dead case it exists for.
-			$result['no_usable_image'] = 0 < $result['unreachable'];
+			// The product HAS images — has_images() returned true above — and not
+			// one of them produced an attachment. Report it whatever the cause,
+			// so an operator sees a product that ended up with nothing.
+			$result['no_usable_image'] = true;
 
-			if ( true !== $this->dry_run && true === $result['no_usable_image'] ) {
+			// But only CLEAR existing wiring when the cause is a dead URL.
+			//
+			// The two causes are not alike. An unreachable URL is a durable fact
+			// about the image: it will still be dead next run, and leaving
+			// _thumbnail_id pointing at it renders a broken image that looks
+			// deliberate. A failed insert is a transient fact about this run —
+			// a database hiccup, a full disk — and the images are fine. Deleting
+			// a product's wiring because our own write failed would turn a
+			// retryable error into data loss, and the next successful run would
+			// have to rebuild what we destroyed.
+			$clear = true !== $this->dry_run && 0 < $result['unreachable'] && 0 === $result['failed'];
+
+			if ( true === $clear ) {
 				delete_post_meta( $product_id, '_thumbnail_id' );
 				delete_post_meta( $product_id, '_product_image_gallery' );
 			}
