@@ -107,6 +107,7 @@ class RemoteAttachmentCreatorTest extends TestCase {
 		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'wp_update_post' )->justReturn( 1 );
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+		Functions\when( 'wp_basename' )->alias( 'basename' );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 
 		return $ref;
@@ -637,5 +638,95 @@ class RemoteAttachmentCreatorTest extends TestCase {
 		$this->assertSame( 0, $result['created'] );
 		$this->assertSame( 2, $result['failed'] );
 		$this->assertTrue( $result['no_usable_image'] );
+	}
+
+	/**
+	 * Test that WordPress's own metadata rows are STORED, not filtered.
+	 *
+	 * This is the defect the first live batch found. `wp_get_attachment_metadata()`
+	 * returns false before applying its own filter when `_wp_attachment_metadata`
+	 * is missing, so a filter cannot supply metadata for an attachment that has
+	 * none. Without a real row, `srcset` and `sizes` are silently absent on every
+	 * rendered page while the unit tests for those callbacks pass, because they
+	 * call the callbacks directly and nothing checks that WordPress reaches them.
+	 *
+	 * @return void
+	 */
+	public function test_stores_real_wordpress_attachment_metadata() {
+		$ref = $this->stub_wp();
+
+		$cell = $this->cell( array( 'width' => 1200, 'height' => 600 ) );
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$creator->create_for_product( 55, $cell );
+
+		$meta = (array) $ref['meta'];
+
+		$this->assertArrayHasKey( '100:_wp_attachment_metadata', $meta );
+		$stored = $meta['100:_wp_attachment_metadata'];
+
+		// The two conditions core checks before it will proceed.
+		$this->assertIsArray( $stored );
+		$this->assertNotEmpty( $stored['sizes'] );
+		$this->assertArrayHasKey( 'file', $stored );
+		$this->assertGreaterThanOrEqual( 4, strlen( $stored['file'] ) );
+
+		$this->assertSame( 1200, $stored['width'] );
+		$this->assertSame( 600, $stored['height'] );
+
+		// No candidate may exceed the original width.
+		foreach ( $stored['sizes'] as $size ) {
+			$this->assertLessThanOrEqual( 1200, $size['width'] );
+		}
+	}
+
+	/**
+	 * Test that _wp_attached_file is written.
+	 *
+	 * wp_attachment_is() calls get_attached_file() and returns false the moment
+	 * it is empty, so without this wp_attachment_is_image() is false for every
+	 * pointer attachment and anything gating on it silently skips them.
+	 *
+	 * @return void
+	 */
+	public function test_stores_attached_file_so_wordpress_treats_it_as_an_image() {
+		$ref = $this->stub_wp();
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$creator->create_for_product( 55, $this->cell( array( 'width' => 800, 'height' => 400 ) ) );
+
+		$this->assertSame( 'hero.jpg', ( (array) $ref['meta'] )['100:_wp_attached_file'] );
+	}
+
+	/**
+	 * Test that an image smaller than every candidate still gets a sizes entry.
+	 *
+	 * An empty `sizes` array fails core's guard just as a missing row does.
+	 *
+	 * @return void
+	 */
+	public function test_small_image_still_gets_a_sizes_entry() {
+		$ref = $this->stub_wp();
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$creator->create_for_product( 55, $this->cell( array( 'width' => 80, 'height' => 40 ) ) );
+
+		$stored = ( (array) $ref['meta'] )['100:_wp_attachment_metadata'];
+		$this->assertNotEmpty( $stored['sizes'] );
+	}
+
+	/**
+	 * Test that no WordPress metadata is invented without real dimensions.
+	 *
+	 * @return void
+	 */
+	public function test_no_wordpress_metadata_without_dimensions() {
+		$ref = $this->stub_wp();
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+		$creator->create_for_product( 55, $this->cell() );
+
+		$this->assertArrayNotHasKey( '100:_wp_attachment_metadata', (array) $ref['meta'] );
+		$this->assertArrayNotHasKey( '100:_wp_attached_file', (array) $ref['meta'] );
 	}
 }

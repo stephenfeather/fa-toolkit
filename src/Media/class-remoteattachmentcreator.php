@@ -239,6 +239,8 @@ class RemoteAttachmentCreator {
 		if ( isset( $entry['width'], $entry['height'] ) ) {
 			update_post_meta( $attachment_id, '_fa_remote_width', (int) $entry['width'] );
 			update_post_meta( $attachment_id, '_fa_remote_height', (int) $entry['height'] );
+
+			$this->write_wordpress_metadata( $attachment_id, $entry );
 		}
 
 		// Alt is written only when it is real. The titles are vendor filenames
@@ -248,6 +250,79 @@ class RemoteAttachmentCreator {
 		if ( '' !== (string) ( $entry['alt'] ?? '' ) ) {
 			update_post_meta( $attachment_id, '_wp_attachment_image_alt', $entry['alt'] );
 		}
+	}
+
+	/**
+	 * Write the metadata rows WordPress requires to treat this as an image.
+	 *
+	 * Stored, not filtered — and that distinction was learned the hard way.
+	 *
+	 * `wp_get_attachment_metadata()` reads `_wp_attachment_metadata` and
+	 * returns false BEFORE applying its own `wp_get_attachment_metadata`
+	 * filter when the row is missing or not an array. A filter therefore
+	 * cannot supply metadata for an attachment that has none, which is
+	 * precisely the case here. Everything downstream depends on it:
+	 * `wp_calculate_image_srcset()` guards on `sizes` and `file`, and
+	 * `wp_calculate_image_sizes()` resolves a named size through it — so
+	 * without a real row, srcset and sizes are silently absent on rendered
+	 * pages while every unit test that calls the callbacks directly passes.
+	 *
+	 * `_wp_attached_file` is written for the same class of reason:
+	 * `wp_attachment_is()` calls `get_attached_file()` and returns false
+	 * immediately when it is empty, so without it `wp_attachment_is_image()`
+	 * is false for every one of these and anything gating on it skips them.
+	 *
+	 * The stored `sizes` are nominal. Core would otherwise build size URLs by
+	 * swapping the basename within a directory, which is wrong for a transform
+	 * carried in a query string — the RemoteAttachmentUrls filters replace the
+	 * URLs. These entries exist so core proceeds far enough to ask.
+	 *
+	 * @param int   $attachment_id Attachment id.
+	 * @param array $entry         Media entry, known to carry width and height.
+	 * @return void
+	 */
+	private function write_wordpress_metadata( $attachment_id, array $entry ) {
+		$width  = (int) $entry['width'];
+		$height = (int) $entry['height'];
+		$file   = wp_basename( (string) wp_parse_url( $entry['url'], PHP_URL_PATH ) );
+		$mime   = $this->mime_type( $entry['url'] );
+
+		$sizes = array();
+
+		foreach ( array( 150, 300, 600, 768, 1024, 1536 ) as $candidate ) {
+			if ( $candidate > $width ) {
+				continue;
+			}
+
+			$sizes[ 'fa-' . $candidate ] = array(
+				'file'      => $file,
+				'width'     => $candidate,
+				'height'    => (int) round( $height * ( $candidate / $width ) ),
+				'mime-type' => $mime,
+			);
+		}
+
+		if ( array() === $sizes ) {
+			// Smaller than every candidate. One entry so core's guard clears.
+			$sizes['fa-full'] = array(
+				'file'      => $file,
+				'width'     => $width,
+				'height'    => $height,
+				'mime-type' => $mime,
+			);
+		}
+
+		update_post_meta( $attachment_id, '_wp_attached_file', $file );
+		update_post_meta(
+			$attachment_id,
+			'_wp_attachment_metadata',
+			array(
+				'width'  => $width,
+				'height' => $height,
+				'file'   => $file,
+				'sizes'  => $sizes,
+			)
+		);
 	}
 
 	/**

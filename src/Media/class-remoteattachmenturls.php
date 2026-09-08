@@ -30,6 +30,24 @@ if ( defined( 'ABSPATH' ) === false ) {
  *
  * Every method returns its input untouched for attachments that are not ours.
  * These filters run for every attachment on the site.
+ *
+ * ---
+ *
+ * A rule this class was written the hard way, three times over:
+ *
+ *   "My callback is correct" and "core reaches my callback" are independent
+ *   questions, and only the second is answered by loading a page.
+ *
+ * This plugin shipped four hooks registered with bare function-name strings
+ * that never fired under 100% coverage. The fix for that shipped a srcset
+ * filter core never invokes, because wp_calculate_image_srcset() returns false
+ * before applying it. The fix for THAT shipped a wp_get_attachment_metadata
+ * filter core never invokes, because wp_get_attachment_metadata() also returns
+ * false before applying its own filter — found only by looking at a rendered
+ * page. Metadata is now STORED by RemoteAttachmentCreator rather than filtered.
+ *
+ * A unit test that calls a callback directly proves the callback. It proves
+ * nothing about whether WordPress will ever call it.
  */
 class RemoteAttachmentUrls {
 
