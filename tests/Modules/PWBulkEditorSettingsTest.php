@@ -167,10 +167,12 @@ class PWBulkEditorSettingsTest extends TestCase {
 	 * Test pwbe_results_product_acf_dealer sets acf_dealer property.
 	 */
 	public function test_pwbe_results_product_acf_dealer() {
-		Functions\expect( 'get_field' )
+		// The distributor is the _fa_vendor slug written by the import (issue #77).
+		Functions\expect( 'get_post_meta' )
 			->once()
-			->with( 'dealer', 123 )
-			->andReturn( 'Test Dealer' );
+			->with( 123, '_fa_vendor', true )
+			->andReturn( 'cssi' );
+		Functions\expect( 'get_field' )->never();
 
 		$settings = new PWBulkEditorSettings();
 
@@ -181,7 +183,7 @@ class PWBulkEditorSettingsTest extends TestCase {
 
 		$result = $settings->pwbe_results_product_acf_dealer( $product, $column );
 
-		$this->assertSame( 'Test Dealer', $result->acf_dealer );
+		$this->assertSame( 'cssi', $result->acf_dealer );
 	}
 
 	/**

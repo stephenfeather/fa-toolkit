@@ -8,6 +8,8 @@
 
 namespace FAToolkit\Modules;
 
+use FAToolkit\Product\Product_Meta;
+
 /**
  * PW Bulk Editor Settings.
  */
@@ -96,7 +98,7 @@ class PWBulkEditorSettings {
 	public function pwbe_results_product_acf_upc( $pwbe_product, $column ) {
 		if ( 'acf_upc_code' === $column['field'] ) {
 			// WooCommerce's GTIN meta, written by the import (issue #77).
-			$result = get_post_meta( $pwbe_product->post_id, '_global_unique_id', true );
+			$result = get_post_meta( $pwbe_product->post_id, Product_Meta::GTIN, true );
 			// TODO: writes the UPC into acf_dealer, not a upc property; pre-existing, see follow-up issue.
 			$pwbe_product->acf_dealer = $result;
 		}
@@ -112,8 +114,7 @@ class PWBulkEditorSettings {
 	 */
 	public function pwbe_results_product_acf_dealer( $pwbe_product, $column ) {
 		if ( 'acf_dealer' === $column['field'] ) {
-			$result                   = get_field( 'dealer', $pwbe_product->post_id );
-			$pwbe_product->acf_dealer = $result;
+			$pwbe_product->acf_dealer = Product_Meta::vendor( $pwbe_product->post_id );
 		}
 
 		return $pwbe_product;

@@ -45,7 +45,7 @@ class Bard_Meta_Box {
 	public function render_meta_box( $post ) {
 		$title  = $post->post_title;
 		$sku    = get_post_meta( $post->ID, '_sku', true );
-		$upc    = get_post_meta( $post->ID, '_global_unique_id', true );
+		$upc    = get_post_meta( $post->ID, Product_Meta::GTIN, true );
 		$brands = wp_get_post_terms( $post->ID, 'pwb-brand' );
 		$brand  = $brands[0]->name;
 
