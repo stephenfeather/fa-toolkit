@@ -3,7 +3,7 @@
  * Serves attachment URLs for images that live on s3, not on disk.
  *
  * @package    fa-toolkit
- * @since 1.0.9
+ * @since 1.2.0
  */
 
 namespace FAToolkit\Media;

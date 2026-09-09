@@ -3,7 +3,7 @@
  * Turns a product's `_fa_media` cell into WooCommerce attachments.
  *
  * @package    fa-toolkit
- * @since 1.0.9
+ * @since 1.2.0
  */
 
 namespace FAToolkit\Media;

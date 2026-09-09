@@ -3,7 +3,7 @@
  * CLI command to find media attachments matching product SKU.
  *
  * @package FA-Toolkit
- * @since 1.0.9
+ * @since 1.2.0
  */
 
 namespace FAToolkit\CLI\Media;

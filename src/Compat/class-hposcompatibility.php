@@ -3,7 +3,7 @@
  * Declares this plugin's compatibility with WooCommerce opt-in features.
  *
  * @package    fa-toolkit
- * @since 1.0.9
+ * @since 1.2.0
  */
 
 namespace FAToolkit\Compat;

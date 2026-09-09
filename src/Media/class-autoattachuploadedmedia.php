@@ -7,7 +7,7 @@
  * a product's _unique_product_key meta value.
  *
  * @package FA-Toolkit
- * @since 1.0.9
+ * @since 1.2.0
  */
 
 namespace FAToolkit\Media;
