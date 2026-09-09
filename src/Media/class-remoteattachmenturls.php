@@ -52,13 +52,6 @@ if ( defined( 'ABSPATH' ) === false ) {
 class RemoteAttachmentUrls {
 
 	/**
-	 * Candidate widths advertised in srcset, when the original is big enough.
-	 *
-	 * @var array<int, int>
-	 */
-	private const SRCSET_WIDTHS = array( 150, 300, 600, 768, 1024, 1536 );
-
-	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -167,11 +160,7 @@ class RemoteAttachmentUrls {
 
 		$sizes = array();
 
-		foreach ( self::SRCSET_WIDTHS as $candidate ) {
-			if ( $candidate > $width ) {
-				continue;
-			}
-
+		foreach ( ImageSizeCandidates::up_to( $width ) as $candidate ) {
 			$sizes[ 'fa-' . $candidate ] = array(
 				'file'      => wp_basename( $remote ),
 				'width'     => $candidate,
@@ -335,11 +324,7 @@ class RemoteAttachmentUrls {
 		$original_width = $dimensions[0];
 		$candidates     = array();
 
-		foreach ( self::SRCSET_WIDTHS as $width ) {
-			if ( $width > $original_width ) {
-				continue;
-			}
-
+		foreach ( ImageSizeCandidates::up_to( $original_width ) as $width ) {
 			$candidates[ $width ] = array(
 				'url'        => $this->transform( $remote, $width ),
 				'descriptor' => 'w',

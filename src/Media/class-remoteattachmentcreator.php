@@ -289,11 +289,7 @@ class RemoteAttachmentCreator {
 
 		$sizes = array();
 
-		foreach ( array( 150, 300, 600, 768, 1024, 1536 ) as $candidate ) {
-			if ( $candidate > $width ) {
-				continue;
-			}
-
+		foreach ( ImageSizeCandidates::up_to( $width ) as $candidate ) {
 			$sizes[ 'fa-' . $candidate ] = array(
 				'file'      => $file,
 				'width'     => $candidate,

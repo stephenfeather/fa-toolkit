@@ -33,6 +33,16 @@ class RemoteAttachmentUrlsTest extends TestCase {
 	 * @return void
 	 */
 	private function stub_meta( $id, $url, $width = '', $height = '' ) {
+		Functions\when( 'wp_get_registered_image_subsizes' )->justReturn(
+			array(
+				'thumbnail'             => array( 'width' => 150, 'height' => 150, 'crop' => true ),
+				'medium'                => array( 'width' => 300, 'height' => 300, 'crop' => false ),
+				'woocommerce_single'    => array( 'width' => 600, 'height' => 0, 'crop' => false ),
+				'medium_large'          => array( 'width' => 768, 'height' => 0, 'crop' => false ),
+				'large'                 => array( 'width' => 1024, 'height' => 1024, 'crop' => false ),
+			)
+		);
+
 		Functions\when( 'wp_basename' )->alias(
 			function ( $path ) {
 				return basename( parse_url( $path, PHP_URL_PATH ) ?? $path );

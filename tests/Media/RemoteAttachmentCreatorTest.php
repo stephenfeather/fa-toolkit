@@ -106,6 +106,15 @@ class RemoteAttachmentCreatorTest extends TestCase {
 
 		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'wp_update_post' )->justReturn( 1 );
+		Functions\when( 'wp_get_registered_image_subsizes' )->justReturn(
+			array(
+				'thumbnail'             => array( 'width' => 150, 'height' => 150, 'crop' => true ),
+				'medium'                => array( 'width' => 300, 'height' => 300, 'crop' => false ),
+				'woocommerce_single'    => array( 'width' => 600, 'height' => 0, 'crop' => false ),
+				'medium_large'          => array( 'width' => 768, 'height' => 0, 'crop' => false ),
+				'large'                 => array( 'width' => 1024, 'height' => 1024, 'crop' => false ),
+			)
+		);
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
 		Functions\when( 'wp_basename' )->alias( 'basename' );
 		Functions\when( 'is_wp_error' )->justReturn( false );
