@@ -29,12 +29,12 @@ class FetchImportProductImageCommand {
 	 * @var array
 	 */
 	private const PLACEHOLDER_HASHES = array(
-		'3f92c3ba3e4237547a2c80fb2f06430860de4ffc0ee84d760c47dd62a15b7fc3', // woocommerce-placeholder.png
-		'48155cdbe9d9c8dc078b8e51b06c4b9fec7fd4dceaa36e181e55dc82abd74931', // gp40zLBc-woocommerce-placeholder.png
-		'75b8b48d7485cee17764f8b70b318136a4779bc38e8522279432cb327e0a448d', // prod handler PLACEHOLDER_HASHES[0]
-		'9896278cac434b24892b14c3fb8fb93f5b675fd6fab45c12e73bb43058ff648e', // prod handler PLACEHOLDER_HASHES[1]
-		'97e28fd1e99a48f854420bae4464fa74721e6143cb7a95a9ae7c31d68edb3de6', // known_placeholder_hashes[2]
-		'32455f50f3e20291850f8b00f17f3aa7ae52f0a5bffb79108888a6fc6c975f45', // RSR img.rsrgroup.com soft-404 body
+		'3f92c3ba3e4237547a2c80fb2f06430860de4ffc0ee84d760c47dd62a15b7fc3', // File woocommerce-placeholder.png.
+		'48155cdbe9d9c8dc078b8e51b06c4b9fec7fd4dceaa36e181e55dc82abd74931', // File gp40zLBc-woocommerce-placeholder.png.
+		'75b8b48d7485cee17764f8b70b318136a4779bc38e8522279432cb327e0a448d', // Prod handler placeholder hash 0.
+		'9896278cac434b24892b14c3fb8fb93f5b675fd6fab45c12e73bb43058ff648e', // Prod handler placeholder hash 1.
+		'97e28fd1e99a48f854420bae4464fa74721e6143cb7a95a9ae7c31d68edb3de6', // Legacy known placeholder hash 2.
+		'32455f50f3e20291850f8b00f17f3aa7ae52f0a5bffb79108888a6fc6c975f45', // RSR img.rsrgroup.com soft-404 body.
 	);
 
 	/**
@@ -191,7 +191,7 @@ class FetchImportProductImageCommand {
 
 		$image_data    = curl_exec( $ch ); // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_exec
 		$response_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE ); // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_getinfo
-		curl_close( $ch ); // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_close
+		// No curl_close(): a no-op since PHP 8.0 and deprecated in 8.5; the handle is freed when $ch goes out of scope.
 
 		if ( $response_code >= 400 ) {
 			\WP_CLI::error( "({$product_id}) HTTP Error: {$response_code}. {$image_source}" );

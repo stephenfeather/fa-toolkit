@@ -1,6 +1,4 @@
 <?php
-
-
 /**
  * FA Promotions
  *

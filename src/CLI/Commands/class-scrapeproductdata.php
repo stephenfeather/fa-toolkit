@@ -48,7 +48,12 @@ if ( true === class_exists( 'WP_CLI_Command' ) ) {
 			$html = wp_remote_get( $url );
 			$dom  = new \DOMDocument();
 
-			@$dom->loadHTML( $html['body'] );
+			// Scraped HTML is rarely well-formed; collect libxml's parse warnings
+			// instead of letting them print, then restore the prior mode.
+			$libxml_previous = libxml_use_internal_errors( true );
+			$dom->loadHTML( $html['body'] );
+			libxml_clear_errors();
+			libxml_use_internal_errors( $libxml_previous );
 			$title_element     = $dom->getElementsByTagName( 'h2' )->item( 0 );
 				$product_title = 'Case ' . $title_element->textContent; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 
@@ -88,8 +93,9 @@ if ( true === class_exists( 'WP_CLI_Command' ) ) {
 				$upload_dir = wp_upload_dir();
 				$image_path = $upload_dir['path'] . '/' . $image_name;
 
-				// Download the image.
-				file_put_contents( $image_path, file_get_contents( $image_url ) );
+				// Download the image. Direct filesystem and URL reads are deliberate in
+				// this CLI-only command; see #39 for its pending rewrite.
+				file_put_contents( $image_path, file_get_contents( $image_url ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
 				// Associate the image with the product gallery.
 				$attachment          = array(

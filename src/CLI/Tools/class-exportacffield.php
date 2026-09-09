@@ -95,7 +95,8 @@ class ExportACFField {
 	/**
 	 * Outputs the provided CSV data to a file and displays a success message.
 	 *
-	 * @param array $csv_data The data to be written to the CSV file.
+	 * @param array  $csv_data      The data to be written to the CSV file.
+	 * @param string $acf_field_key The postmeta key, used in the file name.
 	 * @return void
 	 */
 	private function output_csv_to_file( $csv_data, $acf_field_key ) {
@@ -105,11 +106,11 @@ class ExportACFField {
 		$filepath   = $upload_dir['path'] . '/' . $filename;
 		\WP_CLI::line( "Exported ACF field values to {$filepath}" );
 
-		// Open the file for writing.
-		$output = fopen( $filepath, 'w' );
+		// Open the file for writing. Direct filesystem calls are deliberate in this CLI-only command.
+		$output = fopen( $filepath, 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		foreach ( $csv_data as $row ) {
 			fputcsv( $output, $row );
 		}
-		fclose( $output );
+		fclose( $output ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 	}
 }

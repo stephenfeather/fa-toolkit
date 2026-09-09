@@ -64,8 +64,8 @@ if ( false === class_exists( \FAToolkit\Admin\Custom_Admin_Menu::class ) ) {
 // These classes register their own hooks in constructors.
 //
 // No side effect may sit above the guard - a plugin that failed to load its
-// classes must not half-apply. (The two define() calls above are exempt because
-// they register nothing and leave no observable behaviour behind.)
+// classes must not half-apply. The two define() calls above are exempt because
+// they register nothing and leave no observable behaviour behind.
 
 // Admin.
 //

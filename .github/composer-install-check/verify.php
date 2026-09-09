@@ -12,6 +12,8 @@
  * fa-toolkit class - see the note above check 4 for why that is deliberate.
  *
  * Authored by docker-dev, who ran it against a real composer install.
+ *
+ * @package FA-Toolkit
  */
 
 // Consumer project root. Defaults to this file's directory, so it works when
@@ -60,7 +62,7 @@ $check( '1. installed at web/app/plugins/fa-toolkit/', is_file( $pkg . '/fa-tool
 // catching is installer-paths not being honoured, which leaves fa-toolkit.php
 // in vendor/ where WordPress cannot see it. The directory is an implementation
 // detail of Composer's download staging; the code being there is the defect.
-// (Do not simplify back to is_dir.)
+// Do not simplify back to is_dir().
 $check(
 	'1. NOT installed into vendor/',
 	! is_file( $root . '/vendor/featherarms/fa-toolkit/fa-toolkit.php' )
@@ -77,7 +79,7 @@ $map    = array_filter(
 $check( '3. FAToolkit classes present in root classmap', count( $map ) > 0 );
 printf( "   (%d classes mapped)\n", count( $map ) );
 
-// Deliberately a STATIC check, not class_exists(). fa-toolkit's class files are
+// Deliberately a static path check rather than a class_exists() probe. fa-toolkit's class files are
 // not side-effect-free on load: 13 of them instantiate themselves at file scope
 // (constructors call add_action), and the CLI ones call WP_CLI::add_command().
 // So *loading* a class needs WordPress; verifying the mapping does not.
@@ -88,11 +90,11 @@ printf( "   (%d classes mapped)\n", count( $map ) );
 // realpath() returns false for a missing dir, and false coerces to '' in a
 // string comparison - which would make every path "inside" a target that does
 // not exist and pass this check vacuously. Resolve the target first and fail
-// loudly if it is absent. (Found independently by two negative controls, on
-// both sides of this file's authorship. Do not simplify away.)
-$pkgReal = realpath( $pkg );
-$bad     = array();
-if ( $pkgReal === false ) {
+// loudly if it is absent. Found independently by two negative controls, on
+// both sides of this file's authorship. Do not simplify away.
+$pkg_real = realpath( $pkg );
+$bad      = array();
+if ( false === $pkg_real ) {
 	$bad[] = 'install target does not exist: ' . $pkg;
 } else {
 	// The trailing separator is load-bearing. Without it this is a string
@@ -102,19 +104,19 @@ if ( $pkgReal === false ) {
 	// Not reachable with today's single-package classmap, but this check exists
 	// to be precise about paths, and it is the same shape as the realpath bug
 	// above: an expression that looks like containment and isn't.
-	$prefix = $pkgReal . DIRECTORY_SEPARATOR;
+	$prefix = $pkg_real . DIRECTORY_SEPARATOR;
 	foreach ( $map as $class => $file ) {
 		$real = realpath( $file );
-		if ( $real === false || ! str_starts_with( $real, $prefix ) ) {
+		if ( false === $real || ! str_starts_with( $real, $prefix ) ) {
 			$bad[] = $class . ' -> ' . $file;
 		}
 	}
 }
-$check( '4. every mapped class points inside the install target', $bad === array() );
-printf( "   (%d paths checked)\n", $pkgReal === false ? 0 : count( $map ) );
+$check( '4. every mapped class points inside the install target', array() === $bad );
+printf( "   (%d paths checked)\n", false === $pkg_real ? 0 : count( $map ) );
 foreach ( $bad as $b ) {
 	echo "   BAD: $b\n";
 }
 
-printf( "\n%s\n", $fail === 0 ? 'ALL CHECKS PASSED' : "$fail CHECK(S) FAILED" );
-exit( $fail === 0 ? 0 : 1 );
+printf( "\n%s\n", 0 === $fail ? 'ALL CHECKS PASSED' : "$fail CHECK(S) FAILED" );
+exit( 0 === $fail ? 0 : 1 );
