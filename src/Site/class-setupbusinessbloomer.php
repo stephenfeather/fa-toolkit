@@ -44,6 +44,10 @@ class SetupBusinessBloomer {
 	/**
 	 * Hide Price If Out of Stock @ WooCommerce Frontend
 	 *
+	 * This covers the RENDERED price only. The Store API also serves the
+	 * amount as structured data in `prices`, which never passes through this
+	 * filter; StoreApiPriceHiding blanks that half. Issue #66.
+	 *
 	 * @author        Rodolfo Melogli
 	 * @testedwith    WooCommerce 6
 	 * @param string $price Price.
