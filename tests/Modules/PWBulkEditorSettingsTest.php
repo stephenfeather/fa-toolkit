@@ -143,10 +143,13 @@ class PWBulkEditorSettingsTest extends TestCase {
 	 * Test pwbe_results_product_acf_upc sets acf_dealer property.
 	 */
 	public function test_pwbe_results_product_acf_upc() {
-		Functions\expect( 'get_field' )
+		// UPC lives in WooCommerce's own GTIN meta, written by the import
+		// (issue #77). ACF is not installed, so get_field() must never run.
+		Functions\expect( 'get_post_meta' )
 			->once()
-			->with( 'upc_code', 123 )
+			->with( 123, '_global_unique_id', true )
 			->andReturn( '1234567890' );
+		Functions\expect( 'get_field' )->never();
 
 		$settings = new PWBulkEditorSettings();
 

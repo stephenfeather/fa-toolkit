@@ -95,7 +95,9 @@ class PWBulkEditorSettings {
 	 */
 	public function pwbe_results_product_acf_upc( $pwbe_product, $column ) {
 		if ( 'acf_upc_code' === $column['field'] ) {
-			$result                   = get_field( 'upc_code', $pwbe_product->post_id );
+			// WooCommerce's GTIN meta, written by the import (issue #77).
+			$result = get_post_meta( $pwbe_product->post_id, '_global_unique_id', true );
+			// TODO: writes the UPC into acf_dealer, not a upc property; pre-existing, see follow-up issue.
 			$pwbe_product->acf_dealer = $result;
 		}
 
