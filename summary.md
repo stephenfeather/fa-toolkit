@@ -66,7 +66,7 @@ fa-toolkit/
 
 ### Plugin Integrations
 Settings management for:
-- WooCommerce, UpdraftPlus, WP All Import
+- WooCommerce, UpdraftPlus
 - Perfect WooCommerce Bulk Editor
 - Action Scheduler, Rank Math SEO
 - ILab Media Cloud fixes

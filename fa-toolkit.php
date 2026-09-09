@@ -113,7 +113,6 @@ new \FAToolkit\Product\Bard_Meta_Box();
 // Modules.
 new \FAToolkit\Modules\PWBulkEditorSettings();
 new \FAToolkit\Modules\UpdraftPlusSettings();
-new \FAToolkit\Modules\WPAllImportSettings();
 new \FAToolkit\Modules\QueryMonitorSettings();
 new \FAToolkit\Modules\WooCommerceSettings();
 
