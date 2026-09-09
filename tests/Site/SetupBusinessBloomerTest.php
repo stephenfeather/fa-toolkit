@@ -298,6 +298,7 @@ class SetupBusinessBloomerTest extends TestCase {
 		return array(
 			'price filter'      => array( 'filter', 'woocommerce_get_price_html', 'bbloomer_hide_price_if_out_stock_frontend', 9999, 2 ),
 			'save order weight' => array( 'action', 'woocommerce_checkout_update_order_meta', 'bbloomer_save_weight_order', 10, 1 ),
+			'save order weight (blocks)' => array( 'action', 'woocommerce_store_api_checkout_update_order_meta', 'save_weight_from_order', 10, 1 ),
 			'admin weight'      => array( 'action', 'woocommerce_admin_order_data_after_billing_address', 'bbloomer_delivery_weight_display_admin_order_meta', 10, 1 ),
 		);
 	}
@@ -375,11 +376,12 @@ class SetupBusinessBloomerTest extends TestCase {
 
 		Filters\expectAdded( 'woocommerce_get_price_html' )->once()->whenHappen( $capture );
 		Actions\expectAdded( 'woocommerce_checkout_update_order_meta' )->once()->whenHappen( $capture );
+		Actions\expectAdded( 'woocommerce_store_api_checkout_update_order_meta' )->once()->whenHappen( $capture );
 		Actions\expectAdded( 'woocommerce_admin_order_data_after_billing_address' )->once()->whenHappen( $capture );
 
 		$bloomer = new SetupBusinessBloomer();
 
-		$this->assertCount( 3, $registered, 'Expected all three hooks to be registered.' );
+		$this->assertCount( 4, $registered, 'Expected all four hooks to be registered.' );
 
 		foreach ( $registered as $callback ) {
 			// describe_callback() must not itself fatal on a malformed callback:
@@ -460,5 +462,110 @@ class SetupBusinessBloomerTest extends TestCase {
 		$result = call_user_func_array( $callback, array( '<span>$19.99</span>', $product ) );
 
 		$this->assertSame( '<span>$19.99</span>', $result );
+	}
+
+	/**
+	 * Test that the block checkout saves the cart weight.
+	 *
+	 * The store checks out through blocks, and the Store API fires
+	 * `woocommerce_store_api_checkout_update_order_meta` — a different action
+	 * from the classic `woocommerce_checkout_update_order_meta`, which
+	 * WooCommerce fires only from includes/class-wc-checkout.php. Registering
+	 * on the classic hook alone means the weight is never recorded on this
+	 * store, which is the state every order placed so far is in.
+	 *
+	 * @return void
+	 */
+	public function test_block_checkout_saves_the_cart_weight() {
+		$cart = Mockery::mock( 'WC_Cart' );
+		$cart->shouldReceive( 'get_cart_contents_weight' )->once()->andReturn( 12.5 );
+
+		$wc       = Mockery::mock( 'stdClass' );
+		$wc->cart = $cart;
+		Functions\expect( 'WC' )->once()->andReturn( $wc );
+
+		$order = Mockery::mock( 'WC_Order' );
+		$order->shouldReceive( 'update_meta_data' )->once()->with( '_cart_weight', 12.5 );
+		$order->shouldReceive( 'save_meta_data' )->once();
+		$order->shouldNotReceive( 'save' );
+
+		// The Store API hands over the ORDER OBJECT, not an id. Passing it to
+		// the classic callback would call wc_get_order() on an object.
+		Functions\expect( 'wc_get_order' )->never();
+
+		$bloomer = new SetupBusinessBloomer();
+		$bloomer->save_weight_from_order( $order );
+	}
+
+	/**
+	 * Test that the classic checkout still works.
+	 *
+	 * The fix registers a second hook rather than swapping the first, so a
+	 * classic-checkout order must not be newly broken by it.
+	 *
+	 * @return void
+	 */
+	public function test_classic_checkout_still_saves_the_cart_weight() {
+		$cart = Mockery::mock( 'WC_Cart' );
+		$cart->shouldReceive( 'get_cart_contents_weight' )->once()->andReturn( 3.25 );
+
+		$wc       = Mockery::mock( 'stdClass' );
+		$wc->cart = $cart;
+		Functions\expect( 'WC' )->once()->andReturn( $wc );
+
+		$order = Mockery::mock( 'WC_Order' );
+		$order->shouldReceive( 'update_meta_data' )->once()->with( '_cart_weight', 3.25 );
+		$order->shouldReceive( 'save_meta_data' )->once();
+
+		Functions\expect( 'wc_get_order' )->once()->with( 77 )->andReturn( $order );
+
+		$bloomer = new SetupBusinessBloomer();
+		$bloomer->bbloomer_save_weight_order( 77 );
+	}
+
+	/**
+	 * Test that a non-order argument is refused rather than fataled on.
+	 *
+	 * @return void
+	 */
+	public function test_block_path_ignores_a_non_order() {
+		Functions\expect( 'WC' )->never();
+
+		$bloomer = new SetupBusinessBloomer();
+
+		$this->assertNull( $bloomer->save_weight_from_order( null ) );
+	}
+
+	/**
+	 * Test that both checkout paths end in the same write.
+	 *
+	 * Two entry points, one behaviour: whichever checkout the shopper used,
+	 * the order carries the same meta written the same HPOS-safe way.
+	 *
+	 * @return void
+	 */
+	public function test_both_paths_write_the_same_meta_key() {
+		$cart = Mockery::mock( 'WC_Cart' );
+		$cart->shouldReceive( 'get_cart_contents_weight' )->twice()->andReturn( 9.0 );
+
+		$wc       = Mockery::mock( 'stdClass' );
+		$wc->cart = $cart;
+		Functions\when( 'WC' )->justReturn( $wc );
+
+		$writes = array();
+		$order  = Mockery::mock( 'WC_Order' );
+		$order->shouldReceive( 'update_meta_data' )->twice()->andReturnUsing(
+			function ( $key, $value ) use ( &$writes ) {
+				$writes[] = array( $key, $value );
+			}
+		);
+		$order->shouldReceive( 'save_meta_data' )->twice();
+		Functions\when( 'wc_get_order' )->justReturn( $order );
+
+		$bloomer = new SetupBusinessBloomer();
+		$bloomer->bbloomer_save_weight_order( 77 );
+		$bloomer->save_weight_from_order( $order );
+
+		$this->assertSame( array( array( '_cart_weight', 9.0 ), array( '_cart_weight', 9.0 ) ), $writes );
 	}
 }
