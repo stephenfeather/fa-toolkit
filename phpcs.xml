@@ -6,16 +6,23 @@
 	<arg name="extensions" value="php"/>
 	<arg name="colors"/>
 	<arg value="ps"/>
+	<!--
+		Paths are matched relative to the checkout root, not as absolute paths.
+		Without this, the .claude/ exclusion below matched the absolute path of
+		every file inside a worktree under .claude/worktrees/, and `composer lint`
+		run from such a worktree scanned nothing and reported clean (#55).
+	-->
+	<arg name="basepath" value="."/>
 
 	<!-- What to scan: every PHP file in the repo, including .github/ -->
 	<file>.</file>
 
-	<!-- Ignore vendor/build artifacts -->
-	<exclude-pattern>vendor/*</exclude-pattern>
-	<exclude-pattern>node_modules/*</exclude-pattern>
-	<exclude-pattern>dist/*</exclude-pattern>
-	<exclude-pattern>build/*</exclude-pattern>
-	<exclude-pattern>.claude/*</exclude-pattern>
+	<!-- Ignore vendor/build artifacts and Claude worktrees (relative to the checkout root) -->
+	<exclude-pattern type="relative">^vendor/</exclude-pattern>
+	<exclude-pattern type="relative">^node_modules/</exclude-pattern>
+	<exclude-pattern type="relative">^dist/</exclude-pattern>
+	<exclude-pattern type="relative">^build/</exclude-pattern>
+	<exclude-pattern type="relative">^\.claude/</exclude-pattern>
 
 	<!--
 		tests/ is not linted. It is a different dialect from the plugin code:
