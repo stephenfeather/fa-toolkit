@@ -20,9 +20,10 @@ class Bard_Meta_BoxTest extends TestCase {
 	 * Test that register_meta_box calls add_meta_box.
 	 */
 	public function test_register_meta_box_calls_add_meta_box() {
-		// Both stubs must be declared HERE rather than relied on from
-		// tests/bootstrap.php: Brain Monkey's setUp() resets every stub before
-		// each test, so the bootstrap-scope when() calls never reach this test.
+		// Stubs are declared in the test that needs them. tests/bootstrap.php
+		// carries none, deliberately: a when() at bootstrap scope outlives every
+		// setUp()/tearDown() and poisons later expect() calls on the same name
+		// (see the note in tests/bootstrap.php, and PR #60).
 		Functions\when( '__' )->returnArg();
 
 		$meta_box = new Bard_Meta_Box();

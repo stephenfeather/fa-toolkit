@@ -10,6 +10,7 @@ namespace FAToolkit\Tests\Media;
 use FAToolkit\Tests\TestCase;
 use FAToolkit\Tests\Support\AssertsNoFileScopeInstantiation;
 use FAToolkit\Media\AutoAttachUploadedMedia;
+use Brain\Monkey\Actions;
 use Brain\Monkey\Functions;
 use Mockery;
 use PHPUnit\Framework\Attributes\CoversMethod;
@@ -118,13 +119,36 @@ class AutoAttachUploadedMediaTest extends TestCase {
 	}
 
 	/**
-	 * Test constructor registers action hook.
+	 * Test constructor registers the attachment hook as a bound callback.
+	 *
+	 * This test used to assert only that the class could be instantiated, on
+	 * the stated grounds that "the constructor is already tested via global
+	 * mocks in bootstrap". No such mocks exist: tests/bootstrap.php declares
+	 * no Functions\when() stubs, and never usefully did (issue #34, PR #60).
+	 * A constructor that registered nothing, or registered a bare string that
+	 * WordPress would fatal on at dispatch, passed that version of the test.
+	 *
+	 * @return void
 	 */
 	public function test_constructor_registers_hook() {
-		// Constructor is already tested via global mocks in bootstrap.
-		// Just verify we can instantiate the class.
+		$captured = array();
+
+		Actions\expectAdded( 'add_attachment' )->once()->whenHappen(
+			function ( $callback, $priority, $accepted_args ) use ( &$captured ) {
+				$captured = array( $callback, $priority, $accepted_args );
+			}
+		);
+
 		$instance = new AutoAttachUploadedMedia();
-		$this->assertInstanceOf( AutoAttachUploadedMedia::class, $instance );
+
+		$this->assertSame(
+			array( $instance, 'process_uploaded_attachment' ),
+			$captured[0],
+			'add_attachment must be bound to the instance that registered it.'
+		);
+		$this->assertIsCallable( $captured[0] );
+		$this->assertSame( 10, $captured[1] );
+		$this->assertSame( 1, $captured[2] );
 	}
 
 	/**
