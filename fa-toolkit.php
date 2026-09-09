@@ -3,6 +3,7 @@
  * Plugin Name: Feather Arms Toolkit
  * Version: 1.0.8
  * Description: Collection of WordPress management tools used by Feather Arms.
+ * Requires PHP: 8.3
  * Author: Stephen Feather
  * Author URI: http://stephenfeather.com
  * License: GNU General Public License v3.0
