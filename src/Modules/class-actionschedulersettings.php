@@ -121,5 +121,5 @@ class ActionSchedulerSettings {
 // or "retune"; the verdict was disable. Restores WordPress/Action Scheduler
 // defaults (batch size 25, default concurrency, default timeouts, no extra AJAX
 // runner requests). See thoughts/shared/agents/scout/2026-08-01-fa-toolkit-disablement-inventory.md
-// item 1 for the full analysis.
-// new ActionSchedulerSettings();
+// item 1 for the full analysis. The file-scope instantiation that used to sit
+// here is intentionally gone; do not reinstate it.

@@ -110,7 +110,7 @@ class Debug {
 			$json
 		);
 
-		// Allow script tags with no attributes
+		// Allow script tags with no attributes.
 		$allowed_tags = array(
 			'script' => array(),
 		);
@@ -126,6 +126,7 @@ class Debug {
 	public function shutdown_handler() {
 		if ( true === defined( 'WP_DEBUG' ) && true === WP_DEBUG && true === current_user_can( 'manage_options' ) ) {
 			// Database debug output intentionally disabled.
+			return;
 		}
 	}
 }

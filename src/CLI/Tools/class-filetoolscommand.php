@@ -134,7 +134,7 @@ class FileToolsCommand {
 		$headers = fgetcsv( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fgetcsv
 		$data    = array();
 
-		while ( ( $row = fgetcsv( $file ) ) !== false ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fgetcsv, WordPress.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
+		while ( ( $row = fgetcsv( $file ) ) !== false ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fgetcsv, Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
 			$data[] = $row;
 		}
 		fclose( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
@@ -180,7 +180,7 @@ class FileToolsCommand {
 		$headers = array();
 
 		// Skip any extra lines before the headers.
-		while ( ( $row = fgetcsv( $file, 0, "\t" ) ) !== false ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fgetcsv, WordPress.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
+		while ( ( $row = fgetcsv( $file, 0, "\t" ) ) !== false ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fgetcsv, Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
 			if ( ! empty( $row[0] ) ) {
 				$headers = $row;
 				break;
@@ -189,7 +189,7 @@ class FileToolsCommand {
 
 		// Read the TSV data into an array.
 		$data = array();
-		while ( ( $row = fgetcsv( $file, 0, "\t" ) ) !== false ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fgetcsv, WordPress.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
+		while ( ( $row = fgetcsv( $file, 0, "\t" ) ) !== false ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fgetcsv, Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
 			if ( ! empty( $row[0] ) ) {
 				$data[] = $row;
 			}

@@ -57,7 +57,7 @@ class Helpers {
 	/**
 	 * Whether a constant is defined AND truthy, without reading it if it is not.
 	 *
-	 * constant() is only reached once defined() has confirmed the name exists,
+	 * The constant() call is only reached once defined() has confirmed the name exists,
 	 * so an undefined constant returns false rather than throwing. This is the
 	 * property the inverted guards lost, and the one the tests pin.
 	 *
