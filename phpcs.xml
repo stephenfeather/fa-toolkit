@@ -49,6 +49,20 @@
 	</rule>
 
 	<!--
+		Unused-parameter reports are switched off repo-wide (#55). Every one of
+		the 16 that fired was a parameter the plugin does not control: WP-CLI
+		hands every command handler ( $args, $assoc_args ); WordPress filters
+		pass their full argument list whether the callback needs it or not (the
+		pwbe_where_clause_* handlers take six); and the Promotions getters follow
+		WooCommerce's get_*( $context ) shape. Dropping those parameters would
+		change a signature that a caller outside this repo dictates, and a
+		per-line ignore on each would say the same thing sixteen times.
+	-->
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+		<severity>0</severity>
+	</rule>
+
+	<!--
 		.github/composer-install-check/ stays IN scope per #56. Only these three
 		WordPress-specific sniffs are switched off for it, and only for it.
 
