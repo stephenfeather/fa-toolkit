@@ -56,15 +56,19 @@ class Bard_Meta_BoxTest extends TestCase {
 		$brand_term->name = 'Test Brand';
 
 		// Expect WordPress function calls.
+		// UPC lives in WooCommerce's own GTIN meta, written by the import
+		// (issue #77). ACF is not installed, so get_field() must never run.
 		Functions\expect( 'get_post_meta' )
 			->once()
 			->with( 123, '_sku', true )
 			->andReturn( 'TEST-SKU-123' );
 
-		Functions\expect( 'get_field' )
+		Functions\expect( 'get_post_meta' )
 			->once()
-			->with( 'upc_code', 123 )
+			->with( 123, '_global_unique_id', true )
 			->andReturn( '123456789012' );
+
+		Functions\expect( 'get_field' )->never();
 
 		Functions\expect( 'wp_get_post_terms' )
 			->once()
@@ -116,10 +120,12 @@ class Bard_Meta_BoxTest extends TestCase {
 			->with( 456, '_sku', true )
 			->andReturn( 'SKU-456' );
 
-		Functions\expect( 'get_field' )
+		Functions\expect( 'get_post_meta' )
 			->once()
-			->with( 'upc_code', 456 )
+			->with( 456, '_global_unique_id', true )
 			->andReturn( '999999999999' );
+
+		Functions\expect( 'get_field' )->never();
 
 		Functions\expect( 'wp_get_post_terms' )
 			->once()

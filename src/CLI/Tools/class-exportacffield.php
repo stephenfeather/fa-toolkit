@@ -23,7 +23,7 @@ use WP_Query;
 use FAToolkit\Utilities\Helpers;
 
 /**
- * Export ACF field values from all WooCommerce products.
+ * Export a postmeta value (formerly an ACF field) from all WooCommerce products.
  */
 class ExportACFField {
 	/**
@@ -37,16 +37,19 @@ class ExportACFField {
 
 
 	/**
-	 * Export ACF field values .
+	 * Export a postmeta value from all WooCommerce products.
+	 *
+	 * The command keeps its historical name. ACF is no longer installed, so
+	 * <field_key> is a postmeta key read with get_post_meta(). See issue #77.
 	 *
 	 * ## OPTIONS
 	 *
 	 * <field_key>
-	 * : The ACF field key to export.
+	 * : The postmeta key to export.
 	 *
 	 * // EXAMPLES
 	 *
-	 * wp fa:tools export-acf-field your_acf_field_key
+	 * wp fa:tools export-acf-field _global_unique_id
 	 *
 	 * @param array $args       Command arguments.
 	 * @param array $assoc_args Command associative arguments.
@@ -61,7 +64,7 @@ class ExportACFField {
 		$progress   = \WP_CLI\Utils\make_progress_bar( 'Processing products', count( $products ) );
 		foreach ( $products as $product ) {
 			$product_id = $product->ID;
-			$acf_value  = get_field( $acf_field_key, $product_id );
+			$acf_value  = get_post_meta( $product_id, $acf_field_key, true );
 			if ( false === Helpers::is_empty( $acf_value ) ) {
 				$csv_data[] = array( $product_id, $acf_value );
 			}
