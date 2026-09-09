@@ -3,7 +3,7 @@
  * General helper utilities.
  *
  * @package FA-Toolkit
- * @since 1.0.9
+ * @since 1.2.0
  */
 
 namespace FAToolkit\Utilities;
@@ -46,7 +46,7 @@ class Helpers {
 	 * has already confirmed it exists, so keep these operands in this order,
 	 * joined by &&.
 	 *
-	 * @since 1.1.0
+	 * @since 1.2.0
 	 *
 	 * @return bool True when WP-CLI is loaded and active.
 	 */
@@ -61,7 +61,7 @@ class Helpers {
 	 * so an undefined constant returns false rather than throwing. This is the
 	 * property the inverted guards lost, and the one the tests pin.
 	 *
-	 * @since 1.1.0
+	 * @since 1.2.0
 	 *
 	 * @param string $name Constant name.
 	 * @return bool True when the constant exists and is truthy.

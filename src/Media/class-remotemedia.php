@@ -3,7 +3,7 @@
  * Reads the `_fa_media` postmeta cell written by the Akeneo export.
  *
  * @package    fa-toolkit
- * @since 1.0.9
+ * @since 1.2.0
  */
 
 namespace FAToolkit\Media;

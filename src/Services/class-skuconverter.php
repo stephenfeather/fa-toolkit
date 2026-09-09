@@ -3,7 +3,7 @@
  * SKU conversion utilities.
  *
  * @package FA-Toolkit
- * @since 1.0.9
+ * @since 1.2.0
  */
 
 namespace FAToolkit\Services;

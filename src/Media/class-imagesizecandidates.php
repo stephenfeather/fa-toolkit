@@ -3,7 +3,7 @@
  * The widths a remote image is offered at.
  *
  * @package    fa-toolkit
- * @since 1.0.9
+ * @since 1.2.0
  */
 
 namespace FAToolkit\Media;

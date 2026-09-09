@@ -3,7 +3,7 @@
  * WP-CLI command creating pointer attachments from `_fa_media`.
  *
  * @package    fa-toolkit
- * @since 1.0.9
+ * @since 1.2.0
  */
 
 namespace FAToolkit\CLI\Media;

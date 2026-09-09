@@ -3,7 +3,7 @@
  * Hides out-of-stock prices at the Store API boundary.
  *
  * @package    fa-toolkit
- * @since 1.0.9
+ * @since 1.2.0
  */
 
 namespace FAToolkit\Site;
