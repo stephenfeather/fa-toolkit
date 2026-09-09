@@ -136,6 +136,9 @@ new \FAToolkit\Utilities\Debug();
 // Site.
 new \FAToolkit\Site\GoogleTagManager();
 new \FAToolkit\Site\SetupBusinessBloomer();
+// The Store API half of SetupBusinessBloomer's out-of-stock price hiding.
+// Registers one REST filter; inert on every non-Store-API request.
+new \FAToolkit\Site\StoreApiPriceHiding();
 
 // Rest.
 new \FAToolkit\Rest\ImportMediaImage();
