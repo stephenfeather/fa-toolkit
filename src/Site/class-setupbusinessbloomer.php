@@ -23,7 +23,21 @@ class SetupBusinessBloomer {
 	 */
 	public function __construct() {
 		add_filter( 'woocommerce_get_price_html', array( $this, 'bbloomer_hide_price_if_out_stock_frontend' ), 9999, 2 );
+		// Both checkouts, deliberately. WooCommerce fires
+		// `woocommerce_checkout_update_order_meta` only from
+		// includes/class-wc-checkout.php — the classic path. Block checkout
+		// goes through the Store API and fires
+		// `woocommerce_store_api_checkout_update_order_meta` instead, which
+		// WooCommerce's own docblock describes as "similar to existing core
+		// hook woocommerce_checkout_update_order_meta. We're using a new
+		// action". This store checks out through blocks, so the classic
+		// registration alone recorded no weight on any order ever placed.
+		//
+		// Registered rather than swapped: a store that later switches back to
+		// the shortcode checkout, or an order created programmatically through
+		// the classic path, must not be newly broken by the fix.
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'bbloomer_save_weight_order' ) );
+		add_action( 'woocommerce_store_api_checkout_update_order_meta', array( $this, 'save_weight_from_order' ) );
 		add_action( 'woocommerce_admin_order_data_after_billing_address', array( $this, 'bbloomer_delivery_weight_display_admin_order_meta' ), 10, 1 );
 	}
 
@@ -63,6 +77,16 @@ class SetupBusinessBloomer {
 			return;
 		}
 
+		$this->write_cart_weight( $order );
+	}
+
+	/**
+	 * Write the cart's total weight onto an order.
+	 *
+	 * @param \WC_Order $order Order to write to.
+	 * @return void
+	 */
+	private function write_cart_weight( $order ) {
 		$weight = WC()->cart->get_cart_contents_weight();
 		$order->update_meta_data( '_cart_weight', $weight );
 
@@ -73,6 +97,29 @@ class SetupBusinessBloomer {
 		// still being processed. Only the meta is dirty, so only the meta is
 		// written. This is HPOS-safe in the same way update_meta_data() is.
 		$order->save_meta_data();
+	}
+
+	/**
+	 * Save Order Total Weight - block checkout.
+	 *
+	 * The Store API hands over the WC_Order OBJECT, where the classic hook
+	 * passes an order id. That difference is the whole reason this is a second
+	 * entry point rather than the same callback on both hooks: passing an
+	 * order object to wc_get_order() would be wrong, and passing an id to a
+	 * method expecting an object would fatal.
+	 *
+	 * Both paths end in the same write, so whichever checkout the shopper
+	 * used, the order carries the same meta stored the same HPOS-safe way.
+	 *
+	 * @param \WC_Order $order Order object supplied by the Store API.
+	 * @return void
+	 */
+	public function save_weight_from_order( $order ) {
+		if ( false === $order instanceof \WC_Order ) {
+			return;
+		}
+
+		$this->write_cart_weight( $order );
 	}
 
 	/**
