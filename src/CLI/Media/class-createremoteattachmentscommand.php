@@ -92,7 +92,12 @@ class CreateRemoteAttachmentsCommand {
 		);
 		$creator->set_dry_run( $dry_run );
 
-		$totals  = array( 'created' => 0, 'existing' => 0, 'unreachable' => 0, 'failed' => 0 );
+		$totals   = array(
+			'created'     => 0,
+			'existing'    => 0,
+			'unreachable' => 0,
+			'failed'      => 0,
+		);
 		$stranded = array();
 
 		$progress = \WP_CLI\Utils\make_progress_bar( 'Creating attachments', count( $product_ids ) );

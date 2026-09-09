@@ -352,8 +352,8 @@ class RemoteAttachmentCreator {
 	 * Runs even when every attachment already existed, so a product whose
 	 * thumbnail was lost is repaired by a re-run rather than skipped.
 	 *
-	 * @param int              $product_id     Product post id.
-	 * @param array<int, int>  $attachment_ids Ordered attachment ids, hero first.
+	 * @param int             $product_id     Product post id.
+	 * @param array<int, int> $attachment_ids Ordered attachment ids, hero first.
 	 * @return void
 	 */
 	private function wire_to_product( $product_id, array $attachment_ids ) {
