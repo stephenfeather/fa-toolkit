@@ -63,8 +63,8 @@ class Product_Display_Vendor {
 	/**
 	 * Adds the vendor column content to the product list table.
 	 *
-	 * Renders nothing when the product has no vendor meta (out-of-stock products
-	 * may not carry it), and the bare name when the product cannot be loaded.
+	 * Renders nothing when the vendor meta reads empty, and the bare label when
+	 * the product cannot be loaded.
 	 *
 	 * @param string $column The column name.
 	 * @param int    $post_id The post ID.

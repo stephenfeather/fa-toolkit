@@ -48,7 +48,7 @@ class Product_MetaTest extends TestCase {
 	}
 
 	/**
-	 * A product with no vendor meta (e.g. out of stock) yields '' rather than false or null.
+	 * An empty meta read yields '' rather than false or null.
 	 */
 	public function test_vendor_returns_empty_string_when_meta_missing() {
 		Functions\when( 'get_post_meta' )->justReturn( '' );

@@ -24,9 +24,9 @@ class Product_Meta {
 
 	/**
 	 * Vendor the product was priced from, as a lowercase slug. Closed
-	 * vocabulary: cssi, davidsons, rsrgroup, zanders, pawholesale. May be
-	 * absent on out-of-stock products, so readers treat '' as "no vendor",
-	 * not as an error.
+	 * vocabulary: cssi, davidsons, rsrgroup, zanders, pawholesale. Written by
+	 * every pricing run, in and out of stock alike. Readers still treat an
+	 * empty read as "no vendor" rather than an error.
 	 *
 	 * @var string
 	 */

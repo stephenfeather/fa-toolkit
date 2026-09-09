@@ -215,7 +215,7 @@ class Product_Display_VendorTest extends TestCase {
 	}
 
 	/**
-	 * A product with no vendor meta (out of stock, for example) renders an empty, non-fatal cell.
+	 * An empty vendor meta read renders an empty, non-fatal cell.
 	 */
 	public function test_add_vendor_column_content_handles_missing_vendor_meta() {
 		$instance = $this->create_instance_without_constructor();
