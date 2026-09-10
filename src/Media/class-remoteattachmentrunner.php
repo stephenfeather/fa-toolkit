@@ -88,9 +88,10 @@ class RemoteAttachmentRunner {
 	 * pointer attachment" instead left every processed product frozen at its
 	 * first cell.
 	 *
-	 * The comparison is made here rather than in SQL so the rule lives in one
-	 * place. The cap applies after skipping current products, so they never
-	 * crowd out ones that need work.
+	 * A product is skipped only when a marker row exists whose value equals
+	 * the cell's sha256: no row (never applied) and a different value (stale)
+	 * both select it. The comparison and the cap run in MySQL, so a capped run
+	 * never materialises every product carrying media.
 	 *
 	 * @param int $limit Maximum products, 0 for all.
 	 * @return array<int, int>
@@ -98,25 +99,17 @@ class RemoteAttachmentRunner {
 	public function products_with_unapplied_media( $limit = 0 ) {
 		global $wpdb;
 
-		$sql = "SELECT m.post_id, SHA2(m.meta_value, 256) AS cell_sha256,
-			(SELECT a.meta_value FROM {$wpdb->postmeta} a WHERE a.post_id = m.post_id AND a.meta_key = '" . self::APPLIED_MARKER . "' LIMIT 1) AS applied_sha256
-			FROM {$wpdb->postmeta} m
+		$sql = "SELECT m.post_id FROM {$wpdb->postmeta} m
 			WHERE m.meta_key = '_fa_media' AND m.meta_value <> ''
+			AND NOT EXISTS (
+				SELECT 1 FROM {$wpdb->postmeta} a
+				WHERE a.post_id = m.post_id AND a.meta_key = '" . self::APPLIED_MARKER . "'
+				AND a.meta_value = SHA2(m.meta_value, 256)
+			)
 			ORDER BY m.post_id ASC";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$rows = (array) $wpdb->get_results( $sql, 'ARRAY_A' );
-
-		$unapplied = array_filter(
-			$rows,
-			function ( $row ) {
-				return (string) ( $row['applied_sha256'] ?? '' ) !== (string) $row['cell_sha256'];
-			}
-		);
-
-		$product_ids = array_map( 'intval', array_column( $unapplied, 'post_id' ) );
-
-		return (int) $limit > 0 ? array_slice( $product_ids, 0, (int) $limit ) : $product_ids;
+		return array_map( 'intval', $wpdb->get_col( $sql . $this->limit_clause( $limit ) ) );
 	}
 
 	/**
@@ -170,7 +163,7 @@ class RemoteAttachmentRunner {
 	 * @param bool            $dry_run     Report without writing.
 	 * @param bool            $recheck_all Probe every URL, not only suspect shapes.
 	 * @param callable|null   $tick        Called once after each product.
-	 * @return array{products:int,created:int,existing:int,unreachable:int,failed:int,no_media:int,stranded:array<int,int>}
+	 * @return array{products:int,created:int,existing:int,unreachable:int,failed:int,write_failed:int,no_media:int,stranded:array<int,int>}
 	 */
 	public function run( array $product_ids, $dry_run = false, $recheck_all = false, $tick = null ) {
 		$creator = new RemoteAttachmentCreator(
@@ -182,13 +175,14 @@ class RemoteAttachmentRunner {
 		$creator->set_dry_run( (bool) $dry_run );
 
 		$totals = array(
-			'products'    => count( $product_ids ),
-			'created'     => 0,
-			'existing'    => 0,
-			'unreachable' => 0,
-			'failed'      => 0,
-			'no_media'    => 0,
-			'stranded'    => array(),
+			'products'     => count( $product_ids ),
+			'created'      => 0,
+			'existing'     => 0,
+			'unreachable'  => 0,
+			'failed'       => 0,
+			'write_failed' => 0,
+			'no_media'     => 0,
+			'stranded'     => array(),
 		);
 
 		foreach ( $product_ids as $product_id ) {
@@ -200,11 +194,14 @@ class RemoteAttachmentRunner {
 			$totals['unreachable'] += $result['unreachable'];
 			$totals['failed']      += $result['failed'];
 
-			// Recorded only when nothing failed. An insert failure is ours and
-			// retryable, so that product must stay selectable. A dead URL is not
-			// a failure: marking it keeps the listener from re-probing it on
-			// every import. Healing it stays with the operator's CLI run.
-			if ( true !== $dry_run && 0 === $result['failed'] ) {
+			$totals['write_failed'] += $result['write_failed'];
+
+			// Recorded only when nothing failed. An insert or meta write failure
+			// is ours and retryable, so that product must stay selectable: a
+			// marker over a half-applied cell would skip it for good. A dead URL
+			// is not a failure: marking it keeps the listener from re-probing it
+			// on every import. Healing it stays with the operator's CLI run.
+			if ( true !== $dry_run && 0 === $result['failed'] && 0 === $result['write_failed'] ) {
 				update_post_meta( $product_id, self::APPLIED_MARKER, hash( 'sha256', (string) $raw ) );
 			}
 

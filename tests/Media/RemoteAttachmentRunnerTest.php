@@ -106,82 +106,75 @@ class RemoteAttachmentRunnerTest extends TestCase {
 	}
 
 	/**
-	 * Candidate rows for products_with_unapplied_media(), as the query returns
-	 * them: the cell's sha256 computed by MySQL next to the applied marker.
+	 * Whether a selection query compares the applied marker to the cell in SQL.
 	 *
-	 * @param array<int, array{0:int,1:string|null}> $rows [ post_id, applied_sha256 ] pairs; every cell hashes to 'cellsha'.
-	 * @return void
+	 * Missing, stale and current markers are decided by this one predicate: a
+	 * product is skipped only when a marker row EXISTS whose value equals the
+	 * cell's sha256. No row (missing) and a different value (stale) both leave
+	 * NOT EXISTS true. Live-proven on local staging (PR #94); this pins the shape.
+	 *
+	 * @param string $sql Query text.
+	 * @return bool
 	 */
-	private function candidate_rows( array $rows ) {
-		$this->wpdb->shouldReceive( 'get_results' )
+	private function compares_marker_in_sql( $sql ) {
+		return false !== strpos( $sql, "m.meta_key = '_fa_media' AND m.meta_value <> ''" )
+			&& false !== strpos( $sql, 'NOT EXISTS' )
+			&& false !== strpos( $sql, "a.meta_key = '_fa_media_applied_sha256'" )
+			&& false !== strpos( $sql, 'a.meta_value = SHA2(m.meta_value, 256)' )
+			&& false !== strpos( $sql, 'ORDER BY m.post_id ASC' );
+	}
+
+	/**
+	 * The marker comparison and the cap run in MySQL, so a capped listener run
+	 * never materialises every product carrying media (PR #94 review).
+	 */
+	public function test_products_with_unapplied_media_filters_and_caps_in_sql() {
+		$this->wpdb->shouldReceive( 'get_results' )->never();
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with( ' LIMIT %d', 200 )->andReturn( ' LIMIT 200' );
+		$this->wpdb->shouldReceive( 'get_col' )
 			->once()
-			->with(
-				Mockery::on(
-					fn( $sql ) => false !== strpos( $sql, "m.meta_key = '_fa_media' AND m.meta_value <> ''" )
-						&& false !== strpos( $sql, 'SHA2(m.meta_value, 256)' )
-						&& false !== strpos( $sql, "meta_key = '_fa_media_applied_sha256'" )
-						&& str_ends_with( $sql, 'ORDER BY m.post_id ASC' )
-				),
-				'ARRAY_A'
-			)
-			->andReturn(
-				array_map(
-					fn( $row ) => array(
-						'post_id'        => (string) $row[0],
-						'cell_sha256'    => 'cellsha',
-						'applied_sha256' => $row[1],
-					),
-					$rows
-				)
-			);
+			->with( Mockery::on( fn( $sql ) => $this->compares_marker_in_sql( $sql ) && str_ends_with( $sql, 'ORDER BY m.post_id ASC LIMIT 200' ) ) )
+			->andReturn( array( '12', '40' ) );
+
+		$this->assertSame( array( 12, 40 ), ( new RemoteAttachmentRunner() )->products_with_unapplied_media( 200 ) );
 	}
 
 	/**
-	 * A product whose cell has never been applied carries no marker and is
-	 * selected. This covers every product the listener has not yet processed,
-	 * attached or not.
+	 * With no limit the query carries no LIMIT clause.
 	 */
-	public function test_products_with_unapplied_media_selects_a_product_with_no_marker() {
-		$this->candidate_rows( array( array( 12, null ) ) );
-
-		$this->assertSame( array( 12 ), ( new RemoteAttachmentRunner() )->products_with_unapplied_media() );
-	}
-
-	/**
-	 * A product whose cell changed since it was applied (dimensions added, a new
-	 * gallery entry) carries a stale marker and is selected again.
-	 */
-	public function test_products_with_unapplied_media_selects_a_product_with_a_stale_marker() {
-		$this->candidate_rows( array( array( 12, 'oldsha' ) ) );
-
-		$this->assertSame( array( 12 ), ( new RemoteAttachmentRunner() )->products_with_unapplied_media() );
-	}
-
-	/**
-	 * A product whose marker matches its current cell is skipped, so a
-	 * re-import of an unchanged cell costs nothing.
-	 */
-	public function test_products_with_unapplied_media_skips_a_product_with_a_current_marker() {
-		$this->candidate_rows( array( array( 12, 'cellsha' ) ) );
+	public function test_products_with_unapplied_media_without_a_limit_has_no_limit_clause() {
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->with( Mockery::on( fn( $sql ) => $this->compares_marker_in_sql( $sql ) && false === strpos( $sql, 'LIMIT' ) ) )
+			->andReturn( array() );
 
 		$this->assertSame( array(), ( new RemoteAttachmentRunner() )->products_with_unapplied_media() );
 	}
 
 	/**
-	 * The limit caps the selected products, after skipping current ones, in
-	 * ascending id order.
+	 * A meta write that fails while refreshing an existing attachment leaves the
+	 * product unmarked, so the next import retries it (PR #94 review).
 	 */
-	public function test_products_with_unapplied_media_applies_the_limit_after_skipping_current_products() {
-		$this->candidate_rows(
-			array(
-				array( 1, 'cellsha' ),
-				array( 2, null ),
-				array( 3, 'oldsha' ),
-				array( 4, null ),
-			)
+	public function test_run_records_no_marker_when_a_meta_write_fails() {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'FIND-SQL' );
+		$this->wpdb->shouldReceive( 'get_var' )->with( 'FIND-SQL' )->andReturn( '42' );
+		$cell = $this->cell( self::SAFE_URL );
+		Functions\when( 'get_post_meta' )->alias(
+			fn( $post_id, $key ) => '_fa_media' === $key ? $cell : ''
+		);
+		Functions\when( 'delete_post_meta' )->justReturn( true );
+		$writes = array();
+		Functions\when( 'update_post_meta' )->alias(
+			function ( $post_id, $key, $value ) use ( &$writes ) {
+				$writes[] = array( $post_id, $key, $value );
+				return '_fa_remote_url' !== $key;
+			}
 		);
 
-		$this->assertSame( array( 2, 3 ), ( new RemoteAttachmentRunner() )->products_with_unapplied_media( 2 ) );
+		$result = ( new RemoteAttachmentRunner() )->run( array( 5 ), false, false );
+
+		$this->assertSame( 1, $result['write_failed'] );
+		$this->assertSame( array(), array_filter( $writes, fn( $write ) => '_fa_media_applied_sha256' === $write[1] ) );
 	}
 
 	/**

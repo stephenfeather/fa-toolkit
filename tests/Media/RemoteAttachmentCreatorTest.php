@@ -725,6 +725,96 @@ class RemoteAttachmentCreatorTest extends TestCase {
 	}
 
 	/**
+	 * Test that a meta write that fails on an existing attachment is counted.
+	 *
+	 * The applied marker (issue #93) is only safe to write when the cell
+	 * actually landed; a refresh whose dimensions never stored must not read
+	 * as success (PR #94 review).
+	 *
+	 * @return void
+	 */
+	public function test_a_failed_meta_write_is_counted() {
+		$this->stub_wp();
+		Functions\when( 'update_post_meta' )->alias(
+			fn( $post_id, $key ) => '_fa_remote_width' !== $key
+		);
+
+		$finder  = function ( $product_id, $sha ) {
+			return 'aaa' === $sha ? 900 : 901;
+		};
+		$creator = new RemoteAttachmentCreator( $finder, function () { return true; } );
+		$result  = $creator->create_for_product( 55, $this->cell( array( 'width' => 1200, 'height' => 800 ) ) );
+
+		$this->assertSame( 1, $result['write_failed'] );
+	}
+
+	/**
+	 * Test that rewriting an unchanged value is not a failure.
+	 *
+	 * update_post_meta() returns false when the stored value already equals
+	 * the new one (and when MySQL reports zero rows changed), so false alone
+	 * cannot mean failure. A re-run over an applied cell must count nothing.
+	 *
+	 * @return void
+	 */
+	public function test_an_unchanged_meta_value_is_not_a_failed_write() {
+		$ref = $this->stub_wp();
+		Functions\when( 'update_post_meta' )->alias(
+			function ( $post_id, $key, $value ) use ( $ref ) {
+				$meta                          = $ref['meta'];
+				$meta[ $post_id . ':' . $key ] = $value;
+				$ref['meta']                   = $meta;
+				return false;
+			}
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			fn( $post_id, $key ) => $ref['meta'][ $post_id . ':' . $key ] ?? ''
+		);
+
+		$finder  = function ( $product_id, $sha ) {
+			return 'aaa' === $sha ? 900 : 901;
+		};
+		$creator = new RemoteAttachmentCreator( $finder, function () { return true; } );
+		$result  = $creator->create_for_product( 55, $this->cell( array( 'width' => 1200, 'height' => 800, 'alt' => 'Scope' ) ) );
+
+		$this->assertSame( 0, $result['write_failed'] );
+	}
+
+	/**
+	 * Test that deleting a gallery that is already absent is not a failure,
+	 * while a delete that leaves the key behind is.
+	 *
+	 * delete_post_meta() returns false when there is nothing to delete.
+	 *
+	 * @return void
+	 */
+	public function test_a_gallery_delete_fails_only_when_the_key_survives() {
+		$this->stub_wp();
+		Functions\when( 'delete_post_meta' )->justReturn( false );
+		$single = wp_json_encode(
+			array(
+				array(
+					'role'   => 'hero',
+					'kind'   => 'image',
+					'url'    => self::HERO,
+					'title'  => 'hero.jpg',
+					'sha256' => 'aaa',
+				),
+			)
+		);
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), function () { return true; } );
+
+		Functions\when( 'metadata_exists' )->justReturn( false );
+		$absent = $creator->create_for_product( 55, $single );
+
+		Functions\when( 'metadata_exists' )->justReturn( true );
+		$survived = $creator->create_for_product( 56, $single );
+
+		$this->assertSame( 0, $absent['write_failed'] );
+		$this->assertSame( 1, $survived['write_failed'] );
+	}
+
+	/**
 	 * Test that no WordPress metadata is invented without real dimensions.
 	 *
 	 * @return void

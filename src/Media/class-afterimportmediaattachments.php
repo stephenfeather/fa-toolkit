@@ -69,13 +69,14 @@ class AfterImportMediaAttachments {
 		$product_ids = $this->runner->products_with_unapplied_media( $limit );
 
 		$summary = array(
-			'products'    => 0,
-			'created'     => 0,
-			'existing'    => 0,
-			'unreachable' => 0,
-			'failed'      => 0,
-			'no_media'    => 0,
-			'stranded'    => array(),
+			'products'     => 0,
+			'created'      => 0,
+			'existing'     => 0,
+			'unreachable'  => 0,
+			'failed'       => 0,
+			'write_failed' => 0,
+			'no_media'     => 0,
+			'stranded'     => array(),
 		);
 
 		if ( array() !== $product_ids ) {
@@ -93,7 +94,8 @@ class AfterImportMediaAttachments {
 		 * Fires after the after-import media pass with its summary.
 		 *
 		 * @param array $summary Counts: products, created, existing, unreachable,
-		 *                       failed, no_media, stranded, no_media_cell, limit.
+		 *                       failed, write_failed, no_media, stranded,
+		 *                       no_media_cell, limit.
 		 */
 		do_action( 'fa_toolkit_after_import_media_run', $summary );
 
