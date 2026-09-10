@@ -95,6 +95,10 @@ new \FAToolkit\Media\AutoAttachUploadedMedia();
 // Registers filters only; it is inert for every ordinary local attachment.
 new \FAToolkit\Media\RemoteAttachmentUrls();
 
+// Creates pointer attachments for newly imported `_fa_media` once a Super
+// Speedy Imports run finishes. Registers one action; inert until that fires.
+new \FAToolkit\Media\AfterImportMediaAttachments();
+
 // Media (WP-CLI dependent - only load if WP-CLI is active).
 if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\Media\Media_Fix_Ilab_Metadata();
