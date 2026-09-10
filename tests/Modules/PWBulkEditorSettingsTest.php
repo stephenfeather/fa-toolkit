@@ -140,9 +140,15 @@ class PWBulkEditorSettingsTest extends TestCase {
 	}
 
 	/**
-	 * Test pwbe_results_product_acf_upc sets acf_dealer property.
+	 * The UPC filter fills the property the UPC column reads.
+	 *
+	 * PW Bulk Edit applies `pwbe_results_product` once per column, passing the
+	 * column definition, and then renders `$pwbe_product->{$column['field']}`
+	 * (pw-bulk-edit 3.0, includes/pwbe-functions.php:59-60). The UPC column is
+	 * declared with field `upc_code`, so that is both the field id the filter
+	 * sees and the property it must fill. Issue #78.
 	 */
-	public function test_pwbe_results_product_acf_upc() {
+	public function test_pwbe_results_product_acf_upc_fills_upc_code_property() {
 		// UPC lives in WooCommerce's own GTIN meta, written by the import
 		// (issue #77). ACF is not installed, so get_field() must never run.
 		Functions\expect( 'get_post_meta' )
@@ -156,11 +162,50 @@ class PWBulkEditorSettingsTest extends TestCase {
 		$product          = new \stdClass();
 		$product->post_id = 123;
 
-		$column = array( 'field' => 'acf_upc_code' );
+		$column = $this->upc_column( $settings );
 
 		$result = $settings->pwbe_results_product_acf_upc( $product, $column );
 
-		$this->assertSame( '1234567890', $result->acf_dealer );
+		$this->assertSame( '1234567890', $result->upc_code );
+		$this->assertObjectNotHasProperty( 'acf_dealer', $result, 'The UPC must not overwrite the Distributor column.' );
+	}
+
+	/**
+	 * The UPC filter ignores every other column.
+	 *
+	 * Issue #78.
+	 */
+	public function test_pwbe_results_product_acf_upc_ignores_other_columns() {
+		Functions\expect( 'get_post_meta' )->never();
+
+		$settings = new PWBulkEditorSettings();
+
+		$product          = new \stdClass();
+		$product->post_id = 123;
+
+		$result = $settings->pwbe_results_product_acf_upc( $product, array( 'field' => 'acf_dealer' ) );
+
+		$this->assertObjectNotHasProperty( 'upc_code', $result );
+	}
+
+	/**
+	 * The UPC column definition as PW Bulk Edit hands it back to the filter.
+	 *
+	 * Taken from the class's own column registration so the field id the test
+	 * uses cannot drift from the one the plugin will actually pass.
+	 *
+	 * @param PWBulkEditorSettings $settings Settings instance.
+	 *
+	 * @return array
+	 */
+	private function upc_column( PWBulkEditorSettings $settings ): array {
+		foreach ( $settings->pw_bulk_edit_custom_column_order( array() ) as $column ) {
+			if ( isset( $column['name'] ) && 'UPC' === $column['name'] ) {
+				return $column;
+			}
+		}
+
+		$this->fail( 'UPC column is not registered.' );
 	}
 
 	/**
