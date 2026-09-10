@@ -94,12 +94,13 @@ class FileToolsCommandTest extends TestCase {
 		$calls = \WP_CLI::get_calls( 'add_command' );
 
 		$this->assertSame(
-			array( 'fa:tools merge-files', 'fa:tools sort-csv-by-column', 'fa:tools sort-tsv-by-column' ),
-			array_column( array_column( $calls, 'args' ), 0 )
+			array(
+				array( 'fa:tools merge-files', array( $tools, 'merge_files' ) ),
+				array( 'fa:tools sort-csv-by-column', array( $tools, 'sort_csv_by_column' ) ),
+				array( 'fa:tools sort-tsv-by-column', array( $tools, 'sort_tsv_by_column' ) ),
+			),
+			array_column( $calls, 'args' )
 		);
-		foreach ( $calls as $call ) {
-			$this->assertSame( $tools, $call['args'][1][0] );
-		}
 	}
 
 	/**
@@ -115,6 +116,11 @@ class FileToolsCommandTest extends TestCase {
 	/**
 	 * merge-files appends the TSV's RETAIL-MAP value to each matching CSV row,
 	 * keyed on the named column, and writes merged_file.csv in the cwd.
+	 *
+	 * The full file is pinned, defects included, so that the fix for #91
+	 * rewrites exactly this expected array. Today the command prepends the
+	 * RETAIL-MAP header while appending the values (columns misaligned), and
+	 * then dumps every TSV row, header included, onto the end of the file.
 	 */
 	public function test_merge_files_appends_retail_map_keyed_on_column() {
 		$csv = $this->file( 'products.csv', "Item #,Name\nA1,Widget\nB2,Gadget\nC3,Unmatched\n" );
@@ -123,12 +129,18 @@ class FileToolsCommandTest extends TestCase {
 		( new FileToolsCommand() )->merge_files( array( $csv, $tsv, 'Item #' ), array() );
 
 		$this->assertFileExists( $this->dir . '/merged_file.csv' );
-		$rows = $this->rows( $this->dir . '/merged_file.csv' );
-
-		$this->assertSame( array( 'RETAIL-MAP', 'Item #', 'Name' ), $rows[0], 'Header gains RETAIL-MAP at the front.' );
-		$this->assertSame( array( 'A1', 'Widget', '10.00' ), $rows[1] );
-		$this->assertSame( array( 'B2', 'Gadget', '20.00' ), $rows[2] );
-		$this->assertSame( array( 'C3', 'Unmatched' ), $rows[3], 'Rows without a TSV match are left as they were.' );
+		$this->assertSame(
+			array(
+				array( 'RETAIL-MAP', 'Item #', 'Name' ),
+				array( 'A1', 'Widget', '10.00' ),
+				array( 'B2', 'Gadget', '20.00' ),
+				array( 'C3', 'Unmatched' ),
+				array( 'Item #', 'RETAIL-MAP', 'B2', '20.00' ),
+				array( 'A1', '10.00' ),
+			),
+			$this->rows( $this->dir . '/merged_file.csv' ),
+			'Pinned current output; see #91 for the two defects this encodes.'
+		);
 
 		$success = \WP_CLI::get_calls( 'success' );
 		$this->assertCount( 1, $success );
