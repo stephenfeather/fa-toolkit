@@ -8,11 +8,16 @@
 namespace FAToolkit\Tests\Utilities;
 
 use FAToolkit\Tests\TestCase;
+use FAToolkit\Tests\Support\AssertsNoFileScopeInstantiation;
+use FAToolkit\Utilities\Color_Test;
 
 /**
  * Test case for Color_Test WP-CLI command.
  */
 class ColorTestTest extends TestCase {
+
+	use AssertsNoFileScopeInstantiation;
+
 	/**
 	 * Set up before each test.
 	 *
@@ -21,16 +26,41 @@ class ColorTestTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		// Define WP_CLI constant for the class to be loaded.
-		if ( ! defined( 'WP_CLI' ) ) {
-			define( 'WP_CLI', true );
-		}
-
-		// Reset calls before each test.
+		// Reset calls before each test. The class is autoloaded by classmap like
+		// every other src/ class; no require_once or WP_CLI define is needed.
 		\WP_CLI::reset_calls();
+	}
 
-		// Load the class file (only loads once due to require_once).
-		require_once dirname( __DIR__, 2 ) . '/src/Utilities/class-color-test.php';
+	/**
+	 * The class file must not construct itself at include time.
+	 *
+	 * Issues #18 and #24.
+	 *
+	 * @return void
+	 */
+	public function test_class_file_does_not_instantiate_at_file_scope() {
+		$this->assertNoFileScopeInstantiation(
+			dirname( __DIR__, 2 ) . '/src/Utilities/class-color-test.php'
+		);
+	}
+
+	/**
+	 * Constructing the class registers the `color-test` command on this instance.
+	 *
+	 * The bootstrap at fa-toolkit.php:131 constructs the class once under WP-CLI;
+	 * that construction must be the registration, and the callable must be the
+	 * instance the bootstrap made, not a throwaway. Issue #24.
+	 *
+	 * @return void
+	 */
+	public function test_constructor_registers_color_test_command() {
+		$color_test = new Color_Test();
+
+		$calls = \WP_CLI::get_calls( 'add_command' );
+
+		$this->assertCount( 1, $calls );
+		$this->assertSame( 'color-test', $calls[0]['args'][0] );
+		$this->assertSame( $color_test, $calls[0]['args'][1] );
 	}
 
 	/**

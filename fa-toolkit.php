@@ -120,14 +120,6 @@ new \FAToolkit\Modules\WooCommerceSettings();
 if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\Utilities\FixRankMathSchemas();
 	new \FAToolkit\Utilities\GTINS();
-	// Color_Test registers its own command at file scope
-	// (src/Utilities/class-color-test.php:68), outside the class body, and the
-	// class has no constructor — so including the file IS the registration and
-	// this `new` constructs nothing observable.
-	//
-	// Do not delete it as dead code: under the classmap autoloader the reference
-	// is what triggers the include, and nothing else in the tree references this
-	// class. Removing this line removes the `color-test` command. See issue #18.
 	new \FAToolkit\Utilities\Color_Test();
 }
 new \FAToolkit\Utilities\Debug();
