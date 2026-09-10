@@ -38,12 +38,7 @@ class Admin_Meta_BoxesTest extends TestCase {
 	 * Five stock boxes are removed from the promotion screen.
 	 */
 	public function test_remove_meta_boxes_removes_stock_boxes_from_promotion() {
-		$removed = array();
-		Functions\when( 'remove_meta_box' )->alias(
-			function ( $id, $screen, $context ) use ( &$removed ) {
-				$removed[] = array( $id, $screen, $context );
-			}
-		);
+		$removed = $this->record( 'remove_meta_box' );
 
 		( new Admin_Meta_Boxes() )->remove_meta_boxes();
 
@@ -55,7 +50,7 @@ class Admin_Meta_BoxesTest extends TestCase {
 				array( 'formatdiv', 'promotion', 'normal' ),
 				array( 'postdivrich', 'promotion', 'normal' ),
 			),
-			$removed
+			$removed->calls
 		);
 	}
 
@@ -65,14 +60,16 @@ class Admin_Meta_BoxesTest extends TestCase {
 	 */
 	public function test_rename_meta_boxes_replaces_excerpt_box_title() {
 		Functions\when( '__' )->returnArg();
-		Functions\expect( 'remove_meta_box' )
-			->once()
-			->with( 'postexcerpt', 'promotion', 'normal' );
-		Functions\expect( 'add_meta_box' )
-			->once()
-			->with( 'postexcerpt', 'Promotion short description', 'post_excerpt_meta_box', 'promotion', 'normal' );
+		$removed = $this->record( 'remove_meta_box' );
+		$added   = $this->record( 'add_meta_box' );
 
 		( new Admin_Meta_Boxes() )->rename_meta_boxes();
+
+		$this->assertSame( array( array( 'postexcerpt', 'promotion', 'normal' ) ), $removed->calls );
+		$this->assertSame(
+			array( array( 'postexcerpt', 'Promotion short description', 'post_excerpt_meta_box', 'promotion', 'normal' ) ),
+			$added->calls
+		);
 	}
 
 	/**
@@ -80,18 +77,23 @@ class Admin_Meta_BoxesTest extends TestCase {
 	 */
 	public function test_add_meta_boxes_adds_promotion_details_box() {
 		Functions\when( '__' )->returnArg();
-		Functions\expect( 'add_meta_box' )
-			->once()
-			->with(
-				'promotion_data',
-				'Promotion Details',
-				array( Promotion_Meta_Box::class, 'output' ),
-				'promotion',
-				'normal',
-				'high'
-			);
+		$added = $this->record( 'add_meta_box' );
 
 		( new Admin_Meta_Boxes() )->add_meta_boxes();
+
+		$this->assertSame(
+			array(
+				array(
+					'promotion_data',
+					'Promotion Details',
+					array( Promotion_Meta_Box::class, 'output' ),
+					'promotion',
+					'normal',
+					'high',
+				),
+			),
+			$added->calls
+		);
 	}
 
 	/**
@@ -99,13 +101,13 @@ class Admin_Meta_BoxesTest extends TestCase {
 	 */
 	public function test_sort_meta_boxes_keeps_an_existing_user_order() {
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
-		Functions\expect( 'get_user_meta' )
-			->once()
-			->with( 7, 'meta-box-order_promotion', true )
-			->andReturn( array( 'normal' => 'custom' ) );
-		Functions\expect( 'update_user_meta' )->never();
+		$read = $this->record( 'get_user_meta', array( 'normal' => 'custom' ) );
+		$written = $this->record( 'update_user_meta' );
 
 		( new Admin_Meta_Boxes() )->sort_meta_boxes();
+
+		$this->assertSame( array( array( 7, 'meta-box-order_promotion', true ) ), $read->calls );
+		$this->assertSame( array(), $written->calls, 'An existing order must not be overwritten.' );
 	}
 
 	/**
@@ -114,18 +116,45 @@ class Admin_Meta_BoxesTest extends TestCase {
 	public function test_sort_meta_boxes_writes_default_order_when_none_saved() {
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'get_user_meta' )->justReturn( '' );
-		Functions\expect( 'update_user_meta' )
-			->once()
-			->with(
-				7,
-				'meta-box-order_promotion',
-				array(
-					'side'     => '',
-					'normal'   => 'titlediv,postexcerpt,promotion_data, postexcerpt, postdivrich',
-					'advanced' => '',
-				)
-			);
+		$written = $this->record( 'update_user_meta' );
 
 		( new Admin_Meta_Boxes() )->sort_meta_boxes();
+
+		$this->assertSame(
+			array(
+				array(
+					7,
+					'meta-box-order_promotion',
+					array(
+						'side'     => '',
+						'normal'   => 'titlediv,postexcerpt,promotion_data, postexcerpt, postdivrich',
+						'advanced' => '',
+					),
+				),
+			),
+			$written->calls
+		);
+	}
+
+	/**
+	 * Stub a WordPress function to record every call's arguments.
+	 *
+	 * Assertions on the recorded calls are explicit, which is both stronger
+	 * than an expectation verified at teardown and visible to static analysis.
+	 *
+	 * @param string $function_name Function to stub.
+	 * @param mixed  $return        Value the stub returns.
+	 * @return object Recorder with a public `calls` array.
+	 */
+	private function record( $function_name, $return = null ) {
+		$recorder        = new \stdClass();
+		$recorder->calls = array();
+		Functions\when( $function_name )->alias(
+			function ( ...$args ) use ( $recorder, $return ) {
+				$recorder->calls[] = $args;
+				return $return;
+			}
+		);
+		return $recorder;
 	}
 }

@@ -72,19 +72,84 @@ class Product_Category_CountsTest extends TestCase {
 	 */
 	public function test_menu_is_a_products_submenu_requiring_manage_options() {
 		$counts = new Product_Category_Counts();
-
-		Functions\expect( 'add_submenu_page' )
-			->once()
-			->with(
-				'edit.php?post_type=product',
-				'Product Category Counts',
-				'Product Category Counts',
-				'manage_options',
-				'product-category-counts',
-				array( $counts, 'product_category_counts_page' )
-			);
+		$added  = array();
+		Functions\when( 'add_submenu_page' )->alias(
+			function ( ...$args ) use ( &$added ) {
+				$added[] = $args;
+				return 'hook-suffix';
+			}
+		);
 
 		$counts->add_product_category_counts_menu();
+
+		$this->assertSame(
+			array(
+				array(
+					'edit.php?post_type=product',
+					'Product Category Counts',
+					'Product Category Counts',
+					'manage_options',
+					'product-category-counts',
+					array( $counts, 'product_category_counts_page' ),
+				),
+			),
+			$added
+		);
+	}
+
+	/**
+	 * Stub the data the page reads: the category list, its lineage lookups,
+	 * the product counts, and the nonce field the refresh form emits.
+	 *
+	 * @param array $categories Category stubs from category().
+	 * @param int   $published  Published product count.
+	 * @param int   $draft      Draft product count.
+	 */
+	private function stub_page_data( array $categories, $published = 0, $draft = 0 ) {
+		$this->stub_output_helpers();
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'get_terms' )->justReturn( $categories );
+		Functions\when( 'get_ancestors' )->justReturn( array() );
+		$names = array_column( $categories, 'name', 'term_id' );
+		Functions\when( 'get_term' )->alias(
+			function ( $id ) use ( $names ) {
+				$term       = new \stdClass();
+				$term->name = $names[ $id ];
+				return $term;
+			}
+		);
+		$posts          = new \stdClass();
+		$posts->publish = $published;
+		$posts->draft   = $draft;
+		Functions\when( 'wp_count_posts' )->justReturn( $posts );
+	}
+
+	/**
+	 * Make the request carry a verified sort nonce with the given values.
+	 *
+	 * @param string $sort_by    Requested sort field.
+	 * @param string $sort_order Requested sort order.
+	 */
+	private function request_verified_sort( $sort_by, $sort_order ) {
+		$_REQUEST = array(
+			'product_category_counts_sort_nonce' => 'n',
+			'sort_by'                            => $sort_by,
+			'sort_order'                         => $sort_order,
+		);
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+	}
+
+	/**
+	 * Render the page and return its output.
+	 *
+	 * @return string
+	 */
+	private function render_page() {
+		ob_start();
+		( new Product_Category_Counts() )->product_category_counts_page();
+		return ob_get_clean();
 	}
 
 	/**
@@ -259,31 +324,10 @@ class Product_Category_CountsTest extends TestCase {
 	 * behaviour so the fix, when it lands, flips exactly one assertion.
 	 */
 	public function test_page_without_a_nonce_reports_totals_and_leaves_rows_in_get_terms_order() {
-		$this->stub_output_helpers();
-		Functions\when( 'wp_nonce_field' )->justReturn( '' );
-		Functions\when( 'get_terms' )->justReturn(
-			array(
-				$this->category( 2, 'Zulu', 4 ),
-				$this->category( 1, 'Alpha', 9 ),
-			)
-		);
-		Functions\when( 'get_ancestors' )->justReturn( array() );
-		Functions\when( 'get_term' )->alias(
-			function ( $id ) {
-				$term       = new \stdClass();
-				$term->name = 1 === $id ? 'Alpha' : 'Zulu';
-				return $term;
-			}
-		);
-		$posts          = new \stdClass();
-		$posts->publish = 120;
-		$posts->draft   = 3;
-		Functions\when( 'wp_count_posts' )->justReturn( $posts );
+		$this->stub_page_data( array( $this->category( 2, 'Zulu', 4 ), $this->category( 1, 'Alpha', 9 ) ), 120, 3 );
 		Functions\expect( 'wp_verify_nonce' )->never();
 
-		ob_start();
-		( new Product_Category_Counts() )->product_category_counts_page();
-		$out = ob_get_clean();
+		$out = $this->render_page();
 
 		$this->assertStringContainsString( '<p>Total Categories: 2 </p>', $out );
 		$this->assertStringContainsString( '<p>Total Published Products: 120 </p>', $out );
@@ -296,42 +340,19 @@ class Product_Category_CountsTest extends TestCase {
 	 * With a valid nonce the request's sort_by and sort_order are applied.
 	 */
 	public function test_page_sorts_by_count_when_nonce_verifies() {
-		$this->stub_output_helpers();
-		$_REQUEST = array(
-			'product_category_counts_sort_nonce' => 'n',
-			'sort_by'                            => 'count',
-			'sort_order'                         => 'desc',
-		);
-		Functions\when( 'wp_nonce_field' )->justReturn( '' );
-		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'sanitize_text_field' )->returnArg();
-		Functions\expect( 'wp_verify_nonce' )
-			->once()
-			->with( 'n', 'product_category_counts_sort_action' )
-			->andReturn( 1 );
-		Functions\when( 'get_terms' )->justReturn(
-			array(
-				$this->category( 1, 'Few', 2 ),
-				$this->category( 2, 'Many', 50 ),
-			)
-		);
-		Functions\when( 'get_ancestors' )->justReturn( array() );
-		Functions\when( 'get_term' )->alias(
-			function ( $id ) {
-				$term       = new \stdClass();
-				$term->name = 1 === $id ? 'Few' : 'Many';
-				return $term;
+		$this->stub_page_data( array( $this->category( 1, 'Few', 2 ), $this->category( 2, 'Many', 50 ) ) );
+		$this->request_verified_sort( 'count', 'desc' );
+		$verified = array();
+		Functions\when( 'wp_verify_nonce' )->alias(
+			function ( ...$args ) use ( &$verified ) {
+				$verified[] = $args;
+				return 1;
 			}
 		);
-		$posts          = new \stdClass();
-		$posts->publish = 0;
-		$posts->draft   = 0;
-		Functions\when( 'wp_count_posts' )->justReturn( $posts );
 
-		ob_start();
-		( new Product_Category_Counts() )->product_category_counts_page();
-		$out = ob_get_clean();
+		$out = $this->render_page();
 
+		$this->assertSame( array( array( 'n', 'product_category_counts_sort_action' ) ), $verified );
 		$this->assertLessThan( strpos( $out, '>Few<' ), strpos( $out, '>Many<' ), 'Many (50) must precede Few (2) in count desc.' );
 		$this->assertStringContainsString( 'href="sort_by=count&sort_order=asc">Number of Products <span class="dashicons dashicons-arrow-up"></span>', $out );
 	}
@@ -340,38 +361,10 @@ class Product_Category_CountsTest extends TestCase {
 	 * Unknown sort values fall back to name / desc rather than being used raw.
 	 */
 	public function test_page_rejects_unknown_sort_values_when_nonce_verifies() {
-		$this->stub_output_helpers();
-		$_REQUEST = array(
-			'product_category_counts_sort_nonce' => 'n',
-			'sort_by'                            => 'evil',
-			'sort_order'                         => 'sideways',
-		);
-		Functions\when( 'wp_nonce_field' )->justReturn( '' );
-		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'sanitize_text_field' )->returnArg();
-		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'get_terms' )->justReturn(
-			array(
-				$this->category( 1, 'Alpha', 1 ),
-				$this->category( 2, 'Zulu', 1 ),
-			)
-		);
-		Functions\when( 'get_ancestors' )->justReturn( array() );
-		Functions\when( 'get_term' )->alias(
-			function ( $id ) {
-				$term       = new \stdClass();
-				$term->name = 1 === $id ? 'Alpha' : 'Zulu';
-				return $term;
-			}
-		);
-		$posts          = new \stdClass();
-		$posts->publish = 0;
-		$posts->draft   = 0;
-		Functions\when( 'wp_count_posts' )->justReturn( $posts );
+		$this->stub_page_data( array( $this->category( 1, 'Alpha', 1 ), $this->category( 2, 'Zulu', 1 ) ) );
+		$this->request_verified_sort( 'evil', 'sideways' );
 
-		ob_start();
-		( new Product_Category_Counts() )->product_category_counts_page();
-		$out = ob_get_clean();
+		$out = $this->render_page();
 
 		$this->assertStringNotContainsString( 'evil', $out );
 		$this->assertStringNotContainsString( 'sideways', $out );
