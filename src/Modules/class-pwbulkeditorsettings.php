@@ -90,17 +90,18 @@ class PWBulkEditorSettings {
 	}
 
 	/**
-	 * PWBE Results Product ACF UPC.
+	 * Fill the UPC column from WooCommerce's GTIN meta.
+	 *
+	 * PW Bulk Edit passes the column definition registered above and renders
+	 * `$pwbe_product->{$column['field']}`, so the check and the property both
+	 * use the column's `upc_code` field id (issues #77, #78).
 	 *
 	 * @param object $pwbe_product PWBE Product.
 	 * @param array  $column       Column.
 	 */
 	public function pwbe_results_product_acf_upc( $pwbe_product, $column ) {
-		if ( 'acf_upc_code' === $column['field'] ) {
-			// WooCommerce's GTIN meta, written by the import (issue #77).
-			$result = get_post_meta( $pwbe_product->post_id, Product_Meta::GTIN, true );
-			// TODO: writes the UPC into acf_dealer, not a upc property; pre-existing, see follow-up issue.
-			$pwbe_product->acf_dealer = $result;
+		if ( 'upc_code' === $column['field'] ) {
+			$pwbe_product->upc_code = get_post_meta( $pwbe_product->post_id, Product_Meta::GTIN, true );
 		}
 
 		return $pwbe_product;
