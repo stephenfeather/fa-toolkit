@@ -219,7 +219,13 @@ class AttachMediaToDraftProductsCommandTest extends TestCase {
 			$seen
 		);
 		Functions\when( 'get_post_meta' )->alias( fn( $id, $key ) => '_sku' === $key ? 'FA-100' : '' );
-		Functions\expect( 'set_post_thumbnail' )->once()->with( 1, 60 );
+		$attached = array();
+		Functions\when( 'set_post_thumbnail' )->alias(
+			function ( ...$args ) use ( &$attached ) {
+				$attached[] = $args;
+				return true;
+			}
+		);
 		Functions\when( 'wp_update_post' )->justReturn( 1 );
 
 		( new AttachMediaToDraftProductsCommand() )->execute(
@@ -229,6 +235,8 @@ class AttachMediaToDraftProductsCommandTest extends TestCase {
 				'extension' => 'png',
 			)
 		);
+
+		$this->assertSame( array( array( 1, 60 ) ), $attached, 'Only 100_1.png matches FA-100 with --suffix=_1 --extension=png.' );
 	}
 
 	/**

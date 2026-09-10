@@ -87,13 +87,17 @@ class CreateRemoteAttachmentsCommandTest extends TestCase {
 		Functions\when( 'WP_CLI\Utils\make_progress_bar' )->justReturn(
 			new class() {
 				/**
-				 * No-op.
+				 * No-op: progress output is not under test.
 				 */
-				public function tick() {}
+				public function tick() {
+					// Intentionally empty.
+				}
 				/**
-				 * No-op.
+				 * No-op: progress output is not under test.
 				 */
-				public function finish() {}
+				public function finish() {
+					// Intentionally empty.
+				}
 			}
 		);
 	}

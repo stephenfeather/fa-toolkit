@@ -112,11 +112,29 @@ class FindMediaForProductCommandTest extends TestCase {
 		$product->shouldReceive( 'set_gallery_image_ids' )->once()->with( array() );
 		$product->shouldReceive( 'save' )->twice();
 		Functions\when( 'wc_get_product' )->justReturn( $product );
-		Functions\expect( 'get_transient' )->once()->with( 'get_posts_' . md5( json_encode( $query ) ) )->andReturn( false ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+		$read    = array();
+		$written = array();
+		Functions\when( 'get_transient' )->alias(
+			function ( $key ) use ( &$read ) {
+				$read[] = $key;
+				return false;
+			}
+		);
 		Functions\expect( 'get_posts' )->once()->with( $query )->andReturn( $list );
-		Functions\expect( 'set_transient' )->once()->with( 'get_posts_' . md5( json_encode( $query ) ), $list, 600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+		Functions\when( 'set_transient' )->alias(
+			function ( ...$args ) use ( &$written ) {
+				$written[] = $args;
+				return true;
+			}
+		);
 
 		( new FindMediaForProductCommand() )->execute( array( 12 ), array() );
+
+		// The key is 'get_posts_' plus a digest of the query; the write must use
+		// the same key the read did, with the fetched list and a 10-minute TTL.
+		$this->assertCount( 1, $read );
+		$this->assertStringStartsWith( 'get_posts_', $read[0] );
+		$this->assertSame( array( array( $read[0], $list, 600 ) ), $written );
 
 		$logs = array_column( array_column( \WP_CLI::get_calls( 'log' ), 'args' ), 0 );
 		$this->assertContains( 'Cache Missed!', $logs );
