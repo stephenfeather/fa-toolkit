@@ -4,7 +4,7 @@ This is a **custom WordPress plugin** for the Feather Arms e-commerce business -
 
 ## Project Details
 - **Name**: Feather Arms Toolkit
-- **Version**: 1.2.0
+- **Version**: 1.2.1
 - **Type**: WordPress Plugin (WooCommerce-focused)
 - **License**: GPL v3.0
 - **Author**: Stephen Feather
