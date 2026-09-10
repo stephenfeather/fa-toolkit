@@ -230,6 +230,9 @@ class CreateRemoteAttachmentsCommandTest extends TestCase {
 		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->with( 'response' )->andReturn( 404 );
 		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_thumbnail_id' );
 		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_product_image_gallery' );
+		// The command shares the runner, so a real pass records the applied
+		// marker too (issue #93); a dead URL is not a failure.
+		Functions\expect( 'update_post_meta' )->once()->with( 9, '_fa_media_applied_sha256', hash( 'sha256', $this->cell( self::SUSPECT_URL ) ) );
 
 		( new CreateRemoteAttachmentsCommand() )->create( array(), array( 'product' => '9' ) );
 

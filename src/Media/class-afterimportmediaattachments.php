@@ -22,10 +22,10 @@ if ( defined( 'ABSPATH' ) === false ) {
  * import does not map `_fa_media`, so the selection below finds nothing new
  * and the run costs one query.
  *
- * Scope is deliberately narrow: products carrying `_fa_media` with no pointer
- * attachment yet, capped per run. Already-processed products, including the
- * dead-URL healing that unwires a stranded product, stay with the operator's
- * `wp fa:media create-remote-attachments` run.
+ * Scope: products whose current `_fa_media` cell has not been applied (no
+ * applied marker, or a marker for an older cell), capped per run (issue #93).
+ * Dead-URL healing, which unwires a stranded product, stays with the
+ * operator's `wp fa:media create-remote-attachments` run.
  */
 class AfterImportMediaAttachments {
 
@@ -66,7 +66,7 @@ class AfterImportMediaAttachments {
 		}
 
 		$limit       = (int) apply_filters( 'fa_toolkit_after_import_media_limit', self::DEFAULT_LIMIT );
-		$product_ids = $this->runner->unattached_products_with_media( $limit );
+		$product_ids = $this->runner->products_with_unapplied_media( $limit );
 
 		$summary = array(
 			'products'    => 0,

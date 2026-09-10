@@ -36,6 +36,14 @@ class RemoteAttachmentRunner {
 	private const SUSPECT_SHAPE = '#/s3/20\d{2}/\d#';
 
 	/**
+	 * Product postmeta holding the sha256 of the last `_fa_media` cell applied
+	 * with no insert failures.
+	 *
+	 * @var string
+	 */
+	public const APPLIED_MARKER = '_fa_media_applied_sha256';
+
+	/**
 	 * Reachability results for this run, successes only.
 	 *
 	 * Failures are deliberately NOT cached. A cached failure would outlive the
@@ -70,30 +78,45 @@ class RemoteAttachmentRunner {
 	}
 
 	/**
-	 * Products carrying media that have no pointer attachment yet.
+	 * Products whose current `_fa_media` cell has not been applied, ascending by id.
 	 *
-	 * This is the after-import selection: a content import only pays for
-	 * products whose media has never produced an attachment. Products already
-	 * processed are left to the operator's CLI run, which also does the
-	 * dead-URL healing.
+	 * This is the after-import selection (issue #93). A product is selected
+	 * when it carries no applied marker, or when its marker no longer matches
+	 * the sha256 of its cell. So later changes such as added dimensions or a
+	 * new gallery entry reach WordPress without an operator run, and a
+	 * re-import of an unchanged cell costs nothing. Selecting on "has no
+	 * pointer attachment" instead left every processed product frozen at its
+	 * first cell.
+	 *
+	 * The comparison is made here rather than in SQL so the rule lives in one
+	 * place. The cap applies after skipping current products, so they never
+	 * crowd out ones that need work.
 	 *
 	 * @param int $limit Maximum products, 0 for all.
 	 * @return array<int, int>
 	 */
-	public function unattached_products_with_media( $limit = 0 ) {
+	public function products_with_unapplied_media( $limit = 0 ) {
 		global $wpdb;
 
-		$sql = "SELECT m.post_id FROM {$wpdb->postmeta} m
+		$sql = "SELECT m.post_id, SHA2(m.meta_value, 256) AS cell_sha256,
+			(SELECT a.meta_value FROM {$wpdb->postmeta} a WHERE a.post_id = m.post_id AND a.meta_key = '" . self::APPLIED_MARKER . "' LIMIT 1) AS applied_sha256
+			FROM {$wpdb->postmeta} m
 			WHERE m.meta_key = '_fa_media' AND m.meta_value <> ''
-			AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->posts} a
-				INNER JOIN {$wpdb->postmeta} s ON s.post_id = a.ID AND s.meta_key = '_fa_media_sha256'
-				WHERE a.post_type = 'attachment' AND a.post_parent = m.post_id
-			)
 			ORDER BY m.post_id ASC";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		return array_map( 'intval', $wpdb->get_col( $sql . $this->limit_clause( $limit ) ) );
+		$rows = (array) $wpdb->get_results( $sql, 'ARRAY_A' );
+
+		$unapplied = array_filter(
+			$rows,
+			function ( $row ) {
+				return (string) ( $row['applied_sha256'] ?? '' ) !== (string) $row['cell_sha256'];
+			}
+		);
+
+		$product_ids = array_map( 'intval', array_column( $unapplied, 'post_id' ) );
+
+		return (int) $limit > 0 ? array_slice( $product_ids, 0, (int) $limit ) : $product_ids;
 	}
 
 	/**
@@ -176,6 +199,14 @@ class RemoteAttachmentRunner {
 			$totals['existing']    += $result['existing'];
 			$totals['unreachable'] += $result['unreachable'];
 			$totals['failed']      += $result['failed'];
+
+			// Recorded only when nothing failed. An insert failure is ours and
+			// retryable, so that product must stay selectable. A dead URL is not
+			// a failure: marking it keeps the listener from re-probing it on
+			// every import. Healing it stays with the operator's CLI run.
+			if ( true !== $dry_run && 0 === $result['failed'] ) {
+				update_post_meta( $product_id, self::APPLIED_MARKER, hash( 'sha256', (string) $raw ) );
+			}
 
 			if ( true === $result['no_usable_image'] ) {
 				$totals['stranded'][] = $product_id;

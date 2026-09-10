@@ -106,25 +106,141 @@ class RemoteAttachmentRunnerTest extends TestCase {
 	}
 
 	/**
-	 * unattached_products_with_media() narrows to products carrying media that
-	 * have no pointer attachment child yet, so a listener only pays for new media.
+	 * Candidate rows for products_with_unapplied_media(), as the query returns
+	 * them: the cell's sha256 computed by MySQL next to the applied marker.
+	 *
+	 * @param array<int, array{0:int,1:string|null}> $rows [ post_id, applied_sha256 ] pairs; every cell hashes to 'cellsha'.
+	 * @return void
 	 */
-	public function test_unattached_products_with_media_excludes_products_with_a_pointer_attachment() {
-		$this->wpdb->shouldReceive( 'prepare' )->once()->with( ' LIMIT %d', 200 )->andReturn( ' LIMIT 200' );
-		$this->wpdb->shouldReceive( 'get_col' )
+	private function candidate_rows( array $rows ) {
+		$this->wpdb->shouldReceive( 'get_results' )
 			->once()
 			->with(
 				Mockery::on(
-					fn( $sql ) => false !== strpos( $sql, "meta_key = '_fa_media' AND m.meta_value <> ''" )
-						&& false !== strpos( $sql, "meta_key = '_fa_media_sha256'" )
-						&& false !== strpos( $sql, "post_type = 'attachment'" )
-						&& false !== strpos( $sql, 'NOT EXISTS' )
-						&& str_ends_with( $sql, 'LIMIT 200' )
-				)
+					fn( $sql ) => false !== strpos( $sql, "m.meta_key = '_fa_media' AND m.meta_value <> ''" )
+						&& false !== strpos( $sql, 'SHA2(m.meta_value, 256)' )
+						&& false !== strpos( $sql, "meta_key = '_fa_media_applied_sha256'" )
+						&& str_ends_with( $sql, 'ORDER BY m.post_id ASC' )
+				),
+				'ARRAY_A'
 			)
-			->andReturn( array( '12' ) );
+			->andReturn(
+				array_map(
+					fn( $row ) => array(
+						'post_id'        => (string) $row[0],
+						'cell_sha256'    => 'cellsha',
+						'applied_sha256' => $row[1],
+					),
+					$rows
+				)
+			);
+	}
 
-		$this->assertSame( array( 12 ), ( new RemoteAttachmentRunner() )->unattached_products_with_media( 200 ) );
+	/**
+	 * A product whose cell has never been applied carries no marker and is
+	 * selected. This covers every product the listener has not yet processed,
+	 * attached or not.
+	 */
+	public function test_products_with_unapplied_media_selects_a_product_with_no_marker() {
+		$this->candidate_rows( array( array( 12, null ) ) );
+
+		$this->assertSame( array( 12 ), ( new RemoteAttachmentRunner() )->products_with_unapplied_media() );
+	}
+
+	/**
+	 * A product whose cell changed since it was applied (dimensions added, a new
+	 * gallery entry) carries a stale marker and is selected again.
+	 */
+	public function test_products_with_unapplied_media_selects_a_product_with_a_stale_marker() {
+		$this->candidate_rows( array( array( 12, 'oldsha' ) ) );
+
+		$this->assertSame( array( 12 ), ( new RemoteAttachmentRunner() )->products_with_unapplied_media() );
+	}
+
+	/**
+	 * A product whose marker matches its current cell is skipped, so a
+	 * re-import of an unchanged cell costs nothing.
+	 */
+	public function test_products_with_unapplied_media_skips_a_product_with_a_current_marker() {
+		$this->candidate_rows( array( array( 12, 'cellsha' ) ) );
+
+		$this->assertSame( array(), ( new RemoteAttachmentRunner() )->products_with_unapplied_media() );
+	}
+
+	/**
+	 * The limit caps the selected products, after skipping current ones, in
+	 * ascending id order.
+	 */
+	public function test_products_with_unapplied_media_applies_the_limit_after_skipping_current_products() {
+		$this->candidate_rows(
+			array(
+				array( 1, 'cellsha' ),
+				array( 2, null ),
+				array( 3, 'oldsha' ),
+				array( 4, null ),
+			)
+		);
+
+		$this->assertSame( array( 2, 3 ), ( new RemoteAttachmentRunner() )->products_with_unapplied_media( 2 ) );
+	}
+
+	/**
+	 * A real pass with no failures records the applied cell's sha256 on the
+	 * product, so the listener skips it until the cell changes.
+	 */
+	public function test_run_records_the_applied_marker_after_a_pass_with_no_failures() {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'FIND-SQL' );
+		$this->wpdb->shouldReceive( 'get_var' )->with( 'FIND-SQL' )->andReturn( '42' );
+		$cell = $this->cell( self::SAFE_URL );
+		Functions\when( 'get_post_meta' )->justReturn( $cell );
+		Functions\when( 'delete_post_meta' )->justReturn( true );
+		$writes = array();
+		Functions\when( 'update_post_meta' )->alias(
+			function ( $post_id, $key, $value ) use ( &$writes ) {
+				$writes[] = array( $post_id, $key, $value );
+				return true;
+			}
+		);
+
+		$result = ( new RemoteAttachmentRunner() )->run( array( 5 ), false, false );
+
+		$this->assertSame( 1, $result['existing'] );
+		$this->assertContains( array( 5, '_fa_media_applied_sha256', hash( 'sha256', $cell ) ), $writes );
+	}
+
+	/**
+	 * A product with an insert failure gets no marker: the failure is ours and
+	 * retryable, so the next import must select the product again.
+	 */
+	public function test_run_records_no_marker_for_a_product_with_a_failed_insert() {
+		$runner = $this->runner_finding_nothing();
+		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SAFE_URL ) );
+		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+		Functions\when( 'wp_insert_attachment' )->justReturn( 0 );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		$writes = array();
+		Functions\when( 'update_post_meta' )->alias(
+			function ( $post_id, $key, $value ) use ( &$writes ) {
+				$writes[] = array( $post_id, $key, $value );
+				return true;
+			}
+		);
+
+		$result = $runner->run( array( 5 ), false, false );
+
+		$this->assertSame( 1, $result['failed'] );
+		$this->assertSame( array(), array_filter( $writes, fn( $write ) => '_fa_media_applied_sha256' === $write[1] ) );
+	}
+
+	/**
+	 * A dry run writes nothing, the marker included.
+	 */
+	public function test_run_dry_records_no_marker() {
+		$runner = $this->runner_finding_nothing();
+		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SAFE_URL ) );
+		Functions\expect( 'update_post_meta' )->never();
+
+		$runner->run( array( 5 ), true, false );
 	}
 
 	/**
@@ -216,6 +332,9 @@ class RemoteAttachmentRunnerTest extends TestCase {
 		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->andReturn( 404 );
 		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_thumbnail_id' );
 		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_product_image_gallery' );
+		// A dead URL is not a failure: the product is marked applied and left to
+		// the operator's CLI run for healing, never reselected on every import.
+		Functions\expect( 'update_post_meta' )->once()->with( 9, '_fa_media_applied_sha256', hash( 'sha256', $this->cell( self::SUSPECT_URL ) ) );
 
 		$result = $runner->run( array( 9 ), false, false );
 
