@@ -163,13 +163,13 @@ class RemoteAttachmentRunner {
 	 * @param bool            $dry_run     Report without writing.
 	 * @param bool            $recheck_all Probe every URL, not only suspect shapes.
 	 * @param callable|null   $tick        Called once after each product.
-	 * @return array{products:int,created:int,existing:int,unreachable:int,failed:int,write_failed:int,no_media:int,stranded:array<int,int>}
+	 * @return array{products:int,created:int,existing:int,unreachable:int,probe_failed:int,failed:int,write_failed:int,no_media:int,stranded:array<int,int>}
 	 */
 	public function run( array $product_ids, $dry_run = false, $recheck_all = false, $tick = null ) {
 		$creator = new RemoteAttachmentCreator(
 			array( $this, 'find_existing' ),
 			function ( $url ) use ( $recheck_all ) {
-				return $this->is_reachable( $url, $recheck_all );
+				return $this->probe( $url, $recheck_all );
 			}
 		);
 		$creator->set_dry_run( (bool) $dry_run );
@@ -179,6 +179,7 @@ class RemoteAttachmentRunner {
 			'created'      => 0,
 			'existing'     => 0,
 			'unreachable'  => 0,
+			'probe_failed' => 0,
 			'failed'       => 0,
 			'write_failed' => 0,
 			'no_media'     => 0,
@@ -189,25 +190,26 @@ class RemoteAttachmentRunner {
 			$raw    = get_post_meta( $product_id, '_fa_media', true );
 			$result = $creator->create_for_product( $product_id, (string) $raw );
 
-			$totals['created']     += $result['created'];
-			$totals['existing']    += $result['existing'];
-			$totals['unreachable'] += $result['unreachable'];
-			$totals['failed']      += $result['failed'];
-
+			$totals['created']      += $result['created'];
+			$totals['existing']     += $result['existing'];
+			$totals['unreachable']  += $result['unreachable'];
+			$totals['probe_failed'] += $result['probe_failed'];
+			$totals['failed']       += $result['failed'];
 			$totals['write_failed'] += $result['write_failed'];
 
-			// Recorded only when nothing failed. An insert or meta write failure
-			// is ours and retryable, so that product must stay selectable: a
-			// marker over a half-applied cell would skip it for good. A dead URL
-			// is not a failure: marking it keeps the listener from re-probing it
-			// on every import. Healing it stays with the operator's CLI run.
-			if ( true !== $dry_run && 0 === $result['failed'] && 0 === $result['write_failed'] ) {
+			// Recorded only when nothing failed. An insert, meta write or probe
+			// failure is about this run and retryable, so that product must stay
+			// selectable: a marker over a half-applied cell would skip it for
+			// good (issues #93, #95). A dead URL is not a failure: marking it
+			// keeps the listener from re-probing it on every import. Healing it
+			// stays with the operator's CLI run.
+			if ( true !== $dry_run && 0 === $result['failed'] + $result['write_failed'] + $result['probe_failed'] ) {
 				update_post_meta( $product_id, self::APPLIED_MARKER, hash( 'sha256', (string) $raw ) );
 			}
 
 			if ( true === $result['no_usable_image'] ) {
 				$totals['stranded'][] = $product_id;
-			} elseif ( 0 === $result['created'] + $result['existing'] + $result['unreachable'] + $result['failed'] ) {
+			} elseif ( 0 === $result['created'] + $result['existing'] + $result['unreachable'] + $result['probe_failed'] + $result['failed'] ) {
 				// Nothing to do and nothing wrong: the cell parsed to no images.
 				++$totals['no_media'];
 			}
@@ -221,19 +223,24 @@ class RemoteAttachmentRunner {
 	}
 
 	/**
-	 * Whether a URL currently resolves.
+	 * What a URL currently answers: ok, dead, or no definite answer.
+	 *
+	 * Only a 404 or 410 is dead. A timeout, a refused connection, a 429 or a
+	 * 5xx says nothing about the image. Treating those as dead cleared a valid
+	 * thumbnail on local staging and marked the product applied, so nothing
+	 * retried it (issue #95, products 865 and 6994).
 	 *
 	 * @param string $url         URL to check.
 	 * @param bool   $recheck_all Probe every shape, not only suspect ones.
-	 * @return bool
+	 * @return string One of RemoteAttachmentCreator::PROBE_*.
 	 */
-	private function is_reachable( $url, $recheck_all ) {
+	private function probe( $url, $recheck_all ) {
 		if ( true !== $recheck_all && 1 !== preg_match( self::SUSPECT_SHAPE, $url ) ) {
-			return true;
+			return RemoteAttachmentCreator::PROBE_OK;
 		}
 
 		if ( isset( $this->reachable[ $url ] ) ) {
-			return true;
+			return RemoteAttachmentCreator::PROBE_OK;
 		}
 
 		// A tiny transform rather than the original: ImageKit 404s on a missing
@@ -248,13 +255,18 @@ class RemoteAttachmentRunner {
 			array( 'timeout' => 20 )
 		);
 
-		$ok = 200 === (int) wp_remote_retrieve_response_code( $response );
+		// A WP_Error (timeout, refused connection) yields '' here, which casts
+		// to 0 and lands with the other non-definite answers.
+		$code = (int) wp_remote_retrieve_response_code( $response );
 
-		if ( true === $ok ) {
+		if ( 200 === $code ) {
 			$this->reachable[ $url ] = true;
+			return RemoteAttachmentCreator::PROBE_OK;
 		}
 
-		return $ok;
+		// Neither answer is cached: a dead URL may be repaired upstream, and a
+		// failed probe may answer next time.
+		return in_array( $code, array( 404, 410 ), true ) ? RemoteAttachmentCreator::PROBE_DEAD : RemoteAttachmentCreator::PROBE_FAILED;
 	}
 
 	/**
