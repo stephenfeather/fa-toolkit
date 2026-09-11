@@ -127,6 +127,50 @@ class OrphanAttachmentPlanTest extends TestCase {
 	}
 
 	/**
+	 * A cell that decodes to a JSON object rather than a list is not a media
+	 * cell, so the product is skipped as invalid (PR #98 review).
+	 */
+	public function test_a_json_object_cell_skips_the_product_as_invalid() {
+		$plan = OrphanAttachmentPlan::for_product(
+			array( 11 => 'aaa' ),
+			array( '{"role":"hero","kind":"image","sha256":"aaa"}' ),
+			array()
+		);
+
+		$this->assertSame( 'invalid_cell', $plan['status'] );
+		$this->assertSame( array(), $plan['orphans'] );
+	}
+
+	/**
+	 * Cells that parse but carry no sha256 at all.
+	 *
+	 * @return array<string, array{0:string}>
+	 */
+	public static function cells_without_any_sha() {
+		return array(
+			'empty list'             => array( '[]' ),
+			'empty object'           => array( '{}' ),
+			'entries without sha256' => array( '[{"role":"hero","kind":"image","url":"https://ik.example.com/a.jpg"}]' ),
+			'list of scalars'        => array( '["aaa","bbb"]' ),
+		);
+	}
+
+	/**
+	 * A cell that parses but names no sha256 says nothing usable about the
+	 * product's images, so the product is skipped rather than having every
+	 * attachment orphaned (PR #98 review).
+	 *
+	 * @param string $cell Raw cell.
+	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider( 'cells_without_any_sha' )]
+	public function test_a_cell_naming_no_sha_skips_the_product( $cell ) {
+		$plan = OrphanAttachmentPlan::for_product( array( 11 => 'aaa' ), array( $cell ), array() );
+
+		$this->assertSame( 'no_cell', $plan['status'] );
+		$this->assertSame( array(), $plan['orphans'] );
+	}
+
+	/**
 	 * Any entry carrying a sha256 keeps a matching attachment, whatever its
 	 * kind or completeness. Keeping too much is recoverable; deleting too much
 	 * is not.

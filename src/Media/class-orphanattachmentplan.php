@@ -25,7 +25,10 @@ if ( defined( 'ABSPATH' ) === false ) {
  *
  * - A cell that is missing or empty says nothing about the product's images,
  *   so the product is skipped rather than having every attachment orphaned.
- * - A cell that is not valid JSON is skipped for the same reason.
+ *   So does a cell that parses but names no sha256 at all (`[]`, `{}`, a list
+ *   of entries without one).
+ * - A cell that is not valid JSON, or decodes to anything but a list, is
+ *   skipped as invalid for the same reason.
  * - Any entry carrying a sha256 keeps a matching attachment, whatever its
  *   kind or completeness.
  * - An orphan still wired as the product's thumbnail or in its gallery is an
@@ -48,7 +51,8 @@ final class OrphanAttachmentPlan {
 	public const STATUS_INVALID_CELL = 'invalid_cell';
 
 	/**
-	 * The product has no non-empty cell; the product is skipped.
+	 * The product has no non-empty cell, or its cells name no sha256; the
+	 * product is skipped.
 	 *
 	 * @var string
 	 */
@@ -105,7 +109,9 @@ final class OrphanAttachmentPlan {
 		foreach ( $non_empty as $cell ) {
 			$decoded = json_decode( (string) $cell, true );
 
-			if ( true !== is_array( $decoded ) ) {
+			// A media cell is a list of entries. A JSON object decodes to an
+			// associative array whose values are not entries.
+			if ( true !== is_array( $decoded ) || ( array() !== $decoded && true !== array_is_list( $decoded ) ) ) {
 				return array( self::STATUS_INVALID_CELL, array() );
 			}
 
@@ -114,6 +120,11 @@ final class OrphanAttachmentPlan {
 					$shas[ (string) $entry['sha256'] ] = true;
 				}
 			}
+		}
+
+		// Parsed, but naming no sha256: nothing to judge attachments against.
+		if ( array() === $shas ) {
+			return array( self::STATUS_NO_CELL, array() );
 		}
 
 		return array( self::STATUS_OK, $shas );

@@ -217,6 +217,44 @@ class PruneOrphanAttachmentsCommandTest extends TestCase {
 	}
 
 	/**
+	 * `--product` values that yield no valid id.
+	 *
+	 * A bare `--product` arrives from WP-CLI as boolean true.
+	 *
+	 * @return array<string, array{0:mixed}>
+	 */
+	public static function product_flags_with_no_valid_id() {
+		return array(
+			'non-numeric and zero' => array( 'abc,0' ),
+			'empty value'          => array( '' ),
+			'only zero'            => array( '0' ),
+			'negative'             => array( '-5' ),
+			'bare flag'            => array( true ),
+		);
+	}
+
+	/**
+	 * A `--product` flag that yields no valid id stops before any read.
+	 *
+	 * Without this, an empty scope reached the store as "no scope" and a
+	 * mistyped `--product` pruned the whole catalogue (PR #98 review).
+	 *
+	 * @param mixed $value Raw `--product` value.
+	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider( 'product_flags_with_no_valid_id' )]
+	public function test_a_product_flag_with_no_valid_id_reads_and_deletes_nothing( $value ) {
+		$store = Mockery::mock( OrphanAttachmentStore::class );
+		$store->shouldReceive( 'pointer_attachments' )->never();
+		Functions\expect( 'wp_delete_attachment' )->never();
+
+		( new PruneOrphanAttachmentsCommand( $store ) )->prune( array(), array( 'product' => $value, 'execute' => true ) );
+
+		$this->assertSame( 'No valid product id in --product; nothing was read or deleted.', \WP_CLI::get_calls( 'warning' )[0]['args'][0] );
+		$this->assertSame( array(), $this->logs() );
+		$this->assertCount( 0, \WP_CLI::get_calls( 'success' ) );
+	}
+
+	/**
 	 * Skipped products are listed and counted, never pruned.
 	 */
 	public function test_skipped_products_are_reported() {

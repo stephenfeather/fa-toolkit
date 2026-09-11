@@ -67,8 +67,17 @@ class PruneOrphanAttachmentsCommand {
 	public function prune( $args, $assoc_args ) {
 		unset( $args );
 
-		$execute     = isset( $assoc_args['execute'] ) && ! isset( $assoc_args['dry-run'] );
-		$attachments = $this->store->pointer_attachments( $this->scope( $assoc_args ) );
+		$execute = isset( $assoc_args['execute'] ) && ! isset( $assoc_args['dry-run'] );
+		$scope   = $this->scope( $assoc_args );
+
+		// An empty scope is the store's "every parent", so a --product that
+		// names no valid id must stop here rather than widen to the catalogue.
+		if ( array() === $scope ) {
+			\WP_CLI::warning( 'No valid product id in --product; nothing was read or deleted.' );
+			return;
+		}
+
+		$attachments = $this->store->pointer_attachments( $scope ?? array() );
 
 		if ( array() === $attachments ) {
 			\WP_CLI::warning( 'No pointer attachments in scope.' );
@@ -98,17 +107,26 @@ class PruneOrphanAttachmentsCommand {
 	}
 
 	/**
-	 * Products to read: an explicit `--product` list, else every parent.
+	 * Products to read.
+	 *
+	 * Null when `--product` is absent (every parent). Otherwise the valid ids
+	 * it names, which may be empty: the caller must treat that as "nothing",
+	 * never as "everything". A bare `--product` (boolean true from WP-CLI)
+	 * names no id.
 	 *
 	 * @param array $assoc_args Flags.
-	 * @return array<int, int>
+	 * @return array<int, int>|null
 	 */
 	private function scope( array $assoc_args ) {
-		if ( ! isset( $assoc_args['product'] ) ) {
+		if ( ! array_key_exists( 'product', $assoc_args ) ) {
+			return null;
+		}
+
+		if ( true !== is_string( $assoc_args['product'] ) ) {
 			return array();
 		}
 
-		return array_values( array_filter( array_map( 'intval', explode( ',', (string) $assoc_args['product'] ) ), fn( $id ) => $id > 0 ) );
+		return array_values( array_filter( array_map( 'intval', explode( ',', $assoc_args['product'] ) ), fn( $id ) => $id > 0 ) );
 	}
 
 	/**
