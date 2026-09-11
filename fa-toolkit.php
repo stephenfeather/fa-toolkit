@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Feather Arms Toolkit
- * Version: 1.2.2
+ * Version: 1.2.3
  * Description: Collection of WordPress management tools used by Feather Arms.
  * Requires PHP: 8.3
  * Author: Stephen Feather
@@ -148,6 +148,7 @@ if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\CLI\Media\AttachMediaToDraftProductsCommand();
 	new \FAToolkit\CLI\Media\ExportDraftProductImageSourcesCommand();
 	new \FAToolkit\CLI\Media\CreateRemoteAttachmentsCommand();
+	new \FAToolkit\CLI\Media\PruneOrphanAttachmentsCommand();
 	// Scrape_Product_Data_Command registers its own command at file scope
 	// (src/CLI/Commands/class-scrapeproductdata.php:155), outside the class
 	// body — so including the file IS the registration, and this class is not
