@@ -828,4 +828,75 @@ class RemoteAttachmentCreatorTest extends TestCase {
 		$this->assertArrayNotHasKey( '100:_wp_attachment_metadata', (array) $ref['meta'] );
 		$this->assertArrayNotHasKey( '100:_wp_attached_file', (array) $ref['meta'] );
 	}
+
+	/**
+	 * Test that a failed probe leaves the product's wiring untouched.
+	 *
+	 * A probe that failed says nothing about the image (issue #95). Promoting
+	 * the gallery image to thumbnail, or clearing, would rewrite a product on
+	 * the strength of a timeout.
+	 *
+	 * @return void
+	 */
+	public function test_a_failed_probe_leaves_the_wiring_untouched() {
+		$ref = $this->stub_wp();
+
+		$probe = function ( $url ) {
+			return self::HERO === $url ? RemoteAttachmentCreator::PROBE_FAILED : RemoteAttachmentCreator::PROBE_OK;
+		};
+
+		$creator = new RemoteAttachmentCreator( $this->finds_nothing(), $probe );
+		$result  = $creator->create_for_product( 55, $this->cell() );
+
+		$this->assertSame( 1, $result['probe_failed'] );
+		$this->assertSame( 0, $result['unreachable'] );
+		$this->assertSame( 1, $result['created'] );
+		$this->assertFalse( $result['no_usable_image'] );
+		$this->assertArrayNotHasKey( '55:_thumbnail_id', (array) $ref['meta'] );
+		$this->assertSame( array(), (array) $ref['deleted'] );
+	}
+
+	/**
+	 * Test that a product whose every probe failed is neither stranded nor cleared.
+	 *
+	 * @return void
+	 */
+	public function test_all_probes_failing_is_not_stranded_and_clears_nothing() {
+		$ref = $this->stub_wp();
+
+		$creator = new RemoteAttachmentCreator(
+			$this->finds_nothing(),
+			function () {
+				return RemoteAttachmentCreator::PROBE_FAILED;
+			}
+		);
+		$result  = $creator->create_for_product( 55, $this->cell() );
+
+		$this->assertSame( 2, $result['probe_failed'] );
+		$this->assertSame( 0, $result['unreachable'] );
+		$this->assertFalse( $result['no_usable_image'] );
+		$this->assertCount( 0, (array) $ref['inserted'] );
+		$this->assertSame( array(), (array) $ref['deleted'] );
+	}
+
+	/**
+	 * Test that a dead probe answer still strands and clears.
+	 *
+	 * @return void
+	 */
+	public function test_a_dead_probe_answer_still_clears_wiring() {
+		$ref = $this->stub_wp();
+
+		$creator = new RemoteAttachmentCreator(
+			$this->finds_nothing(),
+			function () {
+				return RemoteAttachmentCreator::PROBE_DEAD;
+			}
+		);
+		$result  = $creator->create_for_product( 55, $this->cell() );
+
+		$this->assertSame( 2, $result['unreachable'] );
+		$this->assertTrue( $result['no_usable_image'] );
+		$this->assertContains( '55:_thumbnail_id', (array) $ref['deleted'] );
+	}
 }

@@ -208,7 +208,7 @@ class CreateRemoteAttachmentsCommandTest extends TestCase {
 		( new CreateRemoteAttachmentsCommand() )->create( array(), array( 'product' => '5', 'dry-run' => true ) );
 
 		$this->assertSame(
-			'products 1 | attachments created 1 | already present 0 | unreachable urls 0 | insert failures 0',
+			'products 1 | attachments created 1 | already present 0 | unreachable urls 0 | probe failures 0 | insert failures 0',
 			$this->summary_line()
 		);
 		$this->assertCount( 0, \WP_CLI::get_calls( 'warning' ) );
@@ -217,7 +217,7 @@ class CreateRemoteAttachmentsCommandTest extends TestCase {
 
 	/**
 	 * A suspect-shaped URL is probed with a tiny ImageKit transform, and a
-	 * non-200 answer leaves the product stranded: reported, wiring cleared.
+	 * definite 404 leaves the product stranded: reported, wiring cleared.
 	 */
 	public function test_dead_suspect_url_strands_the_product_and_clears_its_wiring() {
 		$this->stub_progress_bar();
@@ -243,6 +243,31 @@ class CreateRemoteAttachmentsCommandTest extends TestCase {
 		$logs = \WP_CLI::get_calls( 'log' );
 		$this->assertSame( '9', end( $logs )['args'][0], 'The stranded product ids are logged after the warning.' );
 		$this->assertSame( 'Done.', \WP_CLI::get_calls( 'success' )[0]['args'][0] );
+	}
+
+	/**
+	 * A probe that times out or answers 429/5xx is reported as a probe failure
+	 * with a retry warning, never as a stranded product: no wiring is cleared
+	 * and no applied marker is written (issue #95).
+	 */
+	public function test_probe_failure_is_reported_separately_and_changes_nothing() {
+		$this->stub_progress_bar();
+		$this->finder_finds_nothing();
+		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SUSPECT_URL ) );
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( 'response' );
+		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->andReturn( 503 );
+		Functions\expect( 'delete_post_meta' )->never();
+		Functions\expect( 'update_post_meta' )->never();
+
+		( new CreateRemoteAttachmentsCommand() )->create( array(), array( 'product' => '9' ) );
+
+		$this->assertSame(
+			'products 1 | attachments created 0 | already present 0 | unreachable urls 0 | probe failures 1 | insert failures 0',
+			$this->summary_line()
+		);
+		$warnings = \WP_CLI::get_calls( 'warning' );
+		$this->assertCount( 1, $warnings );
+		$this->assertSame( '1 image probes failed without a definite answer. Re-running is safe and will retry them.', $warnings[0]['args'][0] );
 	}
 
 	/**
