@@ -121,7 +121,89 @@ class RemoteAttachmentRunnerTest extends TestCase {
 			&& false !== strpos( $sql, 'NOT EXISTS' )
 			&& false !== strpos( $sql, "a.meta_key = '_fa_media_applied_sha256'" )
 			&& false !== strpos( $sql, 'a.meta_value = SHA2(m.meta_value, 256)' )
-			&& false !== strpos( $sql, 'ORDER BY m.post_id ASC' );
+			&& false !== strpos( $sql, self::ORDERING );
+	}
+
+	/**
+	 * The selection order: never-failed products first, then previously failed
+	 * ones oldest failure first, then by id (issue #97).
+	 */
+	private const ORDERING = 'ORDER BY pf.meta_value IS NOT NULL ASC, pf.meta_value ASC, m.post_id ASC';
+
+	/**
+	 * A product whose last pass had a probe failure sorts behind fresh work, so
+	 * a URL that fails on every attempt can never hold the head of the capped
+	 * listener queue; it is still selected, oldest failure first, whenever the
+	 * cap leaves room (issue #97).
+	 */
+	public function test_products_with_unapplied_media_puts_previously_failed_products_behind_fresh_work() {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with( ' LIMIT %d', 200 )->andReturn( ' LIMIT 200' );
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->with(
+				Mockery::on(
+					fn( $sql ) => false !== strpos( $sql, "LEFT JOIN wp_postmeta pf ON pf.post_id = m.post_id AND pf.meta_key = '_fa_media_probe_failed_at'" )
+						&& str_ends_with( $sql, self::ORDERING . ' LIMIT 200' )
+				)
+			)
+			->andReturn( array( '40', '12' ) );
+
+		$this->assertSame( array( 40, 12 ), ( new RemoteAttachmentRunner() )->products_with_unapplied_media( 200 ) );
+	}
+
+	/**
+	 * A real pass whose only shortfall is a probe failure records when it
+	 * failed, so the next selection sorts the product behind fresh work
+	 * (issue #97). The wiring and the applied marker stay untouched (#95).
+	 */
+	public function test_run_records_the_probe_failure_time_on_a_probe_failed_pass() {
+		$runner = $this->runner_finding_nothing();
+		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SUSPECT_URL ) );
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( 'response' );
+		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->andReturn( 503 );
+		Functions\when( 'current_time' )->justReturn( '2026-09-11 14:00:00' );
+		Functions\expect( 'delete_post_meta' )->never();
+		Functions\expect( 'update_post_meta' )->once()->with( 9, '_fa_media_probe_failed_at', '2026-09-11 14:00:00' );
+
+		$runner->run( array( 9 ), false, false );
+	}
+
+	/**
+	 * A real pass with no probe failure clears the recorded failure time, so a
+	 * product that healed returns to the front of the queue (issue #97).
+	 */
+	public function test_run_clears_the_probe_failure_time_after_a_pass_without_probe_failures() {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'FIND-SQL' );
+		$this->wpdb->shouldReceive( 'get_var' )->with( 'FIND-SQL' )->andReturn( '42' );
+		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SAFE_URL ) );
+		Functions\when( 'update_post_meta' )->justReturn( true );
+		$deletes = array();
+		Functions\when( 'delete_post_meta' )->alias(
+			function ( $post_id, $key ) use ( &$deletes ) {
+				$deletes[] = array( $post_id, $key );
+				return true;
+			}
+		);
+
+		( new RemoteAttachmentRunner() )->run( array( 5 ), false, false );
+
+		$this->assertContains( array( 5, '_fa_media_probe_failed_at' ), $deletes );
+	}
+
+	/**
+	 * A dry run neither records nor clears the probe failure time.
+	 */
+	public function test_run_dry_neither_records_nor_clears_the_probe_failure_time() {
+		$runner = $this->runner_finding_nothing();
+		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SUSPECT_URL ) );
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( 'response' );
+		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->andReturn( 503 );
+		Functions\expect( 'update_post_meta' )->never();
+		Functions\expect( 'delete_post_meta' )->never();
+
+		$result = $runner->run( array( 9 ), true, false );
+
+		$this->assertSame( 1, $result['probe_failed'] );
 	}
 
 	/**
@@ -133,7 +215,7 @@ class RemoteAttachmentRunnerTest extends TestCase {
 		$this->wpdb->shouldReceive( 'prepare' )->once()->with( ' LIMIT %d', 200 )->andReturn( ' LIMIT 200' );
 		$this->wpdb->shouldReceive( 'get_col' )
 			->once()
-			->with( Mockery::on( fn( $sql ) => $this->compares_marker_in_sql( $sql ) && str_ends_with( $sql, 'ORDER BY m.post_id ASC LIMIT 200' ) ) )
+			->with( Mockery::on( fn( $sql ) => $this->compares_marker_in_sql( $sql ) && str_ends_with( $sql, self::ORDERING . ' LIMIT 200' ) ) )
 			->andReturn( array( '12', '40' ) );
 
 		$this->assertSame( array( 12, 40 ), ( new RemoteAttachmentRunner() )->products_with_unapplied_media( 200 ) );
@@ -211,6 +293,7 @@ class RemoteAttachmentRunnerTest extends TestCase {
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
 		Functions\when( 'wp_insert_attachment' )->justReturn( 0 );
 		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'delete_post_meta' )->justReturn( true );
 		$writes = array();
 		Functions\when( 'update_post_meta' )->alias(
 			function ( $post_id, $key, $value ) use ( &$writes ) {
@@ -325,6 +408,7 @@ class RemoteAttachmentRunnerTest extends TestCase {
 		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->andReturn( 404 );
 		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_thumbnail_id' );
 		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_product_image_gallery' );
+		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_fa_media_probe_failed_at' );
 		// A dead URL is not a failure: the product is marked applied and left to
 		// the operator's CLI run for healing, never reselected on every import.
 		Functions\expect( 'update_post_meta' )->once()->with( 9, '_fa_media_applied_sha256', hash( 'sha256', $this->cell( self::SUSPECT_URL ) ) );
@@ -381,6 +465,7 @@ class RemoteAttachmentRunnerTest extends TestCase {
 		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->andReturn( 410 );
 		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_thumbnail_id' );
 		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_product_image_gallery' );
+		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_fa_media_probe_failed_at' );
 		Functions\expect( 'update_post_meta' )->once()->with( 9, '_fa_media_applied_sha256', hash( 'sha256', $this->cell( self::SUSPECT_URL ) ) );
 
 		$result = $runner->run( array( 9 ), false, false );
@@ -411,7 +496,7 @@ class RemoteAttachmentRunnerTest extends TestCase {
 	 * A timeout, 429 or 5xx is a probe failure, not a dead image: the
 	 * product is not stranded, its wiring is left alone, and no applied marker
 	 * is written, so the next import retries it (issue #95, products 865 and
-	 * 6994 on local staging).
+	 * 6994 on local staging). The only write is the failure time (issue #97).
 	 *
 	 * @param int|string $code Response code the probe sees.
 	 */
@@ -421,8 +506,9 @@ class RemoteAttachmentRunnerTest extends TestCase {
 		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SUSPECT_URL ) );
 		Functions\expect( 'wp_remote_get' )->once()->andReturn( 'response' );
 		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->andReturn( $code );
+		Functions\when( 'current_time' )->justReturn( '2026-09-11 14:00:00' );
 		Functions\expect( 'delete_post_meta' )->never();
-		Functions\expect( 'update_post_meta' )->never();
+		Functions\expect( 'update_post_meta' )->once()->with( 9, '_fa_media_probe_failed_at', '2026-09-11 14:00:00' );
 
 		$result = $runner->run( array( 9 ), false, false );
 
