@@ -73,6 +73,7 @@ class AfterImportMediaAttachments {
 			'created'      => 0,
 			'existing'     => 0,
 			'unreachable'  => 0,
+			'probe_failed' => 0,
 			'failed'       => 0,
 			'write_failed' => 0,
 			'no_media'     => 0,
@@ -94,8 +95,8 @@ class AfterImportMediaAttachments {
 		 * Fires after the after-import media pass with its summary.
 		 *
 		 * @param array $summary Counts: products, created, existing, unreachable,
-		 *                       failed, write_failed, no_media, stranded,
-		 *                       no_media_cell, limit.
+		 *                       probe_failed, failed, write_failed, no_media,
+		 *                       stranded, no_media_cell, limit.
 		 */
 		do_action( 'fa_toolkit_after_import_media_run', $summary );
 

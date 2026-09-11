@@ -369,4 +369,97 @@ class RemoteAttachmentRunnerTest extends TestCase {
 
 		$this->assertSame( 3, $ticks );
 	}
+
+	/**
+	 * A 410 is as definite as a 404: the image is gone, the product is
+	 * stranded, its wiring cleared, and it is marked applied (issue #95).
+	 */
+	public function test_run_counts_a_410_as_unreachable() {
+		$runner = $this->runner_finding_nothing();
+		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SUSPECT_URL ) );
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( 'response' );
+		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->andReturn( 410 );
+		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_thumbnail_id' );
+		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_product_image_gallery' );
+		Functions\expect( 'update_post_meta' )->once()->with( 9, '_fa_media_applied_sha256', hash( 'sha256', $this->cell( self::SUSPECT_URL ) ) );
+
+		$result = $runner->run( array( 9 ), false, false );
+
+		$this->assertSame( 1, $result['unreachable'] );
+		$this->assertSame( 0, $result['probe_failed'] );
+		$this->assertSame( array( 9 ), $result['stranded'] );
+	}
+
+	/**
+	 * Probe answers that say nothing definite about the image.
+	 *
+	 * wp_remote_retrieve_response_code() returns '' for a WP_Error, which is
+	 * how a timeout or a refused connection arrives.
+	 *
+	 * @return array<string, array{0:int|string}>
+	 */
+	public static function non_definite_probe_answers() {
+		return array(
+			'timeout or WP_Error' => array( '' ),
+			'rate limited'        => array( 429 ),
+			'server error'        => array( 500 ),
+			'unavailable'         => array( 503 ),
+		);
+	}
+
+	/**
+	 * A timeout, 429 or 5xx is a probe failure, not a dead image: the
+	 * product is not stranded, its wiring is left alone, and no applied marker
+	 * is written, so the next import retries it (issue #95, products 865 and
+	 * 6994 on local staging).
+	 *
+	 * @param int|string $code Response code the probe sees.
+	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider( 'non_definite_probe_answers' )]
+	public function test_run_counts_a_non_definite_probe_answer_as_probe_failed( $code ) {
+		$runner = $this->runner_finding_nothing();
+		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SUSPECT_URL ) );
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( 'response' );
+		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->andReturn( $code );
+		Functions\expect( 'delete_post_meta' )->never();
+		Functions\expect( 'update_post_meta' )->never();
+
+		$result = $runner->run( array( 9 ), false, false );
+
+		$this->assertSame( 1, $result['probe_failed'] );
+		$this->assertSame( 0, $result['unreachable'] );
+		$this->assertSame( array(), $result['stranded'] );
+		$this->assertSame( 0, $result['no_media'] );
+	}
+
+	/**
+	 * A failed probe is never cached: the same URL on the next product is
+	 * probed again and, answering 200 now, is used.
+	 */
+	public function test_run_does_not_cache_a_failed_probe() {
+		$runner = $this->runner_finding_nothing();
+		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SUSPECT_URL ) );
+		Functions\expect( 'wp_remote_get' )->twice()->andReturn( 'response' );
+		Functions\expect( 'wp_remote_retrieve_response_code' )->twice()->andReturn( 503, 200 );
+
+		$result = $runner->run( array( 5, 6 ), true, false );
+
+		$this->assertSame( 1, $result['probe_failed'] );
+		$this->assertSame( 1, $result['created'] );
+	}
+
+	/**
+	 * A successful probe is cached for the run: the same URL is fetched once.
+	 */
+	public function test_run_caches_a_successful_probe() {
+		$runner = $this->runner_finding_nothing();
+		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SUSPECT_URL ) );
+		Functions\expect( 'wp_remote_get' )->once()->andReturn( 'response' );
+		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->andReturn( 200 );
+
+		$result = $runner->run( array( 5, 6 ), true, false );
+
+		$this->assertSame( 2, $result['created'] );
+		$this->assertSame( 0, $result['probe_failed'] );
+	}
 }

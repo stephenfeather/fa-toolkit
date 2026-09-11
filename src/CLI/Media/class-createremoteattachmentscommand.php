@@ -89,11 +89,12 @@ class CreateRemoteAttachmentsCommand {
 
 		\WP_CLI::log(
 			sprintf(
-				'products %d | attachments created %d | already present %d | unreachable urls %d | insert failures %d',
+				'products %d | attachments created %d | already present %d | unreachable urls %d | probe failures %d | insert failures %d',
 				$totals['products'],
 				$totals['created'],
 				$totals['existing'],
 				$totals['unreachable'],
+				$totals['probe_failed'],
 				$totals['failed']
 			)
 		);
@@ -110,6 +111,13 @@ class CreateRemoteAttachmentsCommand {
 		// is retryable, a dead URL is the data's and is not.
 		if ( 0 < $totals['failed'] ) {
 			\WP_CLI::warning( sprintf( '%d attachments failed to insert. Re-running is safe and will retry them.', $totals['failed'] ) );
+		}
+
+		// A probe with no definite answer (timeout, 429, 5xx) is neither a
+		// dead URL nor stranded: those products were left untouched and
+		// unmarked, so a re-run or the next import retries them (issue #95).
+		if ( 0 < $totals['probe_failed'] ) {
+			\WP_CLI::warning( sprintf( '%d image probes failed without a definite answer. Re-running is safe and will retry them.', $totals['probe_failed'] ) );
 		}
 
 		if ( true === $dry_run ) {

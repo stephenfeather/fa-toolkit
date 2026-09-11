@@ -40,6 +40,28 @@ class RemoteAttachmentCreator {
 	private $finder;
 
 	/**
+	 * Probe answer: the URL serves the image.
+	 *
+	 * @var string
+	 */
+	public const PROBE_OK = 'ok';
+
+	/**
+	 * Probe answer: the image is definitely gone (404 or 410).
+	 *
+	 * @var string
+	 */
+	public const PROBE_DEAD = 'dead';
+
+	/**
+	 * Probe answer: no definite answer (timeout, 429, 5xx). Says nothing
+	 * about the image, so it must never clear wiring (issue #95).
+	 *
+	 * @var string
+	 */
+	public const PROBE_FAILED = 'failed';
+
+	/**
 	 * Reports whether a URL currently resolves.
 	 *
 	 * @var callable
@@ -64,7 +86,7 @@ class RemoteAttachmentCreator {
 	 * Constructor.
 	 *
 	 * @param callable $finder fn( int $product_id, string $sha ): int Attachment id, or 0.
-	 * @param callable $probe  fn( string $url ): bool Whether the URL resolves.
+	 * @param callable $probe  fn( string $url ): string|bool One of the PROBE_* answers; true and false mean ok and dead.
 	 */
 	public function __construct( callable $finder, callable $probe ) {
 		$this->finder = $finder;
@@ -86,7 +108,7 @@ class RemoteAttachmentCreator {
 	 *
 	 * @param int    $product_id Product post id.
 	 * @param string $raw_media  Raw `_fa_media` postmeta value.
-	 * @return array{created:int,existing:int,unreachable:int,failed:int,write_failed:int,no_usable_image:bool}
+	 * @return array{created:int,existing:int,unreachable:int,probe_failed:int,failed:int,write_failed:int,no_usable_image:bool}
 	 */
 	public function create_for_product( $product_id, $raw_media ) {
 		$this->write_failures = 0;
@@ -95,6 +117,7 @@ class RemoteAttachmentCreator {
 			'created'         => 0,
 			'existing'        => 0,
 			'unreachable'     => 0,
+			'probe_failed'    => 0,
 			'failed'          => 0,
 			'write_failed'    => 0,
 			'no_usable_image' => false,
@@ -113,8 +136,17 @@ class RemoteAttachmentCreator {
 			// A cached failure would survive the upstream URL repair and the
 			// self-healing re-run would silently skip the very images it was
 			// meant to fix.
-			if ( true !== call_user_func( $this->probe, $entry['url'] ) ) {
+			$answer = $this->probe_answer( $entry['url'] );
+
+			if ( self::PROBE_DEAD === $answer ) {
 				++$result['unreachable'];
+				continue;
+			}
+
+			// No definite answer: the image may be fine. Count it apart from
+			// dead URLs so nothing below clears or rewires on its strength.
+			if ( self::PROBE_OK !== $answer ) {
+				++$result['probe_failed'];
 				continue;
 			}
 
@@ -161,9 +193,11 @@ class RemoteAttachmentCreator {
 
 		if ( array() === $attachment_ids ) {
 			// The product HAS images — has_images() returned true above — and not
-			// one of them produced an attachment. Report it whatever the cause,
-			// so an operator sees a product that ended up with nothing.
-			$result['no_usable_image'] = true;
+			// one of them produced an attachment. Report it, so an operator sees
+			// a product that ended up with nothing. A product held back only by
+			// failed probes is not "no usable image": the images may be fine and
+			// the next run retries them.
+			$result['no_usable_image'] = 0 === $result['probe_failed'];
 
 			// But only CLEAR existing wiring when the cause is a dead URL.
 			//
@@ -175,7 +209,9 @@ class RemoteAttachmentCreator {
 			// a product's wiring because our own write failed would turn a
 			// retryable error into data loss, and the next successful run would
 			// have to rebuild what we destroyed.
-			$clear = true !== $this->dry_run && 0 < $result['unreachable'] && 0 === $result['failed'];
+			// A failed probe is the same kind of fact as a failed insert: about
+			// this run, not the image (issue #95).
+			$clear = true !== $this->dry_run && 0 < $result['unreachable'] && 0 === $result['failed'] && 0 === $result['probe_failed'];
 
 			if ( true === $clear ) {
 				$this->delete_meta( $product_id, '_thumbnail_id' );
@@ -187,7 +223,10 @@ class RemoteAttachmentCreator {
 			return $result;
 		}
 
-		if ( true !== $this->dry_run ) {
+		// With a probe unanswered the attachment list is incomplete, and wiring
+		// it would promote a gallery image over a hero that may be fine. Leave
+		// the product as it is; the next run, with a definite answer, wires it.
+		if ( true !== $this->dry_run && 0 === $result['probe_failed'] ) {
 			$this->wire_to_product( $product_id, $attachment_ids );
 		}
 
@@ -444,5 +483,28 @@ class RemoteAttachmentCreator {
 		}
 
 		return true !== is_array( $stored ) && (string) $stored === (string) $value;
+	}
+
+	/**
+	 * The probe's answer for a URL, as one of the PROBE_* constants.
+	 *
+	 * A boolean probe is still accepted: true is ok, false is dead. Anything
+	 * else that is not a known answer counts as no definite answer.
+	 *
+	 * @param string $url Remote URL.
+	 * @return string
+	 */
+	private function probe_answer( $url ) {
+		$answer = call_user_func( $this->probe, $url );
+
+		if ( true === $answer ) {
+			return self::PROBE_OK;
+		}
+
+		if ( false === $answer ) {
+			return self::PROBE_DEAD;
+		}
+
+		return in_array( $answer, array( self::PROBE_OK, self::PROBE_DEAD ), true ) ? $answer : self::PROBE_FAILED;
 	}
 }
