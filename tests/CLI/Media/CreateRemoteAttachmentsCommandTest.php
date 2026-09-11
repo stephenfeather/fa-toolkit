@@ -195,6 +195,25 @@ class CreateRemoteAttachmentsCommandTest extends TestCase {
 	}
 
 	/**
+	 * The failure time only orders the listener's selection. An explicit
+	 * `--product` never consults it: a product whose probe failed before is
+	 * processed like any other (issue #97).
+	 */
+	public function test_product_flag_processes_a_product_whose_probe_failed_before() {
+		$this->stub_progress_bar();
+		$this->finder_finds_nothing();
+		$this->wpdb->shouldReceive( 'get_col' )->never();
+		$cell = $this->cell( self::SAFE_URL );
+		Functions\when( 'get_post_meta' )->alias(
+			fn( $post_id, $key = '' ) => '_fa_media_probe_failed_at' === $key ? '2026-09-10 23:00:00' : $cell
+		);
+
+		( new CreateRemoteAttachmentsCommand() )->create( array(), array( 'product' => '9', 'dry-run' => true ) );
+
+		$this->assertStringStartsWith( 'products 1 | attachments created 1 |', $this->summary_line() );
+	}
+
+	/**
 	 * A dry run counts the attachments it would create, writes nothing, and
 	 * does not probe URLs of the shape measured as reachable.
 	 */
@@ -230,6 +249,7 @@ class CreateRemoteAttachmentsCommandTest extends TestCase {
 		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->with( 'response' )->andReturn( 404 );
 		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_thumbnail_id' );
 		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_product_image_gallery' );
+		Functions\expect( 'delete_post_meta' )->once()->with( 9, '_fa_media_probe_failed_at' );
 		// The command shares the runner, so a real pass records the applied
 		// marker too (issue #93); a dead URL is not a failure.
 		Functions\expect( 'update_post_meta' )->once()->with( 9, '_fa_media_applied_sha256', hash( 'sha256', $this->cell( self::SUSPECT_URL ) ) );
@@ -248,7 +268,8 @@ class CreateRemoteAttachmentsCommandTest extends TestCase {
 	/**
 	 * A probe that times out or answers 429/5xx is reported as a probe failure
 	 * with a retry warning, never as a stranded product: no wiring is cleared
-	 * and no applied marker is written (issue #95).
+	 * and no applied marker is written (issue #95). The only write is the
+	 * failure time that orders the listener queue (issue #97).
 	 */
 	public function test_probe_failure_is_reported_separately_and_changes_nothing() {
 		$this->stub_progress_bar();
@@ -256,8 +277,9 @@ class CreateRemoteAttachmentsCommandTest extends TestCase {
 		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SUSPECT_URL ) );
 		Functions\expect( 'wp_remote_get' )->once()->andReturn( 'response' );
 		Functions\expect( 'wp_remote_retrieve_response_code' )->once()->andReturn( 503 );
+		Functions\when( 'current_time' )->justReturn( '2026-09-11 14:00:00' );
 		Functions\expect( 'delete_post_meta' )->never();
-		Functions\expect( 'update_post_meta' )->never();
+		Functions\expect( 'update_post_meta' )->once()->with( 9, '_fa_media_probe_failed_at', '2026-09-11 14:00:00' );
 
 		( new CreateRemoteAttachmentsCommand() )->create( array(), array( 'product' => '9' ) );
 

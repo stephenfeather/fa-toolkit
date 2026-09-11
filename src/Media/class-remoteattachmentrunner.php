@@ -44,6 +44,15 @@ class RemoteAttachmentRunner {
 	public const APPLIED_MARKER = '_fa_media_applied_sha256';
 
 	/**
+	 * Product postmeta holding when (UTC, `Y-m-d H:i:s`) the product's last
+	 * real pass had a probe with no definite answer. Cleared by the next pass
+	 * without one. Only orders the after-import selection (issue #97).
+	 *
+	 * @var string
+	 */
+	public const PROBE_FAILED_AT = '_fa_media_probe_failed_at';
+
+	/**
 	 * Reachability results for this run, successes only.
 	 *
 	 * Failures are deliberately NOT cached. A cached failure would outlive the
@@ -93,6 +102,13 @@ class RemoteAttachmentRunner {
 	 * both select it. The comparison and the cap run in MySQL, so a capped run
 	 * never materialises every product carrying media.
 	 *
+	 * Order: products with no recorded probe failure first, by id; then those
+	 * whose last pass failed a probe, oldest failure first (issue #97). A URL
+	 * that fails on every attempt keeps its product unmarked (#95), and under
+	 * a plain id order it would take a slot at the head of every capped run.
+	 * Sorted behind fresh work it is still retried whenever the cap leaves
+	 * room, so it heals without ever being given up on.
+	 *
 	 * @param int $limit Maximum products, 0 for all.
 	 * @return array<int, int>
 	 */
@@ -100,13 +116,14 @@ class RemoteAttachmentRunner {
 		global $wpdb;
 
 		$sql = "SELECT m.post_id FROM {$wpdb->postmeta} m
+			LEFT JOIN {$wpdb->postmeta} pf ON pf.post_id = m.post_id AND pf.meta_key = '" . self::PROBE_FAILED_AT . "'
 			WHERE m.meta_key = '_fa_media' AND m.meta_value <> ''
 			AND NOT EXISTS (
 				SELECT 1 FROM {$wpdb->postmeta} a
 				WHERE a.post_id = m.post_id AND a.meta_key = '" . self::APPLIED_MARKER . "'
 				AND a.meta_value = SHA2(m.meta_value, 256)
 			)
-			ORDER BY m.post_id ASC";
+			ORDER BY pf.meta_value IS NOT NULL ASC, pf.meta_value ASC, m.post_id ASC";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		return array_map( 'intval', $wpdb->get_col( $sql . $this->limit_clause( $limit ) ) );
@@ -205,6 +222,15 @@ class RemoteAttachmentRunner {
 			// stays with the operator's CLI run.
 			if ( true !== $dry_run && 0 === $result['failed'] + $result['write_failed'] + $result['probe_failed'] ) {
 				update_post_meta( $product_id, self::APPLIED_MARKER, hash( 'sha256', (string) $raw ) );
+			}
+
+			// When a probe went unanswered, note when, so the next selection sorts
+			// this product behind fresh work; any pass without one clears it
+			// (issue #97). Neither touches wiring or the marker.
+			if ( true !== $dry_run && 0 < $result['probe_failed'] ) {
+				update_post_meta( $product_id, self::PROBE_FAILED_AT, current_time( 'mysql', true ) );
+			} elseif ( true !== $dry_run ) {
+				delete_post_meta( $product_id, self::PROBE_FAILED_AT );
 			}
 
 			if ( true === $result['no_usable_image'] ) {
