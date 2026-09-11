@@ -22,10 +22,10 @@ if ( defined( 'ABSPATH' ) === false ) {
  * import does not map `_fa_media`, so the selection below finds nothing new
  * and the run costs one query.
  *
- * Scope is deliberately narrow: products carrying `_fa_media` with no pointer
- * attachment yet, capped per run. Already-processed products, including the
- * dead-URL healing that unwires a stranded product, stay with the operator's
- * `wp fa:media create-remote-attachments` run.
+ * Scope: products whose current `_fa_media` cell has not been applied (no
+ * applied marker, or a marker for an older cell), capped per run (issue #93).
+ * Dead-URL healing, which unwires a stranded product, stays with the
+ * operator's `wp fa:media create-remote-attachments` run.
  */
 class AfterImportMediaAttachments {
 
@@ -66,16 +66,17 @@ class AfterImportMediaAttachments {
 		}
 
 		$limit       = (int) apply_filters( 'fa_toolkit_after_import_media_limit', self::DEFAULT_LIMIT );
-		$product_ids = $this->runner->unattached_products_with_media( $limit );
+		$product_ids = $this->runner->products_with_unapplied_media( $limit );
 
 		$summary = array(
-			'products'    => 0,
-			'created'     => 0,
-			'existing'    => 0,
-			'unreachable' => 0,
-			'failed'      => 0,
-			'no_media'    => 0,
-			'stranded'    => array(),
+			'products'     => 0,
+			'created'      => 0,
+			'existing'     => 0,
+			'unreachable'  => 0,
+			'failed'       => 0,
+			'write_failed' => 0,
+			'no_media'     => 0,
+			'stranded'     => array(),
 		);
 
 		if ( array() !== $product_ids ) {
@@ -93,7 +94,8 @@ class AfterImportMediaAttachments {
 		 * Fires after the after-import media pass with its summary.
 		 *
 		 * @param array $summary Counts: products, created, existing, unreachable,
-		 *                       failed, no_media, stranded, no_media_cell, limit.
+		 *                       failed, write_failed, no_media, stranded,
+		 *                       no_media_cell, limit.
 		 */
 		do_action( 'fa_toolkit_after_import_media_run', $summary );
 

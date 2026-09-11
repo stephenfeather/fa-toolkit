@@ -69,7 +69,7 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	 */
 	public function test_run_does_nothing_when_disabled_by_filter() {
 		$runner = $this->runner();
-		$runner->shouldReceive( 'unattached_products_with_media' )->never();
+		$runner->shouldReceive( 'products_with_unapplied_media' )->never();
 		$runner->shouldReceive( 'run' )->never();
 		Filters\expectApplied( 'fa_toolkit_after_import_media_enabled' )->once()->with( true )->andReturn( false );
 
@@ -82,7 +82,7 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	 */
 	public function test_run_reports_even_when_no_product_needs_work() {
 		$runner = $this->runner();
-		$runner->shouldReceive( 'unattached_products_with_media' )->once()->with( 200 )->andReturn( array() );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200 )->andReturn( array() );
 		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 70619 );
 		$runner->shouldReceive( 'run' )->never();
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
@@ -109,7 +109,7 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	 */
 	public function test_run_attaches_unattached_products_and_summarises() {
 		$runner = $this->runner();
-		$runner->shouldReceive( 'unattached_products_with_media' )->once()->with( 200 )->andReturn( array( 4, 8 ) );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200 )->andReturn( array( 4, 8 ) );
 		$runner->shouldReceive( 'run' )
 			->once()
 			->with( array( 4, 8 ), false, false, null )
@@ -132,7 +132,7 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	 */
 	public function test_run_limit_is_filterable() {
 		$runner = $this->runner();
-		$runner->shouldReceive( 'unattached_products_with_media' )->once()->with( 25 )->andReturn( array() );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 25 )->andReturn( array() );
 		$runner->shouldReceive( 'products_without_media_cell' )->andReturn( 0 );
 		Filters\expectApplied( 'fa_toolkit_after_import_media_limit' )->once()->with( 200 )->andReturn( 25 );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );

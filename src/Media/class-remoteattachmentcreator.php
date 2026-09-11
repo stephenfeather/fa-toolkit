@@ -54,6 +54,13 @@ class RemoteAttachmentCreator {
 	private $dry_run = false;
 
 	/**
+	 * Meta writes that did not store, for the product being processed.
+	 *
+	 * @var int
+	 */
+	private $write_failures = 0;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param callable $finder fn( int $product_id, string $sha ): int Attachment id, or 0.
@@ -79,14 +86,17 @@ class RemoteAttachmentCreator {
 	 *
 	 * @param int    $product_id Product post id.
 	 * @param string $raw_media  Raw `_fa_media` postmeta value.
-	 * @return array{created:int,existing:int,unreachable:int,failed:int,no_usable_image:bool}
+	 * @return array{created:int,existing:int,unreachable:int,failed:int,write_failed:int,no_usable_image:bool}
 	 */
 	public function create_for_product( $product_id, $raw_media ) {
+		$this->write_failures = 0;
+
 		$result = array(
 			'created'         => 0,
 			'existing'        => 0,
 			'unreachable'     => 0,
 			'failed'          => 0,
+			'write_failed'    => 0,
 			'no_usable_image' => false,
 		);
 
@@ -168,9 +178,11 @@ class RemoteAttachmentCreator {
 			$clear = true !== $this->dry_run && 0 < $result['unreachable'] && 0 === $result['failed'];
 
 			if ( true === $clear ) {
-				delete_post_meta( $product_id, '_thumbnail_id' );
-				delete_post_meta( $product_id, '_product_image_gallery' );
+				$this->delete_meta( $product_id, '_thumbnail_id' );
+				$this->delete_meta( $product_id, '_product_image_gallery' );
 			}
+
+			$result['write_failed'] = $this->write_failures;
 
 			return $result;
 		}
@@ -178,6 +190,8 @@ class RemoteAttachmentCreator {
 		if ( true !== $this->dry_run ) {
 			$this->wire_to_product( $product_id, $attachment_ids );
 		}
+
+		$result['write_failed'] = $this->write_failures;
 
 		return $result;
 	}
@@ -209,8 +223,8 @@ class RemoteAttachmentCreator {
 
 		$attachment_id = (int) $attachment_id;
 
-		update_post_meta( $attachment_id, '_fa_remote_url', $entry['url'] );
-		update_post_meta( $attachment_id, '_fa_media_sha256', $entry['sha256'] );
+		$this->write_meta( $attachment_id, '_fa_remote_url', $entry['url'] );
+		$this->write_meta( $attachment_id, '_fa_media_sha256', $entry['sha256'] );
 
 		$this->write_entry_meta( $attachment_id, $entry );
 
@@ -231,14 +245,14 @@ class RemoteAttachmentCreator {
 	private function write_entry_meta( $attachment_id, array $entry ) {
 		// The URL can change while the bytes do not — the same image lives at
 		// two s3 keys for 2,306 of these — so it is refreshed, not assumed.
-		update_post_meta( $attachment_id, '_fa_remote_url', $entry['url'] );
+		$this->write_meta( $attachment_id, '_fa_remote_url', $entry['url'] );
 
 		// Dimensions travel in the media cell because they live in the
 		// migration database, which WordPress cannot see. Absent is handled
 		// honestly downstream rather than guessed at.
 		if ( isset( $entry['width'], $entry['height'] ) ) {
-			update_post_meta( $attachment_id, '_fa_remote_width', (int) $entry['width'] );
-			update_post_meta( $attachment_id, '_fa_remote_height', (int) $entry['height'] );
+			$this->write_meta( $attachment_id, '_fa_remote_width', (int) $entry['width'] );
+			$this->write_meta( $attachment_id, '_fa_remote_height', (int) $entry['height'] );
 
 			$this->write_wordpress_metadata( $attachment_id, $entry );
 		}
@@ -248,7 +262,7 @@ class RemoteAttachmentCreator {
 		// so an invented one is worse than none. Never cleared when absent:
 		// alt edited by hand in WordPress must survive a re-run.
 		if ( '' !== (string) ( $entry['alt'] ?? '' ) ) {
-			update_post_meta( $attachment_id, '_wp_attachment_image_alt', $entry['alt'] );
+			$this->write_meta( $attachment_id, '_wp_attachment_image_alt', $entry['alt'] );
 		}
 	}
 
@@ -308,8 +322,8 @@ class RemoteAttachmentCreator {
 			);
 		}
 
-		update_post_meta( $attachment_id, '_wp_attached_file', $file );
-		update_post_meta(
+		$this->write_meta( $attachment_id, '_wp_attached_file', $file );
+		$this->write_meta(
 			$attachment_id,
 			'_wp_attachment_metadata',
 			array(
@@ -360,14 +374,75 @@ class RemoteAttachmentCreator {
 		$hero    = array_shift( $attachment_ids );
 		$gallery = $attachment_ids;
 
-		update_post_meta( $product_id, '_thumbnail_id', $hero );
+		$this->write_meta( $product_id, '_thumbnail_id', $hero );
 
 		if ( array() !== $gallery ) {
-			update_post_meta( $product_id, '_product_image_gallery', implode( ',', $gallery ) );
+			$this->write_meta( $product_id, '_product_image_gallery', implode( ',', $gallery ) );
 			return;
 		}
 
 		// Gallery images removed upstream, or died, must stop being referenced.
-		delete_post_meta( $product_id, '_product_image_gallery' );
+		$this->delete_meta( $product_id, '_product_image_gallery' );
+	}
+
+	/**
+	 * Write one meta value, counting it when it did not store.
+	 *
+	 * WordPress's update_post_meta() returns false both on failure and when nothing
+	 * changed: the stored value already equals the new one, or MySQL reports
+	 * zero rows affected for a value that compares equal once stored. So false
+	 * alone is not a failure. Only a stored value that still differs is.
+	 *
+	 * @param int    $post_id Post id.
+	 * @param string $key     Meta key.
+	 * @param mixed  $value   Value to store.
+	 * @return void
+	 */
+	private function write_meta( $post_id, $key, $value ) {
+		if ( false !== update_post_meta( $post_id, $key, $value ) || true === $this->stored_equals( $post_id, $key, $value ) ) {
+			return;
+		}
+
+		++$this->write_failures;
+	}
+
+	/**
+	 * Delete one meta key, counting it when the key survives.
+	 *
+	 * WordPress's delete_post_meta() returns false when there was nothing to delete, which
+	 * is the outcome wanted, not a failure.
+	 *
+	 * @param int    $post_id Post id.
+	 * @param string $key     Meta key.
+	 * @return void
+	 */
+	private function delete_meta( $post_id, $key ) {
+		if ( false !== delete_post_meta( $post_id, $key ) || true !== metadata_exists( 'post', $post_id, $key ) ) {
+			return;
+		}
+
+		++$this->write_failures;
+	}
+
+	/**
+	 * Whether the stored value already equals the one being written.
+	 *
+	 * Scalars are compared as strings, because postmeta stores 1200 as "1200".
+	 * Arrays round-trip through serialisation with their types intact, so they
+	 * are compared strictly.
+	 *
+	 * @param int    $post_id Post id.
+	 * @param string $key     Meta key.
+	 * @param mixed  $value   Value being written.
+	 * @return bool
+	 */
+	private function stored_equals( $post_id, $key, $value ) {
+		$stored = get_post_meta( $post_id, $key, true );
+
+		if ( true === is_array( $value ) ) {
+			return $stored === $value;
+		}
+
+		return true !== is_array( $stored ) && (string) $stored === (string) $value;
 	}
 }

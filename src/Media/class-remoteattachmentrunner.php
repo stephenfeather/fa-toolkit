@@ -36,6 +36,14 @@ class RemoteAttachmentRunner {
 	private const SUSPECT_SHAPE = '#/s3/20\d{2}/\d#';
 
 	/**
+	 * Product postmeta holding the sha256 of the last `_fa_media` cell applied
+	 * with no insert failures.
+	 *
+	 * @var string
+	 */
+	public const APPLIED_MARKER = '_fa_media_applied_sha256';
+
+	/**
 	 * Reachability results for this run, successes only.
 	 *
 	 * Failures are deliberately NOT cached. A cached failure would outlive the
@@ -70,25 +78,33 @@ class RemoteAttachmentRunner {
 	}
 
 	/**
-	 * Products carrying media that have no pointer attachment yet.
+	 * Products whose current `_fa_media` cell has not been applied, ascending by id.
 	 *
-	 * This is the after-import selection: a content import only pays for
-	 * products whose media has never produced an attachment. Products already
-	 * processed are left to the operator's CLI run, which also does the
-	 * dead-URL healing.
+	 * This is the after-import selection (issue #93). A product is selected
+	 * when it carries no applied marker, or when its marker no longer matches
+	 * the sha256 of its cell. So later changes such as added dimensions or a
+	 * new gallery entry reach WordPress without an operator run, and a
+	 * re-import of an unchanged cell costs nothing. Selecting on "has no
+	 * pointer attachment" instead left every processed product frozen at its
+	 * first cell.
+	 *
+	 * A product is skipped only when a marker row exists whose value equals
+	 * the cell's sha256: no row (never applied) and a different value (stale)
+	 * both select it. The comparison and the cap run in MySQL, so a capped run
+	 * never materialises every product carrying media.
 	 *
 	 * @param int $limit Maximum products, 0 for all.
 	 * @return array<int, int>
 	 */
-	public function unattached_products_with_media( $limit = 0 ) {
+	public function products_with_unapplied_media( $limit = 0 ) {
 		global $wpdb;
 
 		$sql = "SELECT m.post_id FROM {$wpdb->postmeta} m
 			WHERE m.meta_key = '_fa_media' AND m.meta_value <> ''
 			AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->posts} a
-				INNER JOIN {$wpdb->postmeta} s ON s.post_id = a.ID AND s.meta_key = '_fa_media_sha256'
-				WHERE a.post_type = 'attachment' AND a.post_parent = m.post_id
+				SELECT 1 FROM {$wpdb->postmeta} a
+				WHERE a.post_id = m.post_id AND a.meta_key = '" . self::APPLIED_MARKER . "'
+				AND a.meta_value = SHA2(m.meta_value, 256)
 			)
 			ORDER BY m.post_id ASC";
 
@@ -147,7 +163,7 @@ class RemoteAttachmentRunner {
 	 * @param bool            $dry_run     Report without writing.
 	 * @param bool            $recheck_all Probe every URL, not only suspect shapes.
 	 * @param callable|null   $tick        Called once after each product.
-	 * @return array{products:int,created:int,existing:int,unreachable:int,failed:int,no_media:int,stranded:array<int,int>}
+	 * @return array{products:int,created:int,existing:int,unreachable:int,failed:int,write_failed:int,no_media:int,stranded:array<int,int>}
 	 */
 	public function run( array $product_ids, $dry_run = false, $recheck_all = false, $tick = null ) {
 		$creator = new RemoteAttachmentCreator(
@@ -159,13 +175,14 @@ class RemoteAttachmentRunner {
 		$creator->set_dry_run( (bool) $dry_run );
 
 		$totals = array(
-			'products'    => count( $product_ids ),
-			'created'     => 0,
-			'existing'    => 0,
-			'unreachable' => 0,
-			'failed'      => 0,
-			'no_media'    => 0,
-			'stranded'    => array(),
+			'products'     => count( $product_ids ),
+			'created'      => 0,
+			'existing'     => 0,
+			'unreachable'  => 0,
+			'failed'       => 0,
+			'write_failed' => 0,
+			'no_media'     => 0,
+			'stranded'     => array(),
 		);
 
 		foreach ( $product_ids as $product_id ) {
@@ -176,6 +193,17 @@ class RemoteAttachmentRunner {
 			$totals['existing']    += $result['existing'];
 			$totals['unreachable'] += $result['unreachable'];
 			$totals['failed']      += $result['failed'];
+
+			$totals['write_failed'] += $result['write_failed'];
+
+			// Recorded only when nothing failed. An insert or meta write failure
+			// is ours and retryable, so that product must stay selectable: a
+			// marker over a half-applied cell would skip it for good. A dead URL
+			// is not a failure: marking it keeps the listener from re-probing it
+			// on every import. Healing it stays with the operator's CLI run.
+			if ( true !== $dry_run && 0 === $result['failed'] && 0 === $result['write_failed'] ) {
+				update_post_meta( $product_id, self::APPLIED_MARKER, hash( 'sha256', (string) $raw ) );
+			}
 
 			if ( true === $result['no_usable_image'] ) {
 				$totals['stranded'][] = $product_id;
