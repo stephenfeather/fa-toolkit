@@ -94,13 +94,9 @@ class AfterImportMediaAttachments {
 		$stopped = 'empty';
 
 		while ( true ) {
-			$ask = $limit;
-
-			if ( $max_products > 0 ) {
-				$ask = min( $limit, $max_products - count( $seen ) );
-			}
-
-			$product_ids = $this->runner->products_with_unapplied_media( $ask );
+			$product_ids = $this->runner->products_with_unapplied_media(
+				$this->batch_size( $limit, $max_products, count( $seen ) )
+			);
 
 			if ( array() === $product_ids ) {
 				break;
@@ -109,9 +105,7 @@ class AfterImportMediaAttachments {
 			// Products that failed keep no applied marker, by design, so they come
 			// back in the next selection. A batch of nothing but those is the end
 			// of the useful work, not a reason to run them again (issue #100).
-			$fresh = array_diff( $product_ids, array_keys( $seen ) );
-
-			if ( array() === $fresh ) {
+			if ( array() === array_diff( $product_ids, array_keys( $seen ) ) ) {
 				$stopped = 'no_progress';
 				break;
 			}
@@ -123,18 +117,10 @@ class AfterImportMediaAttachments {
 				$seen[ $product_id ] = true;
 			}
 
-			if ( true !== $drain ) {
-				$stopped = 'single_batch';
-				break;
-			}
+			$spent = $this->budget_spent( $drain, $max_seconds, microtime( true ) - $started, $max_products, count( $seen ) );
 
-			if ( $max_seconds > 0 && microtime( true ) - $started >= $max_seconds ) {
-				$stopped = 'max_seconds';
-				break;
-			}
-
-			if ( $max_products > 0 && count( $seen ) >= $max_products ) {
-				$stopped = 'max_products';
+			if ( null !== $spent ) {
+				$stopped = $spent;
 				break;
 			}
 
@@ -164,6 +150,51 @@ class AfterImportMediaAttachments {
 		do_action( 'fa_toolkit_after_import_media_run', $summary );
 
 		return $summary;
+	}
+
+	/**
+	 * How many products to ask for next.
+	 *
+	 * A full batch, except where a total-product budget leaves less than one
+	 * batch of room: the last batch asks only for what is left of the budget.
+	 *
+	 * @param int $limit        Products per batch.
+	 * @param int $max_products Total-product budget, 0 for none.
+	 * @param int $processed    Products processed so far this run.
+	 * @return int
+	 */
+	private function batch_size( $limit, $max_products, $processed ) {
+		if ( $max_products > 0 ) {
+			return min( $limit, $max_products - $processed );
+		}
+
+		return $limit;
+	}
+
+	/**
+	 * Which budget, if any, ends the drain after the batch just finished.
+	 *
+	 * @param bool  $drain        Whether draining is on at all.
+	 * @param float $max_seconds  Wall-clock budget, 0 for none.
+	 * @param float $elapsed      Seconds spent so far.
+	 * @param int   $max_products Total-product budget, 0 for none.
+	 * @param int   $processed    Products processed so far this run.
+	 * @return string|null One of single_batch, max_seconds, max_products; null to carry on.
+	 */
+	private function budget_spent( $drain, $max_seconds, $elapsed, $max_products, $processed ) {
+		if ( true !== $drain ) {
+			return 'single_batch';
+		}
+
+		if ( $max_seconds > 0 && $elapsed >= $max_seconds ) {
+			return 'max_seconds';
+		}
+
+		if ( $max_products > 0 && $processed >= $max_products ) {
+			return 'max_products';
+		}
+
+		return null;
 	}
 
 	/**
