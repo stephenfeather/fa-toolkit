@@ -90,12 +90,22 @@ class AfterImportMediaAttachments {
 		$summary = $this->empty_summary();
 		$started = microtime( true );
 		$seen    = array();
+		$stuck   = array();
 		$batches = 0;
 		$stopped = 'empty';
 
 		while ( true ) {
+			// Checked before the selection as well as after the batch: the query
+			// and the cache flush both take time, and a deadline that is only
+			// read after a batch lets one more batch start past it.
+			if ( $batches > 0 && $max_seconds > 0 && microtime( true ) - $started >= $max_seconds ) {
+				$stopped = 'max_seconds';
+				break;
+			}
+
 			$product_ids = $this->runner->products_with_unapplied_media(
-				$this->batch_size( $limit, $max_products, count( $seen ) )
+				$this->batch_size( $limit, $max_products, count( $seen ) ),
+				array_keys( $stuck )
 			);
 
 			if ( array() === $product_ids ) {
@@ -103,17 +113,30 @@ class AfterImportMediaAttachments {
 			}
 
 			// Products that failed keep no applied marker, by design, so they come
-			// back in the next selection. A batch of nothing but those is the end
-			// of the useful work, not a reason to run them again (issue #100).
-			if ( array() === array_diff( $product_ids, array_keys( $seen ) ) ) {
-				$stopped = 'no_progress';
-				break;
+			// back in the next selection (#93, #95) — and only PROBE failures sort
+			// behind fresh work (#97), so a creation or write failure at a low id
+			// heads every selection. Excluding those is what lets the drain reach
+			// the products queued behind them; stopping here would strand them.
+			$fresh   = array_values( array_diff( $product_ids, array_keys( $seen ) ) );
+			$repeats = array_diff( $product_ids, $fresh );
+
+			foreach ( $repeats as $product_id ) {
+				$stuck[ $product_id ] = true;
 			}
 
-			$summary = $this->merge( $summary, $this->runner->run( $product_ids, false, false, null ) );
+			if ( array() === $fresh ) {
+				if ( array() === $repeats ) {
+					$stopped = 'no_progress';
+					break;
+				}
+
+				continue;
+			}
+
+			$summary = $this->merge( $summary, $this->runner->run( $fresh, false, false, null ) );
 			++$batches;
 
-			foreach ( $product_ids as $product_id ) {
+			foreach ( $fresh as $product_id ) {
 				$seen[ $product_id ] = true;
 			}
 
@@ -124,9 +147,11 @@ class AfterImportMediaAttachments {
 				break;
 			}
 
-			// What a fresh WP-CLI process gives the operator's chunked run: the
-			// object cache grows for the length of a drain otherwise.
-			wp_cache_flush();
+			// Both caches a fresh WP-CLI process would have left behind: the
+			// runner's probe cache is a plain property no object-cache flush
+			// reaches, and the object cache grows for the length of a drain.
+			$this->runner->reset_probe_cache();
+			$this->flush_object_cache();
 		}
 
 		// Reported separately, always. An unmapped profile leaves the key absent
@@ -135,6 +160,10 @@ class AfterImportMediaAttachments {
 		$summary['limit']         = $limit;
 		$summary['batches']       = $batches;
 		$summary['stopped']       = $stopped;
+
+		// Products this run could not apply and stopped asking for. Without this
+		// an early finish reads as a clean sweep.
+		$summary['stuck'] = count( $stuck );
 
 		$this->log( $summary );
 
@@ -164,11 +193,42 @@ class AfterImportMediaAttachments {
 	 * @return int
 	 */
 	private function batch_size( $limit, $max_products, $processed ) {
-		if ( $max_products > 0 ) {
-			return min( $limit, $max_products - $processed );
+		if ( $max_products < 1 ) {
+			return $limit;
 		}
 
-		return $limit;
+		$remaining = $max_products - $processed;
+
+		// The runner reads 0 as "no limit", so an unbounded batch size inside a
+		// product budget has to become the budget's remainder — otherwise the
+		// first selection returns the whole queue and spends the budget it was
+		// meant to bound (PR #101 review).
+		if ( $limit < 1 ) {
+			return $remaining;
+		}
+
+		return min( $limit, $remaining );
+	}
+
+	/**
+	 * Drop the object cache between batches, without emptying a shared one.
+	 *
+	 * `wp_cache_flush()` purges a persistent Redis or Memcached backend for the
+	 * whole site, which is not the process-local cleanup a fresh WP-CLI process
+	 * gives. Prefer the runtime-only flush; failing that, flush only where no
+	 * persistent backend is in play (PR #101 review).
+	 *
+	 * @return void
+	 */
+	private function flush_object_cache() {
+		if ( function_exists( 'wp_cache_flush_runtime' ) ) {
+			wp_cache_flush_runtime();
+			return;
+		}
+
+		if ( true !== wp_using_ext_object_cache() ) {
+			wp_cache_flush();
+		}
 	}
 
 	/**

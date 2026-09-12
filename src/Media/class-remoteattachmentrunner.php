@@ -109,10 +109,16 @@ class RemoteAttachmentRunner {
 	 * Sorted behind fresh work it is still retried whenever the cap leaves
 	 * room, so it heals without ever being given up on.
 	 *
-	 * @param int $limit Maximum products, 0 for all.
+	 * Products named in `$exclude` are cut in SQL. A caller draining in batches
+	 * needs that: only PROBE failures sort behind fresh work, so a creation or
+	 * write failure at a low id otherwise heads every selection and the drain
+	 * never reaches the products queued behind it (issue #100, PR #101 review).
+	 *
+	 * @param int             $limit   Maximum products, 0 for all.
+	 * @param array<int, int> $exclude Product ids to leave out.
 	 * @return array<int, int>
 	 */
-	public function products_with_unapplied_media( $limit = 0 ) {
+	public function products_with_unapplied_media( $limit = 0, array $exclude = array() ) {
 		global $wpdb;
 
 		$sql = "SELECT m.post_id FROM {$wpdb->postmeta} m
@@ -122,8 +128,8 @@ class RemoteAttachmentRunner {
 				SELECT 1 FROM {$wpdb->postmeta} a
 				WHERE a.post_id = m.post_id AND a.meta_key = '" . self::APPLIED_MARKER . "'
 				AND a.meta_value = SHA2(m.meta_value, 256)
-			)
-			ORDER BY pf.meta_value IS NOT NULL ASC, pf.meta_value ASC, m.post_id ASC";
+			)" . $this->exclude_clause( $exclude ) . '
+			ORDER BY pf.meta_value IS NOT NULL ASC, pf.meta_value ASC, m.post_id ASC';
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		return array_map( 'intval', $wpdb->get_col( $sql . $this->limit_clause( $limit ) ) );
@@ -293,6 +299,38 @@ class RemoteAttachmentRunner {
 		// Neither answer is cached: a dead URL may be repaired upstream, and a
 		// failed probe may answer next time.
 		return in_array( $code, array( 404, 410 ), true ) ? RemoteAttachmentCreator::PROBE_DEAD : RemoteAttachmentCreator::PROBE_FAILED;
+	}
+
+	/**
+	 * Drop the cached reachability answers.
+	 *
+	 * The cache is per run, and a caller draining a queue in batches holds one
+	 * runner for all of them, so without this the array grows for the length of
+	 * the drain — and no object-cache flush touches it, because it is a plain
+	 * PHP property (PR #101 review).
+	 *
+	 * @return void
+	 */
+	public function reset_probe_cache() {
+		$this->reachable = array();
+	}
+
+	/**
+	 * An id-exclusion clause, or nothing.
+	 *
+	 * Ids are cast to integers and inlined rather than prepared: the list is
+	 * built by the caller from ids this class returned, and `prepare()` has no
+	 * placeholder for a list.
+	 *
+	 * @param array<int, int> $exclude Product ids to leave out.
+	 * @return string
+	 */
+	private function exclude_clause( array $exclude ) {
+		if ( array() === $exclude ) {
+			return '';
+		}
+
+		return ' AND m.post_id NOT IN (' . implode( ',', array_map( 'intval', $exclude ) ) . ')';
 	}
 
 	/**

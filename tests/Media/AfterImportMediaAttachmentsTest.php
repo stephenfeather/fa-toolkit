@@ -13,6 +13,8 @@ use FAToolkit\Media\AfterImportMediaAttachments;
 use FAToolkit\Media\RemoteAttachmentRunner;
 use FAToolkit\Tests\TestCase;
 use Mockery;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 
 /**
  * AfterImportMediaAttachments: creates pointer attachments for newly imported
@@ -25,12 +27,15 @@ use Mockery;
 class AfterImportMediaAttachmentsTest extends TestCase {
 
 	/**
-	 * A runner mock.
+	 * A runner mock that tolerates the between-batch probe-cache reset.
 	 *
 	 * @return \Mockery\MockInterface&RemoteAttachmentRunner
 	 */
 	private function runner() {
-		return Mockery::mock( RemoteAttachmentRunner::class );
+		$runner = Mockery::mock( RemoteAttachmentRunner::class );
+		$runner->shouldReceive( 'reset_probe_cache' )->byDefault();
+
+		return $runner;
 	}
 
 	/**
@@ -59,11 +64,15 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	/**
 	 * Stub the WordPress functions the listener reaches for while draining.
 	 *
+	 * `wp_cache_flush_runtime()` is deliberately left undefined: most tests
+	 * exercise the fallback, and the runtime-flush test defines it itself.
+	 *
 	 * @return void
 	 */
 	private function stub_wordpress() {
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
 	}
 
@@ -95,10 +104,11 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	 */
 	public function test_run_reports_even_when_no_product_needs_work() {
 		$runner = $this->runner();
-		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200 )->andReturn( array() );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200, array() )->andReturn( array() );
 		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 70619 );
 		$runner->shouldReceive( 'run' )->never();
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
 		$reported = array();
 		Functions\when( 'do_action' )->alias(
@@ -113,6 +123,7 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 
 		$this->assertSame( 0, $summary['products'] );
 		$this->assertSame( 0, $summary['batches'] );
+		$this->assertSame( 0, $summary['stuck'] );
 		$this->assertSame( 'empty', $summary['stopped'] );
 		$this->assertSame( 70619, $summary['no_media_cell'] );
 		$this->assertSame( array( $summary ), $reported );
@@ -127,7 +138,7 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 		$runner = $this->runner();
 		$runner->shouldReceive( 'products_with_unapplied_media' )
 			->twice()
-			->with( 200 )
+			->with( 200, array() )
 			->andReturn( array( 4, 8 ), array() );
 		$runner->shouldReceive( 'run' )
 			->once()
@@ -150,7 +161,7 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	 */
 	public function test_run_limit_is_filterable() {
 		$runner = $this->runner();
-		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 25 )->andReturn( array() );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 25, array() )->andReturn( array() );
 		$runner->shouldReceive( 'products_without_media_cell' )->andReturn( 0 );
 		Filters\expectApplied( 'fa_toolkit_after_import_media_limit' )->once()->with( 200 )->andReturn( 25 );
 		$this->stub_wordpress();
@@ -167,7 +178,7 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 		$runner = $this->runner();
 		$runner->shouldReceive( 'products_with_unapplied_media' )
 			->times( 3 )
-			->with( 200 )
+			->with( 200, array() )
 			->andReturn( array( 1, 2 ), array( 3 ), array() );
 		$runner->shouldReceive( 'run' )
 			->once()
@@ -191,52 +202,61 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	}
 
 	/**
-	 * A product that fails gets no applied marker on purpose, so it stays
-	 * selectable (#93, #95). Draining until the selection empties would then
-	 * re-select the same products forever, so the drain stops as soon as a
-	 * batch brings back nothing it has not already processed.
+	 * Products that fail keep no applied marker on purpose, so they stay
+	 * selectable (#93, #95) — and only PROBE failures sort behind fresh work
+	 * (#97), so a creation or write failure at a low id sits at the head of
+	 * every selection. Excluding them from later selections is what lets the
+	 * drain reach the products queued behind them; stopping on the repeat
+	 * would strand everything after the failure.
 	 */
-	public function test_run_stops_when_a_batch_repeats_already_processed_products() {
+	public function test_run_excludes_persistently_failing_products_and_keeps_going() {
 		$runner = $this->runner();
+		// A product is only known to be stuck once a selection hands it back, so
+		// the repeat costs one more query before the exclusion can be applied.
 		$runner->shouldReceive( 'products_with_unapplied_media' )
 			->twice()
-			->with( 200 )
+			->with( 200, array() )
 			->andReturn( array( 1, 2 ), array( 1, 2 ) );
-		$runner->shouldReceive( 'run' )
-			->once()
-			->with( array( 1, 2 ), false, false, null )
-			->andReturn( $this->run_result( array( 'products' => 2, 'probe_failed' => 2 ) ) );
+		$runner->shouldReceive( 'products_with_unapplied_media' )
+			->twice()
+			->with( 200, array( 1, 2 ) )
+			->andReturn( array( 9 ), array() );
+		$runner->shouldReceive( 'run' )->once()->with( array( 1, 2 ), false, false, null )
+			->andReturn( $this->run_result( array( 'products' => 2, 'failed' => 2 ) ) );
+		$runner->shouldReceive( 'run' )->once()->with( array( 9 ), false, false, null )
+			->andReturn( $this->run_result( array( 'products' => 1, 'created' => 1 ) ) );
 		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
 		$this->stub_wordpress();
 
 		$summary = ( new AfterImportMediaAttachments( $runner ) )->run( new \stdClass() );
 
-		$this->assertSame( 2, $summary['products'] );
-		$this->assertSame( 1, $summary['batches'] );
-		$this->assertSame( 'no_progress', $summary['stopped'] );
+		$this->assertSame( 1, $summary['created'] );
+		$this->assertSame( 2, $summary['stuck'] );
+		$this->assertSame( 'empty', $summary['stopped'] );
 	}
 
 	/**
-	 * A batch that brings back a mix of already-processed and new products is
-	 * progress, so the drain continues rather than stopping on the repeats.
+	 * Only the products not already processed this run go to the runner: a
+	 * mixed batch must not re-run the failures it carries, which would inflate
+	 * the summary and spend the product budget twice on the same work.
 	 */
-	public function test_run_continues_when_a_batch_is_partly_new() {
+	public function test_run_passes_only_unprocessed_products_to_the_runner() {
 		$runner = $this->runner();
-		$runner->shouldReceive( 'products_with_unapplied_media' )
-			->times( 3 )
-			->with( 200 )
-			->andReturn( array( 1, 2 ), array( 1, 3 ), array( 1 ) );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200, array() )->andReturn( array( 1, 2 ) );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200, array() )->andReturn( array( 1, 3 ) );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200, array( 1 ) )->andReturn( array() );
 		$runner->shouldReceive( 'run' )->once()->with( array( 1, 2 ), false, false, null )
 			->andReturn( $this->run_result( array( 'products' => 2 ) ) );
-		$runner->shouldReceive( 'run' )->once()->with( array( 1, 3 ), false, false, null )
-			->andReturn( $this->run_result( array( 'products' => 2 ) ) );
+		$runner->shouldReceive( 'run' )->once()->with( array( 3 ), false, false, null )
+			->andReturn( $this->run_result( array( 'products' => 1 ) ) );
 		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
 		$this->stub_wordpress();
 
 		$summary = ( new AfterImportMediaAttachments( $runner ) )->run( new \stdClass() );
 
+		$this->assertSame( 3, $summary['products'] );
+		$this->assertSame( 1, $summary['stuck'] );
 		$this->assertSame( 2, $summary['batches'] );
-		$this->assertSame( 'no_progress', $summary['stopped'] );
 	}
 
 	/**
@@ -246,7 +266,7 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	 */
 	public function test_run_does_one_batch_when_drain_is_disabled() {
 		$runner = $this->runner();
-		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200 )->andReturn( array( 1, 2 ) );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200, array() )->andReturn( array( 1, 2 ) );
 		$runner->shouldReceive( 'run' )->once()->andReturn( $this->run_result( array( 'products' => 2 ) ) );
 		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
 		Filters\expectApplied( 'fa_toolkit_after_import_media_drain' )->once()->with( true )->andReturn( false );
@@ -264,8 +284,8 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	 */
 	public function test_run_respects_the_max_products_budget() {
 		$runner = $this->runner();
-		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 2 )->andReturn( array( 1, 2 ) );
-		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 1 )->andReturn( array( 3 ) );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 2, array() )->andReturn( array( 1, 2 ) );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 1, array() )->andReturn( array( 3 ) );
 		$runner->shouldReceive( 'run' )->once()->with( array( 1, 2 ), false, false, null )
 			->andReturn( $this->run_result( array( 'products' => 2 ) ) );
 		$runner->shouldReceive( 'run' )->once()->with( array( 3 ), false, false, null )
@@ -283,12 +303,34 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	}
 
 	/**
+	 * The runner reads a batch size of 0 as "no limit", so a zero batch size
+	 * with a product budget must ask for the budget's remainder rather than
+	 * for 0 — otherwise the first selection returns the whole queue and the
+	 * budget is blown on the batch it was meant to bound.
+	 */
+	public function test_run_never_asks_for_an_unbounded_batch_inside_a_product_budget() {
+		$runner = $this->runner();
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 3, array() )->andReturn( array( 1, 2, 3 ) );
+		$runner->shouldReceive( 'run' )->once()->with( array( 1, 2, 3 ), false, false, null )
+			->andReturn( $this->run_result( array( 'products' => 3 ) ) );
+		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
+		Filters\expectApplied( 'fa_toolkit_after_import_media_limit' )->once()->with( 200 )->andReturn( 0 );
+		Filters\expectApplied( 'fa_toolkit_after_import_media_max_products' )->once()->with( 0 )->andReturn( 3 );
+		$this->stub_wordpress();
+
+		$summary = ( new AfterImportMediaAttachments( $runner ) )->run( new \stdClass() );
+
+		$this->assertSame( 3, $summary['products'] );
+		$this->assertSame( 'max_products', $summary['stopped'] );
+	}
+
+	/**
 	 * A time budget stops the drain after the batch that crosses it, leaving
 	 * the rest to the operator's CLI run rather than holding the import open.
 	 */
 	public function test_run_respects_the_time_budget() {
 		$runner = $this->runner();
-		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200 )->andReturn( array( 1, 2 ) );
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200, array() )->andReturn( array( 1, 2 ) );
 		$runner->shouldReceive( 'run' )->once()->andReturn( $this->run_result( array( 'products' => 2 ) ) );
 		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
 		Filters\expectApplied( 'fa_toolkit_after_import_media_max_seconds' )->once()->with( 0.0 )->andReturn( 0.000001 );
@@ -301,20 +343,99 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	}
 
 	/**
-	 * The object cache is flushed between batches. A single long-lived process
-	 * otherwise grows for the length of the drain; the operator's chunked CLI
-	 * runs stay bounded only because each chunk is a fresh process.
+	 * The runner keeps successful probes in a per-run cache that no object
+	 * cache flush touches, so a long drain grows PHP memory unless the runner
+	 * is told to drop it between batches.
 	 */
-	public function test_run_flushes_the_object_cache_between_batches() {
+	public function test_run_resets_the_runner_probe_cache_between_batches() {
+		$runner = Mockery::mock( RemoteAttachmentRunner::class );
+		$runner->shouldReceive( 'products_with_unapplied_media' )
+			->times( 3 )
+			->with( 200, array() )
+			->andReturn( array( 1 ), array( 2 ), array() );
+		$runner->shouldReceive( 'run' )->twice()->andReturn( $this->run_result( array( 'products' => 1 ) ) );
+		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
+		$runner->shouldReceive( 'reset_probe_cache' )->twice();
+		$this->stub_wordpress();
+
+		( new AfterImportMediaAttachments( $runner ) )->run( new \stdClass() );
+	}
+
+	/**
+	 * Where WordPress offers a runtime-only flush, use it: `wp_cache_flush()`
+	 * empties a shared Redis or Memcached backend for the whole site, which is
+	 * not what a fresh WP-CLI process does.
+	 */
+	public function test_run_prefers_the_runtime_cache_flush() {
 		$runner = $this->runner();
 		$runner->shouldReceive( 'products_with_unapplied_media' )
 			->times( 3 )
-			->with( 200 )
+			->with( 200, array() )
 			->andReturn( array( 1 ), array( 2 ), array() );
 		$runner->shouldReceive( 'run' )->twice()->andReturn( $this->run_result( array( 'products' => 1 ) ) );
 		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'do_action' )->justReturn( null );
+		$runtime = 0;
+		Functions\when( 'wp_cache_flush_runtime' )->alias(
+			function () use ( &$runtime ) {
+				++$runtime;
+				return true;
+			}
+		);
+		Functions\expect( 'wp_cache_flush' )->never();
+
+		( new AfterImportMediaAttachments( $runner ) )->run( new \stdClass() );
+
+		$this->assertSame( 2, $runtime );
+	}
+
+	/**
+	 * With no runtime flush available and a persistent object cache in play,
+	 * flush nothing rather than purging a shared backend the whole site reads.
+	 *
+	 * Runs isolated: a PHP function stays defined for the life of the process,
+	 * so once any test defines `wp_cache_flush_runtime()` every later test sees
+	 * it. Testing the no-runtime path in-process would only pass while it ran
+	 * first.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_run_does_not_flush_a_shared_persistent_object_cache() {
+		$runner = $this->runner();
+		$runner->shouldReceive( 'products_with_unapplied_media' )
+			->times( 3 )
+			->with( 200, array() )
+			->andReturn( array( 1 ), array( 2 ), array() );
+		$runner->shouldReceive( 'run' )->twice()->andReturn( $this->run_result( array( 'products' => 1 ) ) );
+		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'wp_using_ext_object_cache' )->justReturn( true );
+		Functions\expect( 'wp_cache_flush' )->never();
+
+		( new AfterImportMediaAttachments( $runner ) )->run( new \stdClass() );
+	}
+
+	/**
+	 * On a plain installation with no persistent backend, the global flush is
+	 * the only tool available and is safe to use.
+	 *
+	 * Isolated for the same reason as the test above.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_run_falls_back_to_the_global_flush_without_a_persistent_cache() {
+		$runner = $this->runner();
+		$runner->shouldReceive( 'products_with_unapplied_media' )
+			->times( 3 )
+			->with( 200, array() )
+			->andReturn( array( 1 ), array( 2 ), array() );
+		$runner->shouldReceive( 'run' )->twice()->andReturn( $this->run_result( array( 'products' => 1 ) ) );
+		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
 		$flushes = 0;
 		Functions\when( 'wp_cache_flush' )->alias(
 			function () use ( &$flushes ) {
