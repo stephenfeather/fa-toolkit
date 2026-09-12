@@ -548,4 +548,81 @@ class RemoteAttachmentRunnerTest extends TestCase {
 		$this->assertSame( 2, $result['created'] );
 		$this->assertSame( 0, $result['probe_failed'] );
 	}
+
+	/**
+	 * The probe cache is per run, and a caller draining in batches holds one
+	 * runner for all of them, so it needs a way to drop the cache between
+	 * batches. Without it the array grows for the length of a drain and no
+	 * object-cache flush touches it (PR #101 review).
+	 */
+	public function test_reset_probe_cache_drops_cached_successes() {
+		$runner = $this->runner_finding_nothing();
+		Functions\when( 'get_post_meta' )->justReturn( $this->cell( self::SUSPECT_URL ) );
+		Functions\expect( 'wp_remote_get' )->twice()->andReturn( 'response' );
+		Functions\expect( 'wp_remote_retrieve_response_code' )->twice()->andReturn( 200, 200 );
+
+		$runner->run( array( 5 ), true, false );
+		$runner->reset_probe_cache();
+		$result = $runner->run( array( 6 ), true, false );
+
+		$this->assertSame( 1, $result['created'] );
+	}
+
+	/**
+	 * Products named in the exclusion list are cut in SQL. The after-import
+	 * drain needs this because only PROBE failures sort behind fresh work
+	 * (#97): a creation or write failure at a low id otherwise heads every
+	 * selection and the drain never reaches the products queued behind it.
+	 */
+	public function test_products_with_unapplied_media_excludes_given_products_in_sql() {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with( ' LIMIT %d', 200 )->andReturn( ' LIMIT 200' );
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->with(
+				Mockery::on(
+					fn( $sql ) => $this->compares_marker_in_sql( $sql )
+						&& false !== strpos( $sql, 'm.post_id NOT IN (12,40)' )
+				)
+			)
+			->andReturn( array( '77' ) );
+
+		$this->assertSame(
+			array( 77 ),
+			( new RemoteAttachmentRunner() )->products_with_unapplied_media( 200, array( 12, 40 ) )
+		);
+	}
+
+	/**
+	 * The exclusion list is cast to integers, so a caller cannot smuggle SQL
+	 * through it: a trailing statement is cut to the leading integer, and a
+	 * wholly non-numeric entry becomes 0.
+	 */
+	public function test_products_with_unapplied_media_casts_the_exclusion_list_to_integers() {
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->with(
+				Mockery::on(
+					fn( $sql ) => false !== strpos( $sql, 'm.post_id NOT IN (5,3,0,7)' )
+						&& false === strpos( $sql, 'DROP' )
+				)
+			)
+			->andReturn( array() );
+
+		( new RemoteAttachmentRunner() )->products_with_unapplied_media(
+			0,
+			array( '5', '3; DROP TABLE wp_posts', 'DROP TABLE wp_posts', '7' )
+		);
+	}
+
+	/**
+	 * An empty exclusion list adds no clause at all.
+	 */
+	public function test_products_with_unapplied_media_without_exclusions_has_no_not_in_clause() {
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->with( Mockery::on( fn( $sql ) => false === strpos( $sql, 'NOT IN' ) ) )
+			->andReturn( array() );
+
+		( new RemoteAttachmentRunner() )->products_with_unapplied_media( 0, array() );
+	}
 }
