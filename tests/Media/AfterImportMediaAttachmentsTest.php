@@ -156,6 +156,83 @@ class AfterImportMediaAttachmentsTest extends TestCase {
 	}
 
 	/**
+	 * The summary says how long the drain took, so the cost of leaving it
+	 * unbounded inside an import can be read off the log line rather than
+	 * guessed at when choosing a `max_seconds` default (issue #103).
+	 *
+	 * Asserted as a shape, not a value: the clock is real, so only "present,
+	 * whole, not negative" is deterministic.
+	 */
+	public function test_run_reports_how_long_the_drain_took() {
+		$runner = $this->runner();
+		$runner->shouldReceive( 'products_with_unapplied_media' )
+			->twice()
+			->with( 200, array() )
+			->andReturn( array( 1, 2 ), array() );
+		$runner->shouldReceive( 'run' )->once()->andReturn( $this->run_result( array( 'products' => 2 ) ) );
+		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
+		$this->stub_wordpress();
+		$reported = array();
+		Functions\when( 'do_action' )->alias(
+			function ( $hook, ...$args ) use ( &$reported ) {
+				if ( 'fa_toolkit_after_import_media_run' === $hook ) {
+					$reported[] = $args[0];
+				}
+			}
+		);
+
+		$summary = ( new AfterImportMediaAttachments( $runner ) )->run( new \stdClass() );
+
+		$this->assertArrayHasKey( 'elapsed_ms', $summary );
+		$this->assertIsInt( $summary['elapsed_ms'] );
+		$this->assertGreaterThanOrEqual( 0, $summary['elapsed_ms'] );
+		$this->assertSame( array( $summary ), $reported );
+	}
+
+	/**
+	 * Each batch is timed as well as the whole drain: the runner is held across
+	 * batches and the object cache grows behind it, so a drain that degrades
+	 * batch by batch has to be visible as more than one total (issue #103).
+	 */
+	public function test_run_reports_elapsed_time_for_each_batch() {
+		$runner = $this->runner();
+		$runner->shouldReceive( 'products_with_unapplied_media' )
+			->times( 3 )
+			->with( 200, array() )
+			->andReturn( array( 1, 2 ), array( 3 ), array() );
+		$runner->shouldReceive( 'run' )->twice()->andReturn( $this->run_result( array( 'products' => 1 ) ) );
+		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
+		$this->stub_wordpress();
+
+		$summary = ( new AfterImportMediaAttachments( $runner ) )->run( new \stdClass() );
+
+		$this->assertSame( 2, $summary['batches'] );
+		$this->assertCount( 2, $summary['elapsed_ms_per_batch'] );
+
+		foreach ( $summary['elapsed_ms_per_batch'] as $elapsed ) {
+			$this->assertIsInt( $elapsed );
+			$this->assertGreaterThanOrEqual( 0, $elapsed );
+		}
+	}
+
+	/**
+	 * A run that does no work still reports timing, so an operator reading the
+	 * line never has to tell "fast" apart from "not measured".
+	 */
+	public function test_run_reports_timing_even_when_no_product_needs_work() {
+		$runner = $this->runner();
+		$runner->shouldReceive( 'products_with_unapplied_media' )->once()->with( 200, array() )->andReturn( array() );
+		$runner->shouldReceive( 'products_without_media_cell' )->once()->andReturn( 0 );
+		$runner->shouldReceive( 'run' )->never();
+		$this->stub_wordpress();
+
+		$summary = ( new AfterImportMediaAttachments( $runner ) )->run( new \stdClass() );
+
+		$this->assertIsInt( $summary['elapsed_ms'] );
+		$this->assertSame( array(), $summary['elapsed_ms_per_batch'] );
+	}
+
+	/**
 	 * The per-batch product cap is filterable, so an operator can raise it for a
 	 * bulk catch-up or lower it on a slow host.
 	 */

@@ -87,14 +87,17 @@ class AfterImportMediaAttachments {
 		$max_products = (int) apply_filters( 'fa_toolkit_after_import_media_max_products', 0 );
 		$max_seconds  = (float) apply_filters( 'fa_toolkit_after_import_media_max_seconds', 0.0 );
 
-		$summary = $this->empty_summary();
-		$started = microtime( true );
-		$seen    = array();
-		$stuck   = array();
-		$batches = 0;
-		$stopped = 'empty';
+		$summary     = $this->empty_summary();
+		$started     = microtime( true );
+		$seen        = array();
+		$stuck       = array();
+		$batches     = 0;
+		$batch_times = array();
+		$stopped     = 'empty';
 
 		while ( true ) {
+			$batch_started = microtime( true );
+
 			if ( $this->deadline_passed( $batches, $max_seconds, microtime( true ) - $started ) ) {
 				$stopped = 'max_seconds';
 				break;
@@ -125,6 +128,7 @@ class AfterImportMediaAttachments {
 
 			$summary = $this->merge( $summary, $this->runner->run( $fresh, false, false, null ) );
 			++$batches;
+			$batch_times[] = self::milliseconds( microtime( true ) - $batch_started );
 
 			foreach ( $fresh as $product_id ) {
 				$seen[ $product_id ] = true;
@@ -155,6 +159,18 @@ class AfterImportMediaAttachments {
 		// an early finish reads as a clean sweep.
 		$summary['stuck'] = count( $stuck );
 
+		// What the drain cost. `stopped` and `stuck` say whether it finished and
+		// whether anything blocked it; neither answers whether it should be
+		// capped, and `fa_toolkit_after_import_media_max_seconds` cannot be given
+		// a sensible default without that number (issue #103).
+		//
+		// Per-batch times cover selection through merge, so they exclude the
+		// between-batch cache flush and sum to less than the total. They are
+		// there to show degradation across a drain, which the total hides: one
+		// runner is held for the whole run and the object cache grows behind it.
+		$summary['elapsed_ms']           = self::milliseconds( microtime( true ) - $started );
+		$summary['elapsed_ms_per_batch'] = $batch_times;
+
 		$this->log( $summary );
 
 		/**
@@ -162,13 +178,27 @@ class AfterImportMediaAttachments {
 		 *
 		 * @param array $summary Counts: products, created, existing, unreachable,
 		 *                       probe_failed, failed, write_failed, no_media,
-		 *                       stranded, no_media_cell, limit, batches, and
+		 *                       stranded, no_media_cell, limit, batches, stuck,
 		 *                       stopped (empty, no_progress, max_products,
-		 *                       max_seconds or single_batch).
+		 *                       max_seconds or single_batch), elapsed_ms and
+		 *                       elapsed_ms_per_batch.
 		 */
 		do_action( 'fa_toolkit_after_import_media_run', $summary );
 
 		return $summary;
+	}
+
+	/**
+	 * Seconds as whole milliseconds.
+	 *
+	 * Whole milliseconds because the summary is read by a human deciding on a
+	 * budget, and float seconds in a JSON log line invite false precision.
+	 *
+	 * @param float $seconds Elapsed seconds.
+	 * @return int
+	 */
+	private static function milliseconds( $seconds ) {
+		return (int) round( $seconds * 1000 );
 	}
 
 	/**
