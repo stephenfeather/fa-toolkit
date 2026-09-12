@@ -95,10 +95,7 @@ class AfterImportMediaAttachments {
 		$stopped = 'empty';
 
 		while ( true ) {
-			// Checked before the selection as well as after the batch: the query
-			// and the cache flush both take time, and a deadline that is only
-			// read after a batch lets one more batch start past it.
-			if ( $batches > 0 && $max_seconds > 0 && microtime( true ) - $started >= $max_seconds ) {
+			if ( $this->deadline_passed( $batches, $max_seconds, microtime( true ) - $started ) ) {
 				$stopped = 'max_seconds';
 				break;
 			}
@@ -112,20 +109,13 @@ class AfterImportMediaAttachments {
 				break;
 			}
 
-			// Products that failed keep no applied marker, by design, so they come
-			// back in the next selection (#93, #95) — and only PROBE failures sort
-			// behind fresh work (#97), so a creation or write failure at a low id
-			// heads every selection. Excluding those is what lets the drain reach
-			// the products queued behind them; stopping here would strand them.
-			$fresh   = array_values( array_diff( $product_ids, array_keys( $seen ) ) );
-			$repeats = array_diff( $product_ids, $fresh );
-
-			foreach ( $repeats as $product_id ) {
-				$stuck[ $product_id ] = true;
-			}
+			$known = count( $stuck );
+			$fresh = $this->unprocessed( $product_ids, $seen, $stuck );
 
 			if ( array() === $fresh ) {
-				if ( array() === $repeats ) {
+				// Nothing new and nothing newly stuck: the selection is standing
+				// still in a way excluding cannot move, so stop rather than spin.
+				if ( count( $stuck ) === $known ) {
 					$stopped = 'no_progress';
 					break;
 				}
@@ -179,6 +169,48 @@ class AfterImportMediaAttachments {
 		do_action( 'fa_toolkit_after_import_media_run', $summary );
 
 		return $summary;
+	}
+
+	/**
+	 * Whether the wall-clock budget is already spent.
+	 *
+	 * Read before a selection as well as after a batch: the query and the cache
+	 * flush both take time, and a deadline only read after a batch lets one more
+	 * batch start past it (PR #101 review). Never true before the first batch,
+	 * so a tight budget still does one batch of work rather than none.
+	 *
+	 * @param int   $batches     Batches run so far.
+	 * @param float $max_seconds Wall-clock budget, 0 for none.
+	 * @param float $elapsed     Seconds spent so far.
+	 * @return bool
+	 */
+	private function deadline_passed( $batches, $max_seconds, $elapsed ) {
+		return $batches > 0 && $max_seconds > 0 && $elapsed >= $max_seconds;
+	}
+
+	/**
+	 * The products in a selection not already processed this run.
+	 *
+	 * Anything the selection hands back a second time is recorded as stuck, so
+	 * later selections can exclude it. Products that failed keep no applied
+	 * marker by design, so they stay selectable (#93, #95) — and only PROBE
+	 * failures sort behind fresh work (#97), so a creation or write failure at
+	 * a low id heads every selection. Excluding those is what lets the drain
+	 * reach the products queued behind them.
+	 *
+	 * @param array<int, int>  $product_ids The selection.
+	 * @param array<int, bool> $seen        Products processed this run, keyed by id.
+	 * @param array<int, bool> $stuck       Products to exclude, keyed by id; added to here.
+	 * @return array<int, int>
+	 */
+	private function unprocessed( array $product_ids, array $seen, array &$stuck ) {
+		$fresh = array_values( array_diff( $product_ids, array_keys( $seen ) ) );
+
+		foreach ( array_diff( $product_ids, $fresh ) as $product_id ) {
+			$stuck[ $product_id ] = true;
+		}
+
+		return $fresh;
 	}
 
 	/**
