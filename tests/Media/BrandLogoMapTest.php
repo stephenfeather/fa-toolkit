@@ -203,6 +203,7 @@ class BrandLogoMapTest extends TestCase {
 					'broken'       => array( 'status' => 'logo' ),
 					'heckler_koch' => array( 'status' => 'conflict', 'candidates' => array( 'a', 'b' ) ),
 					'burris'       => array( 'status' => 'near_identical', 'candidates' => array( 'c' ), 'group' => array( 'burris', 'burris_company_inc' ) ),
+					'mag_tech'     => array( 'status' => 'ambiguous', 'candidates' => array( 'files/product_brands/Magtech-Logo.jpg' ), 'codes' => array( 'mag_tech', 'magtech_inc' ) ),
 				)
 			)
 		);
@@ -213,6 +214,7 @@ class BrandLogoMapTest extends TestCase {
 				'10_ring'      => array( 'status' => 'MISSING' ),
 				'heckler_koch' => array( 'status' => 'conflict' ),
 				'burris'       => array( 'status' => 'near_identical' ),
+				'mag_tech'     => array( 'status' => 'ambiguous' ),
 			),
 			$result['entries']
 		);

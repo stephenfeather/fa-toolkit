@@ -17,8 +17,9 @@ if ( defined( 'ABSPATH' ) === false ) {
  *
  * Rules (issue #105):
  *
- * - Only `logo` entries are planned. MISSING, conflict and near_identical are
- *   listed; resolving them is an operator ruling, not this command's.
+ * - Only `logo` entries are planned. MISSING, conflict, ambiguous (one file
+ *   matching several codes) and near_identical are listed; resolving them is
+ *   an operator ruling, not this command's.
  * - A code with no product_brand term is listed and creates nothing.
  * - An attachment is identified by its s3_key. Codes sharing a key share one
  *   attachment, whose alt is the name of the lowest term_id (operator, Q2).
@@ -48,6 +49,7 @@ final class BrandLogoPlan {
 			'skipped'     => array(
 				'MISSING'        => array(),
 				'conflict'       => array(),
+				'ambiguous'      => array(),
 				'near_identical' => array(),
 			),
 		);

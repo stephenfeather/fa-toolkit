@@ -167,7 +167,7 @@ class BrandLogosCommandTest extends TestCase {
 				'brand a_zoom | matched by slug | term 8',
 				'brand glock_inc | thumbnail kept: attachment 300 was not set by this command; --replace overwrites it',
 				'brand nope_brand | no product_brand term',
-				'TOTAL brands 7 | logos 4 | attachments to create 2 | to reuse 0 | thumbnails to set 2 | already set 0 | kept manual 1 | no term 1 | matched by slug 1 | skipped missing 1 | conflict 1 | near_identical 1 | map errors 1',
+				'TOTAL brands 8 | logos 4 | attachments to create 2 | to reuse 0 | thumbnails to set 2 | already set 0 | kept manual 1 | no term 1 | matched by slug 1 | skipped missing 1 | conflict 1 | ambiguous 1 | near_identical 1 | map errors 1',
 			),
 			$this->messages( 'log' )
 		);

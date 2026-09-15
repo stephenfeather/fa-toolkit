@@ -73,14 +73,16 @@ class BrandLogoPlanTest extends TestCase {
 	}
 
 	/**
-	 * MISSING, conflict and near_identical entries are listed by status and
-	 * never planned.
+	 * MISSING, conflict, ambiguous and near_identical entries are listed by
+	 * status and never planned. `ambiguous` (one file matching several codes)
+	 * carries no file, like conflict.
 	 */
 	public function test_non_logo_entries_are_skipped_by_status() {
 		$plan = BrandLogoPlan::build(
 			array(
 				'10_ring'      => array( 'status' => 'MISSING' ),
 				'heckler_koch' => array( 'status' => 'conflict' ),
+				'mag_tech'     => array( 'status' => 'ambiguous' ),
 				'burris'       => array( 'status' => 'near_identical' ),
 				'cmmg'         => array( 'status' => 'near_identical' ),
 			),
@@ -94,6 +96,7 @@ class BrandLogoPlanTest extends TestCase {
 			array(
 				'MISSING'        => array( '10_ring' ),
 				'conflict'       => array( 'heckler_koch' ),
+				'ambiguous'      => array( 'mag_tech' ),
 				'near_identical' => array( 'burris', 'cmmg' ),
 			),
 			$plan['skipped']

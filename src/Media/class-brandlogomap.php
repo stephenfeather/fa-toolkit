@@ -27,7 +27,7 @@ final class BrandLogoMap {
 	 *
 	 * @var array<int, string>
 	 */
-	public const STATUSES = array( 'logo', 'MISSING', 'conflict', 'near_identical' );
+	public const STATUSES = array( 'logo', 'MISSING', 'conflict', 'ambiguous', 'near_identical' );
 
 	/**
 	 * Parse a raw map.

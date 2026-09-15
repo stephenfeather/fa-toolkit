@@ -56,7 +56,8 @@ class BrandLogosCommand {
 	 * Give product_brand terms their logo from brand_logo_map.json.
 	 *
 	 * Dry run unless --execute is given. Only `logo` entries are applied;
-	 * MISSING, conflict and near_identical entries are counted and skipped.
+	 * MISSING, conflict, ambiguous and near_identical entries are counted and
+	 * skipped.
 	 * One unparented remote attachment is created per s3_key and shared by
 	 * every brand mapping to it. A thumbnail uploaded by hand is kept unless
 	 * --replace is given. Rerunning an unchanged map writes nothing.
@@ -207,7 +208,7 @@ class BrandLogosCommand {
 
 		\WP_CLI::log(
 			sprintf(
-				'TOTAL brands %d | logos %d | attachments to create %d | to reuse %d | thumbnails to set %d | already set %d | kept manual %d | no term %d | matched by slug %d | skipped missing %d | conflict %d | near_identical %d | map errors %d',
+				'TOTAL brands %d | logos %d | attachments to create %d | to reuse %d | thumbnails to set %d | already set %d | kept manual %d | no term %d | matched by slug %d | skipped missing %d | conflict %d | ambiguous %d | near_identical %d | map errors %d',
 				$brands,
 				$logos,
 				$created,
@@ -219,6 +220,7 @@ class BrandLogosCommand {
 				count( array_filter( $plan['rows'], fn( $row ) => 'slug' === $row['matched_by'] ) ),
 				count( $plan['skipped']['MISSING'] ),
 				count( $plan['skipped']['conflict'] ),
+				count( $plan['skipped']['ambiguous'] ),
 				count( $plan['skipped']['near_identical'] ),
 				$error_count
 			)
