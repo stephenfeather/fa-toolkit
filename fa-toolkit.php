@@ -95,6 +95,10 @@ new \FAToolkit\Media\AutoAttachUploadedMedia();
 // Registers filters only; it is inert for every ordinary local attachment.
 new \FAToolkit\Media\RemoteAttachmentUrls();
 
+// Clears the brand thumbnails that pointed at a deleted brand-logo attachment
+// (#105). Registers one action; inert for every other attachment.
+new \FAToolkit\Media\BrandLogoDeleteGuard();
+
 // Creates pointer attachments for newly imported `_fa_media` once a Super
 // Speedy Imports run finishes. Registers one action; inert until that fires.
 new \FAToolkit\Media\AfterImportMediaAttachments();
@@ -149,6 +153,7 @@ if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\CLI\Media\ExportDraftProductImageSourcesCommand();
 	new \FAToolkit\CLI\Media\CreateRemoteAttachmentsCommand();
 	new \FAToolkit\CLI\Media\PruneOrphanAttachmentsCommand();
+	new \FAToolkit\CLI\Media\BrandLogosCommand();
 	// Scrape_Product_Data_Command registers its own command at file scope
 	// (src/CLI/Commands/class-scrapeproductdata.php:155), outside the class
 	// body — so including the file IS the registration, and this class is not

@@ -335,68 +335,24 @@ class RemoteAttachmentCreator {
 	 * @return void
 	 */
 	private function write_wordpress_metadata( $attachment_id, array $entry ) {
-		$width  = (int) $entry['width'];
-		$height = (int) $entry['height'];
-		$file   = wp_basename( (string) wp_parse_url( $entry['url'], PHP_URL_PATH ) );
-		$mime   = $this->mime_type( $entry['url'] );
-
-		$sizes = array();
-
-		foreach ( ImageSizeCandidates::up_to( $width ) as $candidate ) {
-			$sizes[ 'fa-' . $candidate ] = array(
-				'file'      => $file,
-				'width'     => $candidate,
-				'height'    => (int) round( $height * ( $candidate / $width ) ),
-				'mime-type' => $mime,
-			);
-		}
-
-		if ( array() === $sizes ) {
-			// Smaller than every candidate. One entry so core's guard clears.
-			$sizes['fa-full'] = array(
-				'file'      => $file,
-				'width'     => $width,
-				'height'    => $height,
-				'mime-type' => $mime,
-			);
-		}
+		$file = wp_basename( (string) wp_parse_url( $entry['url'], PHP_URL_PATH ) );
 
 		$this->write_meta( $attachment_id, '_wp_attached_file', $file );
 		$this->write_meta(
 			$attachment_id,
 			'_wp_attachment_metadata',
-			array(
-				'width'  => $width,
-				'height' => $height,
-				'file'   => $file,
-				'sizes'  => $sizes,
-			)
+			RemoteAttachmentMetadata::build( $entry['url'], $entry['width'], $entry['height'], $file )
 		);
 	}
 
 	/**
 	 * Mime type for a remote image, from its extension.
 	 *
-	 * Hard-coding image/jpeg would mislabel every png and webp in the
-	 * catalogue, and WordPress uses this to decide what an attachment is.
-	 *
 	 * @param string $url Remote URL.
 	 * @return string
 	 */
 	private function mime_type( $url ) {
-		$path      = (string) wp_parse_url( $url, PHP_URL_PATH );
-		$extension = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-
-		$known = array(
-			'jpg'  => 'image/jpeg',
-			'jpeg' => 'image/jpeg',
-			'png'  => 'image/png',
-			'gif'  => 'image/gif',
-			'webp' => 'image/webp',
-			'avif' => 'image/avif',
-		);
-
-		return $known[ $extension ] ?? 'image/jpeg';
+		return RemoteAttachmentMetadata::mime_type( $url );
 	}
 
 	/**
