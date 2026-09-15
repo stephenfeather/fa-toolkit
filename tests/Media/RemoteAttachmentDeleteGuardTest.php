@@ -171,6 +171,42 @@ class RemoteAttachmentDeleteGuardTest extends TestCase {
 	}
 
 	/**
+	 * A strip whose delete never completes leaves a recoverable pointer.
+	 *
+	 * Not self-healing: `_wp_attached_file` stays gone. Everything needed to
+	 * render and to rewrite it survives, and the stripped value is the
+	 * basename of the `_fa_remote_url` path.
+	 */
+	public function test_a_strip_whose_delete_never_completes_leaves_the_pointer_recoverable() {
+		$metadata   = array(
+			'width'  => 800,
+			'height' => 600,
+			'file'   => 'Glock-19.jpg',
+		);
+		$this->meta = array(
+			76 => array(
+				'_fa_remote_url'          => 'https://ik.example/products/Glock-19.jpg?v=2',
+				'_fa_remote_width'        => 800,
+				'_fa_remote_height'       => 600,
+				'_wp_attached_file'       => 'Glock-19.jpg',
+				'_wp_attachment_metadata' => $metadata,
+			),
+		);
+		$this->stub_meta();
+
+		( new RemoteAttachmentDeleteGuard() )->forget_local_paths( null, $this->post( 76 ), true );
+
+		// Core never ran: the delete was cancelled after the strip.
+		$survivor = $this->meta[76];
+
+		$this->assertArrayNotHasKey( '_wp_attached_file', $survivor );
+		$this->assertSame( 800, $survivor['_fa_remote_width'] );
+		$this->assertSame( 600, $survivor['_fa_remote_height'] );
+		$this->assertSame( $metadata, $survivor['_wp_attachment_metadata'] );
+		$this->assertSame( 'Glock-19.jpg', basename( (string) parse_url( $survivor['_fa_remote_url'], PHP_URL_PATH ) ) );
+	}
+
+	/**
 	 * An unsized pointer, which never had an attached file, still deletes.
 	 */
 	public function test_a_pointer_without_an_attached_file_still_deletes() {

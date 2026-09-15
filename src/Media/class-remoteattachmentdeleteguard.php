@@ -19,13 +19,36 @@ if ( defined( 'ABSPATH' ) === false ) {
  * basename in `_wp_attached_file`, and wp_delete_attachment() builds uploads
  * paths from it and unlinks them, so a real upload sharing the name would go.
  *
- * The guard cannot sit at unlink time: core deletes every postmeta row before
- * wp_delete_attachment_files() runs (wp-includes/post.php), and `wp_delete_file`
- * receives only a path. `pre_delete_attachment` fires while the meta exists, so
- * the pointer is recognised there and loses the two keys core derives unlink
- * paths from: `_wp_attached_file` (the file, its sizes, thumb and originals)
- * and `_wp_attachment_backup_sizes`. Core then deletes the post and the rest of
- * its meta as usual. No state is carried between hooks.
+ * The guard cannot sit at unlink time. Line numbers are wp-includes/post.php
+ * on wordpress-develop trunk, 2026-09-15:
+ *
+ * - wp_delete_attachment() applies `pre_delete_attachment` (6947) while the
+ *   meta exists, deletes every postmeta row (6989-6992), fires `deleted_post`
+ *   (7001) and only then calls wp_delete_attachment_files() (7003).
+ * - `wp_delete_file` receives only a path (functions.php 7917), so nothing
+ *   identifies a pointer by the time a file is unlinked.
+ * - wp_delete_attachment_files() builds the main file, sizes, thumb, original
+ *   and companion paths from `$file` = get_attached_file() (6957; 7029-7126,
+ *   7144), and backup paths from `_wp_attachment_backup_sizes` (6956; 7128-7141).
+ *
+ * So the pointer is recognised at `pre_delete_attachment` and loses those two
+ * keys; with an empty `$file` every derived path is empty. Core then deletes
+ * the post and the rest of its meta as usual. No state is carried between hooks.
+ *
+ * If the delete does not complete after the strip (a filter registered later
+ * at the same priority cancels it), the attachment survives without
+ * `_wp_attached_file`. `_fa_remote_url`, the dimensions and
+ * `_wp_attachment_metadata` remain, so it still renders through
+ * RemoteAttachmentUrls, but wp_attachment_is() (7444-7448) no longer counts it
+ * as an image. It is recoverable, not self-healing: the stripped value is
+ * wp_basename() of the `_fa_remote_url` path.
+ *
+ * - Product pointer: the next `create-remote-attachments` run rewrites it
+ *   (RemoteAttachmentCreator reuse path, when the entry carries dimensions).
+ * - Brand logo: `brand-logos` does not rewrite it (it refreshes dimensions only
+ *   when they change); it must be rewritten by hand.
+ *
+ * Pointers have no edited backups, so no backup sizes are lost.
  */
 class RemoteAttachmentDeleteGuard {
 
