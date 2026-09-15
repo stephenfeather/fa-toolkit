@@ -74,10 +74,13 @@ class BrandLogoStore {
 			return $by_code;
 		}
 
-		$slugs    = array_combine( $remaining, array_map( fn( $code ) => str_replace( '_', '-', $code ), $remaining ) );
-		$by_slug  = array_flip( $slugs );
+		$slugs   = array_combine( $remaining, array_map( fn( $code ) => str_replace( '_', '-', $code ), $remaining ) );
+		$by_slug = array_flip( $slugs );
+		$claimed = array_column( $by_code, 'term_id' );
+
+		// A term a code already owns is never offered to a second code by slug.
 		$slug_hit = $this->lowest_per_code(
-			$this->terms( array( 'slug' => array_values( $slugs ) ) ),
+			array_filter( $this->terms( array( 'slug' => array_values( $slugs ) ) ), fn( $term ) => ! in_array( (int) $term->term_id, $claimed, true ) ),
 			fn( $term ) => (string) ( $by_slug[ (string) $term->slug ] ?? '' ),
 			$remaining,
 			'slug'

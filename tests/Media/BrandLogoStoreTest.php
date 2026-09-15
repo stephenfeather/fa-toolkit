@@ -133,6 +133,27 @@ class BrandLogoStoreTest extends TestCase {
 	}
 
 	/**
+	 * A term already matched by code is never matched again by slug, so two
+	 * codes cannot claim one term (PR #107 review): `foo_bar` owns term 7 by
+	 * code, and the code `foo-bar`, whose slug is also `foo-bar`, gets no term.
+	 */
+	public function test_the_slug_fallback_skips_terms_matched_by_code() {
+		Functions\when( 'get_terms' )->justReturn( array( $this->term( 7, 'Foo Bar', 'foo-bar' ) ) );
+		Functions\when( 'get_term_meta' )->justReturn( 'foo_bar' );
+
+		$this->assertSame(
+			array(
+				'foo_bar' => array(
+					'term_id'    => 7,
+					'name'       => 'Foo Bar',
+					'matched_by' => 'code',
+				),
+			),
+			( new BrandLogoStore() )->terms_for_codes( array( 'foo_bar', 'foo-bar' ) )
+		);
+	}
+
+	/**
 	 * Brand-logo attachments are unparented attachments carrying
 	 * `_fa_brand_logo_s3_key`, keyed by that key; a duplicate key keeps the
 	 * lowest id.

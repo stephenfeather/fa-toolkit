@@ -107,10 +107,21 @@ class BrandLogoCreator {
 			return 0;
 		}
 
-		$id = (int) $id;
+		$id       = (int) $id;
+		$failures = $this->totals['write_failed'];
 
 		$this->write_meta( $id, self::KEY_META, $attachment['s3_key'] );
 		$this->write_meta( $id, '_fa_remote_url', $attachment['url'] );
+
+		// Identity. Without the key a rerun can never find this row again;
+		// without the URL it cannot render. Undo the insert rather than wire a
+		// term to it, so the brand is blocked and the next run retries cleanly.
+		if ( $this->totals['write_failed'] > $failures ) {
+			wp_delete_attachment( $id, true );
+			++$this->totals['insert_failed'];
+			return 0;
+		}
+
 		$this->write_image_fields( $id, $attachment );
 		$this->write_alt( $id, $attachment['alt'] );
 

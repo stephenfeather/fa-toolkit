@@ -191,6 +191,75 @@ class BrandLogoCreatorTest extends TestCase {
 	}
 
 	/**
+	 * Identity meta: without either, the attachment cannot be found on rerun
+	 * or cannot render.
+	 *
+	 * @return array<string, array{0:string}>
+	 */
+	public static function identity_keys() {
+		return array(
+			's3 key'     => array( '_fa_brand_logo_s3_key' ),
+			'remote url' => array( '_fa_remote_url' ),
+		);
+	}
+
+	/**
+	 * A failed identity write deletes the new attachment and sets no
+	 * thumbnail; the brand is blocked and a rerun retries it (PR #107 review).
+	 *
+	 * @param string $failing Meta key whose write does not store.
+	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider( 'identity_keys' )]
+	public function test_a_failed_identity_write_deletes_the_attachment_and_blocks( $failing ) {
+		$writes = $this->writes;
+		Functions\when( 'update_post_meta' )->alias(
+			function ( $id, $key, $value ) use ( $writes, $failing ) {
+				if ( $key === $failing ) {
+					return false;
+				}
+				$meta                     = $writes['post_meta'];
+				$meta[ $id . ':' . $key ] = $value;
+				$writes['post_meta']      = $meta;
+				return true;
+			}
+		);
+		Functions\expect( 'wp_delete_attachment' )->once()->with( 100, true )->andReturn( (object) array( 'ID' => 100 ) );
+
+		$totals = ( new BrandLogoCreator() )->apply( $this->plan( 0, null, $this->sized() ) );
+
+		$this->assertSame( array(), $this->writes['term_meta'] );
+		$this->assertSame( 0, $totals['created'] );
+		$this->assertSame( 1, $totals['insert_failed'] );
+		$this->assertSame( array( 'glock' ), $totals['blocked'] );
+	}
+
+	/**
+	 * A failed non-identity write (alt) keeps the attachment and its thumbnail:
+	 * it still renders. The failure is counted.
+	 */
+	public function test_a_failed_alt_write_keeps_the_attachment() {
+		$writes = $this->writes;
+		Functions\when( 'update_post_meta' )->alias(
+			function ( $id, $key, $value ) use ( $writes ) {
+				if ( '_wp_attachment_image_alt' === $key ) {
+					return false;
+				}
+				$meta                     = $writes['post_meta'];
+				$meta[ $id . ':' . $key ] = $value;
+				$writes['post_meta']      = $meta;
+				return true;
+			}
+		);
+		Functions\expect( 'wp_delete_attachment' )->never();
+
+		$totals = ( new BrandLogoCreator() )->apply( $this->plan() );
+
+		$this->assertSame( array( '7:thumbnail_id' => 100 ), $this->writes['term_meta'] );
+		$this->assertSame( 1, $totals['created'] );
+		$this->assertSame( 1, $totals['write_failed'] );
+	}
+
+	/**
 	 * A term meta write that does not store is counted.
 	 */
 	public function test_a_thumbnail_write_that_does_not_store_is_counted() {
