@@ -99,6 +99,11 @@ new \FAToolkit\Media\RemoteAttachmentUrls();
 // (#105). Registers one action; inert for every other attachment.
 new \FAToolkit\Media\BrandLogoDeleteGuard();
 
+// Stops deleting a pointer attachment (product image or brand logo) from
+// unlinking a same-named local upload (#106). Registers one filter; inert for
+// every ordinary attachment.
+new \FAToolkit\Media\RemoteAttachmentDeleteGuard();
+
 // Creates pointer attachments for newly imported `_fa_media` once a Super
 // Speedy Imports run finishes. Registers one action; inert until that fires.
 new \FAToolkit\Media\AfterImportMediaAttachments();
