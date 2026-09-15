@@ -171,39 +171,51 @@ class RemoteAttachmentDeleteGuardTest extends TestCase {
 	}
 
 	/**
-	 * A strip whose delete never completes leaves a recoverable pointer.
+	 * A strip whose delete a later filter cancels leaves a recoverable pointer.
 	 *
-	 * Not self-healing: `_wp_attached_file` stays gone. Everything needed to
-	 * render and to rewrite it survives, and the stripped value is the
-	 * basename of the `_fa_remote_url` path.
+	 * The strip succeeds, then a pre_delete_attachment filter running after the
+	 * guard returns false, so core deletes nothing. The pointer still renders
+	 * from S3. Exactly one thing is lost, `_wp_attached_file`, and it is not
+	 * self-healing; its value is the basename of the `_fa_remote_url` path.
 	 */
-	public function test_a_strip_whose_delete_never_completes_leaves_the_pointer_recoverable() {
-		$metadata   = array(
-			'width'  => 800,
-			'height' => 600,
-			'file'   => 'Glock-19.jpg',
-		);
+	public function test_a_strip_whose_delete_is_cancelled_leaves_the_pointer_recoverable() {
+		$remote     = 'https://ik.example/products/Glock-19.jpg?v=2';
 		$this->meta = array(
 			76 => array(
-				'_fa_remote_url'          => 'https://ik.example/products/Glock-19.jpg?v=2',
+				'_fa_remote_url'          => $remote,
 				'_fa_remote_width'        => 800,
 				'_fa_remote_height'       => 600,
 				'_wp_attached_file'       => 'Glock-19.jpg',
-				'_wp_attachment_metadata' => $metadata,
+				'_wp_attachment_metadata' => array(
+					'width'  => 800,
+					'height' => 600,
+					'file'   => 'Glock-19.jpg',
+				),
 			),
 		);
+		$before = $this->meta[76];
 		$this->stub_meta();
 
-		( new RemoteAttachmentDeleteGuard() )->forget_local_paths( null, $this->post( 76 ), true );
+		// The pre_delete_attachment chain: the guard, then a later filter that cancels.
+		$stripped  = ( new RemoteAttachmentDeleteGuard() )->forget_local_paths( null, $this->post( 76 ), true );
+		$cancelled = ( fn( $delete ) => false )( $stripped );
 
-		// Core never ran: the delete was cancelled after the strip.
-		$survivor = $this->meta[76];
+		$this->assertNull( $stripped, 'the strip succeeded' );
+		$this->assertFalse( $cancelled, 'core returns before deleting anything' );
 
-		$this->assertArrayNotHasKey( '_wp_attached_file', $survivor );
-		$this->assertSame( 800, $survivor['_fa_remote_width'] );
-		$this->assertSame( 600, $survivor['_fa_remote_height'] );
-		$this->assertSame( $metadata, $survivor['_wp_attachment_metadata'] );
-		$this->assertSame( 'Glock-19.jpg', basename( (string) parse_url( $survivor['_fa_remote_url'], PHP_URL_PATH ) ) );
+		// Exactly what is lost.
+		$lost = $before;
+		unset( $lost['_wp_attached_file'] );
+		$this->assertSame( $lost, $this->meta[76] );
+		$this->assertSame( array( '76:_wp_attached_file', '76:_wp_attachment_backup_sizes' ), $this->deleted );
+
+		// Still renders from S3.
+		$urls = new \FAToolkit\Media\RemoteAttachmentUrls();
+		$this->assertSame( $remote, $urls->attachment_url( 'https://shop.example/wp-content/uploads/Glock-19.jpg', 76 ) );
+		$this->assertSame( array( $remote . '&tr=w-400', 400, 300, true ), $urls->downsize( false, 76, array( 400, 300 ) ) );
+
+		// Recoverable: the lost value is derivable from what survives.
+		$this->assertSame( $before['_wp_attached_file'], basename( (string) parse_url( $this->meta[76]['_fa_remote_url'], PHP_URL_PATH ) ) );
 	}
 
 	/**
