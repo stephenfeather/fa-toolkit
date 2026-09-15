@@ -205,10 +205,7 @@ class BrandLogosCommandTest extends TestCase {
 					'created'        => 1,
 					'refreshed'      => 0,
 					'thumbnails_set' => 1,
-					'dead'           => 0,
-					'fetch_failed'   => 1,
-					'not_image'      => 0,
-					'insert_failed'  => 0,
+					'insert_failed'  => 1,
 					'write_failed'   => 0,
 					'blocked'        => array( 'glock' ),
 				)
@@ -222,7 +219,7 @@ class BrandLogosCommandTest extends TestCase {
 			)
 		);
 
-		$this->assertSame( 'APPLIED created 1 | refreshed 0 | thumbnails set 1 | dead urls 0 | fetch failures 1 | not images 0 | insert failures 0 | write failures 0', array_slice( $this->messages( 'log' ), -1 )[0] );
+		$this->assertSame( 'APPLIED created 1 | refreshed 0 | thumbnails set 1 | insert failures 1 | write failures 0', array_slice( $this->messages( 'log' ), -1 )[0] );
 		$this->assertContains( '1 brands got no logo this run; re-running retries them: glock', $this->messages( 'warning' ) );
 		$this->assertSame( array( 'Done.' ), $this->messages( 'success' ) );
 	}

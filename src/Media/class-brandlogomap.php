@@ -102,24 +102,71 @@ final class BrandLogoMap {
 			return $code . ': url does not end in s3_key';
 		}
 
+		return self::image_fields_error( $code, $entry );
+	}
+
+	/**
+	 * Why a logo's optional width, height or sha256 is unusable, or null.
+	 *
+	 * Optional, because the image is never downloaded to learn them (operator,
+	 * 2026-09-15: images are on S3, not the web host). A present field must
+	 * still be usable: a bad dimension distorts the image, a bad hash
+	 * misidentifies it.
+	 *
+	 * @param string $code  Brand code.
+	 * @param array  $entry Logo entry.
+	 * @return string|null
+	 */
+	private static function image_fields_error( $code, array $entry ) {
+		$sized = array_key_exists( 'width', $entry ) || array_key_exists( 'height', $entry );
+
+		if ( true === $sized && ( true !== self::is_positive_int( $entry['width'] ?? null ) || true !== self::is_positive_int( $entry['height'] ?? null ) ) ) {
+			return $code . ': width and height must both be positive integers';
+		}
+
+		if ( true === array_key_exists( 'sha256', $entry ) && ( true !== is_string( $entry['sha256'] ) || 1 !== preg_match( '/^[0-9a-f]{64}$/i', $entry['sha256'] ) ) ) {
+			return $code . ': sha256 must be 64 hex characters';
+		}
+
 		return null;
+	}
+
+	/**
+	 * Whether a decoded JSON value is a positive integer.
+	 *
+	 * @param mixed $value Value.
+	 * @return bool
+	 */
+	private static function is_positive_int( $value ) {
+		return true === is_int( $value ) && 0 < $value;
 	}
 
 	/**
 	 * The fields of a usable entry that the plan reads.
 	 *
 	 * @param array $entry Usable entry.
-	 * @return array{status:string,s3_key?:string,url?:string}
+	 * @return array{status:string,s3_key?:string,url?:string,width?:int,height?:int,sha256?:string}
 	 */
 	private static function normalise( array $entry ) {
 		if ( 'logo' !== $entry['status'] ) {
 			return array( 'status' => $entry['status'] );
 		}
 
-		return array(
+		$logo = array(
 			'status' => 'logo',
 			's3_key' => $entry['s3_key'],
 			'url'    => $entry['url'],
 		);
+
+		if ( true === isset( $entry['width'], $entry['height'] ) ) {
+			$logo['width']  = $entry['width'];
+			$logo['height'] = $entry['height'];
+		}
+
+		if ( true === isset( $entry['sha256'] ) ) {
+			$logo['sha256'] = strtolower( $entry['sha256'] );
+		}
+
+		return $logo;
 	}
 }

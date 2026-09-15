@@ -1,6 +1,6 @@
 <?php
 /**
- * Makes deleting a brand-logo attachment safe.
+ * Clears brand thumbnails when their logo attachment is deleted.
  *
  * @package    fa-toolkit
  * @since 1.2.6
@@ -13,33 +13,16 @@ if ( defined( 'ABSPATH' ) === false ) {
 }
 
 /**
- * Two risks from issue #105, for brand-logo attachments.
+ * Keeps product_brand thumbnail_id from outliving its attachment (issue #105).
  *
- * 1. Unlinking a real file. wp_delete_attachment() derives uploads paths from
- *    `_wp_attached_file` and the metadata sizes and unlinks them. Brand logos
- *    name paths under uploads/fa-remote/, which no real upload uses, and this
- *    class refuses to delete anything there.
+ * WooCommerce Brands never clears term meta when an attachment is deleted,
+ * and a stale id renders a broken image. `delete_attachment` fires while the
+ * attachment's meta still exists (wp-includes/post.php, wp_delete_attachment),
+ * so a brand logo can be told apart there and its terms cleared.
  *
- *    The filter is permanent and stateless, deliberately. Core unlinks files
- *    in wp_delete_attachment_files() AFTER firing `deleted_post`
- *    (wp-includes/post.php), so a filter added on `delete_attachment` and
- *    removed on `deleted_post` would already be gone when core unlinks.
- *
- * 2. A stale thumbnail_id. WooCommerce Brands never clears term meta when the
- *    attachment goes, and a stale id renders a broken image. `delete_attachment`
- *    fires while the attachment's meta still exists, so it can tell a brand
- *    logo apart and clear the terms pointing at it.
- *
- * Product pointer attachments are out of scope here (#106).
+ * No file is guarded: the logo lives on S3 and WordPress cannot delete it.
  */
 class BrandLogoDeleteGuard {
-
-	/**
-	 * Uploads subdirectory reserved for pointer attachments' nominal paths.
-	 *
-	 * @var string
-	 */
-	public const REMOTE_ROOT = 'fa-remote';
 
 	/**
 	 * The store.
@@ -49,7 +32,7 @@ class BrandLogoDeleteGuard {
 	private $store;
 
 	/**
-	 * Constructor. Registers the hooks.
+	 * Constructor. Registers the hook.
 	 *
 	 * @param BrandLogoStore|null $store Store; built when omitted.
 	 */
@@ -57,7 +40,6 @@ class BrandLogoDeleteGuard {
 		$this->store = $store ?? new BrandLogoStore();
 
 		add_action( 'delete_attachment', array( $this, 'forget_thumbnails' ), 10, 1 );
-		add_filter( 'wp_delete_file', array( $this, 'keep_remote_file' ), 10, 1 );
 	}
 
 	/**
@@ -72,22 +54,5 @@ class BrandLogoDeleteGuard {
 		}
 
 		$this->store->clear_thumbnails_pointing_at( (int) $attachment_id );
-	}
-
-	/**
-	 * Refuse to delete a file under uploads/fa-remote/.
-	 *
-	 * @param string $file Path core is about to delete.
-	 * @return string The path, or '' to skip the delete.
-	 */
-	public function keep_remote_file( $file ) {
-		$uploads = wp_upload_dir( null, false );
-		$basedir = rtrim( wp_normalize_path( (string) ( $uploads['basedir'] ?? '' ) ), '/' );
-
-		if ( '' === $basedir ) {
-			return $file;
-		}
-
-		return str_starts_with( wp_normalize_path( (string) $file ), $basedir . '/' . self::REMOTE_ROOT . '/' ) ? '' : $file;
 	}
 }

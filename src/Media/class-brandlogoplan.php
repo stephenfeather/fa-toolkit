@@ -146,7 +146,7 @@ final class BrandLogoPlan {
 		$planned = array();
 
 		foreach ( $by_key as $key => $key_rows ) {
-			$planned[ $key ] = self::attachment( (string) $key, $entries[ $key_rows[0]['code'] ]['url'], $key_rows, $terms, $attachments[ $key ] ?? null );
+			$planned[ $key ] = self::attachment( (string) $key, $entries[ $key_rows[0]['code'] ], $key_rows, $terms, $attachments[ $key ] ?? null );
 		}
 
 		return $planned;
@@ -155,14 +155,20 @@ final class BrandLogoPlan {
 	/**
 	 * One planned attachment.
 	 *
+	 * Width, height and sha256 come from the first entry using the key, and
+	 * stay null when the map does not carry them: they are never learned by
+	 * downloading the image.
+	 *
 	 * @param string     $key      s3_key.
-	 * @param string     $url      URL from the map.
+	 * @param array      $entry    First logo entry using the key.
 	 * @param array      $key_rows Rows using this key.
 	 * @param array      $terms    Matched terms.
 	 * @param array|null $existing Existing attachment, or null.
 	 * @return array
 	 */
-	private static function attachment( $key, $url, array $key_rows, array $terms, $existing ) {
+	private static function attachment( $key, array $entry, array $key_rows, array $terms, $existing ) {
+		$url   = $entry['url'];
+		$sized = isset( $entry['width'], $entry['height'] );
 		$names = array();
 
 		foreach ( $key_rows as $row ) {
@@ -180,9 +186,12 @@ final class BrandLogoPlan {
 			'alt'           => $alt,
 			'term_ids'      => array_keys( $names ),
 			'unused_names'  => array_values( array_unique( array_diff( array_slice( $names, 1, null, true ), array( $alt ) ) ) ),
+			'width'         => $sized ? (int) $entry['width'] : null,
+			'height'        => $sized ? (int) $entry['height'] : null,
+			'sha256'        => isset( $entry['sha256'] ) ? (string) $entry['sha256'] : null,
 			'refresh'       => array(
 				'url'        => null !== $existing && (string) $existing['url'] !== $url,
-				'dimensions' => null !== $existing && ( (int) $existing['width'] < 1 || (int) $existing['height'] < 1 ),
+				'dimensions' => null !== $existing && $sized && ( (int) $existing['width'] !== (int) $entry['width'] || (int) $existing['height'] !== (int) $entry['height'] ),
 				'alt'        => null !== $existing && (string) $existing['alt'] !== $alt,
 			),
 		);

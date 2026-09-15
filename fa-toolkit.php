@@ -95,9 +95,8 @@ new \FAToolkit\Media\AutoAttachUploadedMedia();
 // Registers filters only; it is inert for every ordinary local attachment.
 new \FAToolkit\Media\RemoteAttachmentUrls();
 
-// Keeps deleting a brand-logo attachment from unlinking an uploads file, and
-// clears the brand thumbnails that pointed at it (#105). Inert for every other
-// attachment and file.
+// Clears the brand thumbnails that pointed at a deleted brand-logo attachment
+// (#105). Registers one action; inert for every other attachment.
 new \FAToolkit\Media\BrandLogoDeleteGuard();
 
 // Creates pointer attachments for newly imported `_fa_media` once a Super

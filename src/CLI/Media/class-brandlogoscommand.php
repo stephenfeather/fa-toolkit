@@ -9,7 +9,6 @@
 namespace FAToolkit\CLI\Media;
 
 use FAToolkit\Media\BrandLogoCreator;
-use FAToolkit\Media\BrandLogoFetcher;
 use FAToolkit\Media\BrandLogoMap;
 use FAToolkit\Media\BrandLogoPlan;
 use FAToolkit\Media\BrandLogoStore;
@@ -48,7 +47,7 @@ class BrandLogosCommand {
 	 */
 	public function __construct( ?BrandLogoStore $store = null, ?BrandLogoCreator $creator = null ) {
 		$this->store   = $store ?? new BrandLogoStore();
-		$this->creator = $creator ?? new BrandLogoCreator( new BrandLogoFetcher() );
+		$this->creator = $creator ?? new BrandLogoCreator();
 
 		\WP_CLI::add_command( 'fa:media brand-logos', array( $this, 'run' ) );
 	}
@@ -235,13 +234,10 @@ class BrandLogosCommand {
 	private function report_applied( array $totals ) {
 		\WP_CLI::log(
 			sprintf(
-				'APPLIED created %d | refreshed %d | thumbnails set %d | dead urls %d | fetch failures %d | not images %d | insert failures %d | write failures %d',
+				'APPLIED created %d | refreshed %d | thumbnails set %d | insert failures %d | write failures %d',
 				$totals['created'],
 				$totals['refreshed'],
 				$totals['thumbnails_set'],
-				$totals['dead'],
-				$totals['fetch_failed'],
-				$totals['not_image'],
 				$totals['insert_failed'],
 				$totals['write_failed']
 			)

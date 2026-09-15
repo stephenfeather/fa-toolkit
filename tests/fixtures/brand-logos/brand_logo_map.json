@@ -1,6 +1,6 @@
 {
   "10_ring": {"status": "MISSING"},
-  "a_zoom": {"status": "logo", "s3_key": "files/product_brands/A-Zoom-Logo.jpg", "url": "https://ik.imagekit.io/featherarms/s3/files/product_brands/A-Zoom-Logo.jpg"},
+  "a_zoom": {"status": "logo", "s3_key": "files/product_brands/A-Zoom-Logo.jpg", "url": "https://ik.imagekit.io/featherarms/s3/files/product_brands/A-Zoom-Logo.jpg", "width": 600, "height": 200},
   "broken": {"status": "logo"},
   "burris": {"status": "near_identical", "candidates": ["files/product_brands/Burris-Logo.jpg"], "group": ["burris", "burris_company_inc"]},
   "glock": {"status": "logo", "s3_key": "files/product_brands/Glock-Logo.jpg", "url": "https://ik.imagekit.io/featherarms/s3/files/product_brands/Glock-Logo.jpg"},

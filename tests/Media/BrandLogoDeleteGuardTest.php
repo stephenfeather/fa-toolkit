@@ -14,68 +14,22 @@ use FAToolkit\Tests\TestCase;
 use Mockery;
 
 /**
- * BrandLogoDeleteGuard: deleting a brand-logo attachment (from wp-admin or
- * anywhere) never unlinks an uploads file, and clears the brand thumbnails
- * that pointed at it.
+ * BrandLogoDeleteGuard: deleting a brand-logo attachment clears the brand
+ * thumbnails that pointed at it. WooCommerce Brands never does, and a stale
+ * thumbnail_id renders a broken image.
  *
- * The file filter is stateless on purpose: wp_delete_attachment() unlinks
- * files AFTER `deleted_post`, so a filter added on `delete_attachment` and
- * removed on `deleted_post` would already be gone when core unlinks.
+ * It guards no file: the logo lives on S3, and WordPress cannot delete it.
  */
 class BrandLogoDeleteGuardTest extends TestCase {
 
 	/**
-	 * Stub the uploads helpers.
+	 * The constructor registers the delete action and no file filter.
 	 */
-	protected function setUp(): void {
-		parent::setUp();
-		Functions\when( 'wp_upload_dir' )->justReturn( array( 'basedir' => '/srv/wp/wp-content/uploads' ) );
-		Functions\when( 'wp_normalize_path' )->alias( fn( $path ) => str_replace( '\\', '/', $path ) );
-	}
-
-	/**
-	 * The constructor registers both hooks.
-	 */
-	public function test_constructor_registers_hooks() {
+	public function test_constructor_registers_only_the_delete_action() {
 		$guard = new BrandLogoDeleteGuard( Mockery::mock( BrandLogoStore::class ) );
 
 		$this->assertNotFalse( has_action( 'delete_attachment', array( $guard, 'forget_thumbnails' ) ) );
-		$this->assertNotFalse( has_filter( 'wp_delete_file', array( $guard, 'keep_remote_file' ) ) );
-	}
-
-	/**
-	 * A file under uploads/fa-remote/ is never deleted.
-	 */
-	public function test_a_file_under_the_remote_prefix_is_kept() {
-		$guard = new BrandLogoDeleteGuard( Mockery::mock( BrandLogoStore::class ) );
-
-		$this->assertSame( '', $guard->keep_remote_file( '/srv/wp/wp-content/uploads/fa-remote/product_brands/Glock-Logo.jpg' ) );
-	}
-
-	/**
-	 * Paths that are not under the prefix.
-	 *
-	 * @return array<string, array{0:string}>
-	 */
-	public static function ordinary_paths() {
-		return array(
-			'uploads root'      => array( '/srv/wp/wp-content/uploads/Glock-Logo.jpg' ),
-			'dated upload'      => array( '/srv/wp/wp-content/uploads/2026/09/Glock-Logo.jpg' ),
-			'lookalike sibling' => array( '/srv/wp/wp-content/uploads/fa-remote-old/Glock-Logo.jpg' ),
-			'outside uploads'   => array( '/tmp/fa-remote/Glock-Logo.jpg' ),
-		);
-	}
-
-	/**
-	 * Every other file deletes as before.
-	 *
-	 * @param string $path File path.
-	 */
-	#[\PHPUnit\Framework\Attributes\DataProvider( 'ordinary_paths' )]
-	public function test_other_files_are_untouched( $path ) {
-		$guard = new BrandLogoDeleteGuard( Mockery::mock( BrandLogoStore::class ) );
-
-		$this->assertSame( $path, $guard->keep_remote_file( $path ) );
+		$this->assertFalse( has_filter( 'wp_delete_file' ) );
 	}
 
 	/**

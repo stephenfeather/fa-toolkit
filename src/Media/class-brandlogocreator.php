@@ -15,14 +15,18 @@ if ( defined( 'ABSPATH' ) === false ) {
 /**
  * Creates or refreshes brand-logo attachments and sets term thumbnails.
  *
- * A brand-logo attachment is a pointer attachment with no parent: it carries
- * the same meta contract as a product pointer (see RemoteAttachmentCreator),
- * plus `_fa_brand_logo_s3_key`, its identity. Its `_wp_attached_file` sits
- * under `fa-remote/`, a path no real upload uses, which BrandLogoDeleteGuard
- * protects from deletion.
+ * A brand logo takes the product-image path exactly (operator, 2026-09-15:
+ * "images are stored on S3, images are not stored on the web host"). It is a
+ * pointer attachment with no parent, carrying the meta contract of
+ * RemoteAttachmentCreator plus `_fa_brand_logo_s3_key`, its identity:
  *
- * A fetch or insert that fails creates nothing and sets no thumbnail; the
- * brand is reported and a rerun retries it.
+ * - Nothing is downloaded. Width, height and sha256 come from the map; when
+ *   the map lacks them none is written, and the logo renders the raw ImageKit
+ *   URL unsized, as a product image without dimensions does.
+ * - `_wp_attached_file` is the bare basename, as for products.
+ *
+ * An insert that fails sets no thumbnail; the brand is reported and a rerun
+ * retries it.
  */
 class BrandLogoCreator {
 
@@ -34,20 +38,6 @@ class BrandLogoCreator {
 	public const KEY_META = '_fa_brand_logo_s3_key';
 
 	/**
-	 * Directory, relative to uploads, that `_wp_attached_file` names.
-	 *
-	 * @var string
-	 */
-	public const ATTACHED_DIR = BrandLogoDeleteGuard::REMOTE_ROOT . '/product_brands';
-
-	/**
-	 * The fetcher.
-	 *
-	 * @var BrandLogoFetcher
-	 */
-	private $fetcher;
-
-	/**
 	 * Totals for the run in progress.
 	 *
 	 * @var array<string, mixed>
@@ -55,28 +45,16 @@ class BrandLogoCreator {
 	private $totals = array();
 
 	/**
-	 * Constructor.
-	 *
-	 * @param BrandLogoFetcher $fetcher Fetcher.
-	 */
-	public function __construct( BrandLogoFetcher $fetcher ) {
-		$this->fetcher = $fetcher;
-	}
-
-	/**
 	 * Apply a plan.
 	 *
 	 * @param array $plan Plan from BrandLogoPlan::build().
-	 * @return array{created:int,refreshed:int,thumbnails_set:int,dead:int,fetch_failed:int,not_image:int,insert_failed:int,write_failed:int,blocked:array<int,string>}
+	 * @return array{created:int,refreshed:int,thumbnails_set:int,insert_failed:int,write_failed:int,blocked:array<int,string>}
 	 */
 	public function apply( array $plan ) {
 		$this->totals = array(
 			'created'        => 0,
 			'refreshed'      => 0,
 			'thumbnails_set' => 0,
-			'dead'           => 0,
-			'fetch_failed'   => 0,
-			'not_image'      => 0,
 			'insert_failed'  => 0,
 			'write_failed'   => 0,
 			'blocked'        => array(),
@@ -113,17 +91,10 @@ class BrandLogoCreator {
 	 * @return int Attachment id, or 0 when nothing was created.
 	 */
 	private function create( array $attachment ) {
-		$image = $this->fetcher->fetch( $attachment['url'] );
-
-		if ( 'ok' !== $image['status'] ) {
-			$this->count_fetch_failure( $image['status'] );
-			return 0;
-		}
-
 		$id = wp_insert_attachment(
 			array(
 				'post_title'     => $attachment['alt'],
-				'post_mime_type' => $image['mime'],
+				'post_mime_type' => RemoteAttachmentMetadata::mime_type( $attachment['url'] ),
 				'post_status'    => 'inherit',
 			),
 			false,
@@ -140,7 +111,7 @@ class BrandLogoCreator {
 
 		$this->write_meta( $id, self::KEY_META, $attachment['s3_key'] );
 		$this->write_meta( $id, '_fa_remote_url', $attachment['url'] );
-		$this->write_image( $id, $attachment['url'], $image );
+		$this->write_image_fields( $id, $attachment );
 		$this->write_alt( $id, $attachment['alt'] );
 
 		++$this->totals['created'];
@@ -151,31 +122,26 @@ class BrandLogoCreator {
 	/**
 	 * Refresh an existing attachment where the plan says it differs.
 	 *
-	 * A failed dimension fetch still leaves a usable attachment: it renders
-	 * the raw URL unsized, so its thumbnails are still set.
-	 *
 	 * @param array $attachment Planned attachment.
 	 * @return int Attachment id.
 	 */
 	private function refresh( array $attachment ) {
 		$id      = (int) $attachment['attachment_id'];
-		$changed = false;
+		$refresh = $attachment['refresh'];
 
-		if ( true === $attachment['refresh']['url'] ) {
+		if ( true === $refresh['url'] ) {
 			$this->write_meta( $id, '_fa_remote_url', $attachment['url'] );
-			$changed = true;
 		}
 
-		if ( true === $attachment['refresh']['alt'] && '' !== (string) $attachment['alt'] ) {
+		if ( true === $refresh['alt'] ) {
 			$this->write_alt( $id, $attachment['alt'] );
-			$changed = true;
 		}
 
-		if ( true === $attachment['refresh']['dimensions'] ) {
-			$changed = $this->refresh_dimensions( $id, $attachment['url'] ) || $changed;
+		if ( true === $refresh['dimensions'] ) {
+			$this->write_image_fields( $id, $attachment );
 		}
 
-		if ( true === $changed ) {
+		if ( true === $refresh['url'] || true === $refresh['alt'] || true === $refresh['dimensions'] ) {
 			++$this->totals['refreshed'];
 		}
 
@@ -183,41 +149,30 @@ class BrandLogoCreator {
 	}
 
 	/**
-	 * Fetch and store the dimensions of an existing attachment.
+	 * Write the map's sha256 and dimensions, and the metadata WordPress needs.
 	 *
-	 * @param int    $id  Attachment id.
-	 * @param string $url Logo URL.
-	 * @return bool Whether anything was written.
-	 */
-	private function refresh_dimensions( $id, $url ) {
-		$image = $this->fetcher->fetch( $url );
-
-		if ( 'ok' !== $image['status'] ) {
-			$this->count_fetch_failure( $image['status'] );
-			return false;
-		}
-
-		$this->write_image( $id, $url, $image );
-
-		return true;
-	}
-
-	/**
-	 * Write what the fetch learned, and the metadata WordPress needs.
+	 * Mirrors RemoteAttachmentCreator::write_entry_meta(): without dimensions
+	 * nothing image-shaped is written, rather than guessed.
 	 *
-	 * @param int    $id    Attachment id.
-	 * @param string $url   Logo URL.
-	 * @param array  $image Successful fetch result.
+	 * @param int   $id         Attachment id.
+	 * @param array $attachment Planned attachment.
 	 * @return void
 	 */
-	private function write_image( $id, $url, array $image ) {
-		$attached_file = self::ATTACHED_DIR . '/' . wp_basename( (string) wp_parse_url( $url, PHP_URL_PATH ) );
+	private function write_image_fields( $id, array $attachment ) {
+		if ( null !== $attachment['sha256'] ) {
+			$this->write_meta( $id, '_fa_media_sha256', $attachment['sha256'] );
+		}
 
-		$this->write_meta( $id, '_fa_media_sha256', $image['sha256'] );
-		$this->write_meta( $id, '_fa_remote_width', (int) $image['width'] );
-		$this->write_meta( $id, '_fa_remote_height', (int) $image['height'] );
-		$this->write_meta( $id, '_wp_attached_file', $attached_file );
-		$this->write_meta( $id, '_wp_attachment_metadata', RemoteAttachmentMetadata::build( $url, $image['width'], $image['height'], $attached_file ) );
+		if ( null === $attachment['width'] || null === $attachment['height'] ) {
+			return;
+		}
+
+		$file = wp_basename( (string) wp_parse_url( $attachment['url'], PHP_URL_PATH ) );
+
+		$this->write_meta( $id, '_fa_remote_width', (int) $attachment['width'] );
+		$this->write_meta( $id, '_fa_remote_height', (int) $attachment['height'] );
+		$this->write_meta( $id, '_wp_attached_file', $file );
+		$this->write_meta( $id, '_wp_attachment_metadata', RemoteAttachmentMetadata::build( $attachment['url'], $attachment['width'], $attachment['height'], $file ) );
 	}
 
 	/**
@@ -247,21 +202,6 @@ class BrandLogoCreator {
 		}
 
 		++$this->totals['write_failed'];
-	}
-
-	/**
-	 * Count a fetch that did not yield an image.
-	 *
-	 * @param string $status Fetch status.
-	 * @return void
-	 */
-	private function count_fetch_failure( $status ) {
-		$totals = array(
-			'dead'      => 'dead',
-			'not_image' => 'not_image',
-		);
-
-		++$this->totals[ $totals[ $status ] ?? 'fetch_failed' ];
 	}
 
 	/**

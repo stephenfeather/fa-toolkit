@@ -46,11 +46,11 @@ class RemoteAttachmentMetadataTest extends TestCase {
 	 * The metadata file is the attached file given; sizes name the basename.
 	 */
 	public function test_metadata_uses_the_given_attached_file_and_basename_sizes() {
-		$meta = RemoteAttachmentMetadata::build( 'https://cdn.test/files/product_brands/Glock-Logo.png', 400, 200, 'fa-remote/product_brands/Glock-Logo.png' );
+		$meta = RemoteAttachmentMetadata::build( 'https://cdn.test/files/product_brands/Glock-Logo.png', 400, 200, 'Glock-Logo.png' );
 
 		$this->assertSame( 400, $meta['width'] );
 		$this->assertSame( 200, $meta['height'] );
-		$this->assertSame( 'fa-remote/product_brands/Glock-Logo.png', $meta['file'] );
+		$this->assertSame( 'Glock-Logo.png', $meta['file'] );
 		$this->assertNotSame( array(), $meta['sizes'] );
 
 		foreach ( $meta['sizes'] as $size ) {

@@ -164,6 +164,9 @@ class BrandLogoPlanTest extends TestCase {
 					'alt'           => 'Glock',
 					'term_ids'      => array( 7 ),
 					'unused_names'  => array(),
+					'width'         => null,
+					'height'        => null,
+					'sha256'        => null,
 					'refresh'       => array(
 						'url'        => false,
 						'dimensions' => false,
@@ -281,13 +284,63 @@ class BrandLogoPlanTest extends TestCase {
 	}
 
 	/**
-	 * An existing attachment is refreshed field by field: a changed url, a
-	 * missing dimension, a changed term name.
+	 * Image fields come from the map, never from the image: the first entry
+	 * using a key supplies them, and absent fields stay null (unsized).
+	 */
+	public function test_image_fields_come_from_the_map() {
+		$sha  = str_repeat( 'a', 64 );
+		$plan = BrandLogoPlan::build(
+			array(
+				'glock' => array_merge(
+					$this->logo(),
+					array(
+						'width'  => 640,
+						'height' => 320,
+						'sha256' => $sha,
+					)
+				),
+			),
+			array( 'glock' => $this->term( 7, 'Glock' ) ),
+			array(),
+			array( 7 => array( 'id' => 0, 'state' => 'empty' ) ),
+			false
+		);
+
+		$this->assertSame( 640, $plan['attachments'][ self::KEY ]['width'] );
+		$this->assertSame( 320, $plan['attachments'][ self::KEY ]['height'] );
+		$this->assertSame( $sha, $plan['attachments'][ self::KEY ]['sha256'] );
+	}
+
+	/**
+	 * Map dimensions absent: an existing attachment without dimensions is not
+	 * flagged for refresh, because there is nothing to refresh it with.
+	 */
+	public function test_missing_map_dimensions_never_flag_a_refresh() {
+		$plan = BrandLogoPlan::build(
+			array( 'glock' => $this->logo() ),
+			array( 'glock' => $this->term( 7, 'Glock' ) ),
+			array( self::KEY => $this->attachment( 50, array( 'width' => 0, 'height' => 0 ) ) ),
+			array( 7 => array( 'id' => 50, 'state' => 'ours' ) ),
+			false
+		);
+
+		$this->assertFalse( $plan['attachments'][ self::KEY ]['refresh']['dimensions'] );
+	}
+
+	/**
+	 * An existing attachment is refreshed field by field: a changed url,
+	 * map dimensions that differ from the stored ones, a changed term name.
 	 */
 	public function test_an_existing_attachment_is_refreshed_only_where_it_differs() {
 		$plan = BrandLogoPlan::build(
 			array(
-				'glock'  => $this->logo( self::KEY, self::URL . '?v=2' ),
+				'glock'  => array_merge(
+					$this->logo( self::KEY, self::URL . '?v=2' ),
+					array(
+						'width'  => 400,
+						'height' => 210,
+					)
+				),
 				'a_zoom' => $this->logo( self::KEY2, self::URL2 ),
 			),
 			array(

@@ -120,6 +120,78 @@ class BrandLogoMapTest extends TestCase {
 	}
 
 	/**
+	 * Optional image fields that are malformed.
+	 *
+	 * @return array<string, array{0:array,1:string}>
+	 */
+	public static function malformed_image_fields() {
+		$dims = 'a_zoom: width and height must both be positive integers';
+		$sha  = 'a_zoom: sha256 must be 64 hex characters';
+
+		return array(
+			'width without height' => array( array( 'width' => 640 ), $dims ),
+			'height without width' => array( array( 'height' => 320 ), $dims ),
+			'string width'         => array( array( 'width' => '640', 'height' => 320 ), $dims ),
+			'zero height'          => array( array( 'width' => 640, 'height' => 0 ), $dims ),
+			'short sha256'         => array( array( 'sha256' => 'abc' ), $sha ),
+			'non-hex sha256'       => array( array( 'sha256' => str_repeat( 'z', 64 ) ), $sha ),
+		);
+	}
+
+	/**
+	 * Width, height and sha256 are optional, but a present field must be
+	 * usable: a bad dimension would distort the image, a bad hash would
+	 * misidentify it.
+	 *
+	 * @param array  $fields Extra fields.
+	 * @param string $error  Expected error.
+	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider( 'malformed_image_fields' )]
+	public function test_malformed_optional_image_fields_are_an_error( array $fields, $error ) {
+		$entry  = array_merge( array( 'status' => 'logo', 's3_key' => self::KEY, 'url' => self::URL ), $fields );
+		$result = BrandLogoMap::parse( wp_json_encode_for_test( array( 'a_zoom' => $entry ) ) );
+
+		$this->assertSame( array(), $result['entries'] );
+		$this->assertSame( array( $error ), $result['errors'] );
+	}
+
+	/**
+	 * Width, height and sha256, when present and valid, are carried; the
+	 * sha256 is lower-cased.
+	 */
+	public function test_valid_optional_image_fields_are_carried() {
+		$sha    = str_repeat( 'AB', 32 );
+		$result = BrandLogoMap::parse(
+			wp_json_encode_for_test(
+				array(
+					'a_zoom' => array(
+						'status' => 'logo',
+						's3_key' => self::KEY,
+						'url'    => self::URL,
+						'width'  => 640,
+						'height' => 320,
+						'sha256' => $sha,
+					),
+				)
+			)
+		);
+
+		$this->assertSame(
+			array(
+				'a_zoom' => array(
+					'status' => 'logo',
+					's3_key' => self::KEY,
+					'url'    => self::URL,
+					'width'  => 640,
+					'height' => 320,
+					'sha256' => strtolower( $sha ),
+				),
+			),
+			$result['entries']
+		);
+	}
+
+	/**
 	 * Valid entries survive alongside errors, keyed by code, in map order.
 	 */
 	public function test_valid_entries_are_kept_next_to_errors() {
