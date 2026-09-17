@@ -74,22 +74,38 @@ The hook fires for the price import too. That import does not map `_fa_attribute
 
 ### Idempotency and reruns
 
-Marker meta `_fa_attributes_applied_sha256` holds `sha256( cell . '|' . ruleset_hash )`. `ruleset_hash` covers the denylist, the label map and an unpacker version constant. Selection runs in MySQL, as the media selection does:
+The pass is a pure function of three inputs: the cell, the rules, and the product's existing `_product_attributes` row. The third matters as much as the first. The `pa_*` shadow reads which taxonomy entries the product carries, and the collision rule reads which foreign local entries it carries; SSI changes the former on any import, and an admin edit changes the latter, without the cell moving. A marker over the cell alone would leave a product "applied" while a newly arrived `pa_bullet-type` sits beside its unpacked twin, or while a slug stays suppressed by a foreign entry that was deleted last week (PR #111 review).
+
+So there are two markers, one per mutable input, and both are compared in MySQL:
+
+- `_fa_attributes_applied_sha256` holds `sha256( cell . '|' . ruleset_hash )`. `ruleset_hash` covers the denylist, the label map and an unpacker version constant.
+- `_fa_attributes_row_sha256` holds the sha256 of the `_product_attributes` row exactly as the pass left it (of `''` when the product has no row).
 
 ```sql
 WHERE m.meta_key = '_fa_attributes' AND m.meta_value <> ''
-AND NOT EXISTS ( ... a.meta_key = '_fa_attributes_applied_sha256'
+AND (
+    NOT EXISTS ( ... a.meta_key = '_fa_attributes_applied_sha256'
                  AND a.meta_value = SHA2( CONCAT( m.meta_value, '|', %s ), 256 ) )
+    OR NOT EXISTS ( ... r.meta_key = '_fa_attributes_row_sha256'
+                 AND r.meta_value = SHA2( COALESCE( pa.meta_value, '' ), 256 ) )
+)
 ```
 
-- Unchanged cell, unchanged rules: not selected. A weekly rerun of an unchanged catalogue costs one query.
+`pa` is the product's `_product_attributes` row, left-joined. Anything that touches that row after the pass (SSI adding a term, an admin removing a local attribute, another plugin) makes the product selectable again. A collision is therefore not a terminal state: the product is marked applied for the row as it stood, and is re-unpacked when the row changes.
+
+- Unchanged cell, unchanged rules, untouched row: not selected. A weekly rerun of an unchanged catalogue costs one query.
 - A key vanishes from the JSON: the cell hash changes, the product is selected, the pass removes every slug in the sidecar and writes the current set. The vanished key is gone.
 - The denylist or a label changes: `ruleset_hash` changes, every product re-unpacks once. No operator step.
-- The whole cell vanishes: a second selection arm picks products with a non-empty sidecar and an absent or empty cell, and clears them.
-- Invalid JSON, or a top-level value that is not an object: the product keeps its previous attributes, gets no marker, and is counted `invalid`. Same rule as media: a failure stays selectable.
-- The pass is a pure function of (cell, rules, foreign entries), so running it twice writes the same bytes. Positions are assigned in key order after the last foreign entry, and the JSON arrives key-sorted.
+- The row changes under us (new `pa_*` term, foreign entry added or removed): the row hash no longer matches, the product is selected, shadows and collisions are recomputed.
+- The cell becomes empty: a second selection arm picks products with a non-empty sidecar and an absent or empty cell, and clears them.
+- Invalid JSON, or a top-level value that is not an object: the product keeps its previous attributes, gets neither marker, and is counted `invalid`. Same rule as media: a failure stays selectable.
+- A pass whose output equals the row already stored writes the markers only. Positions are assigned in key order after the last foreign entry, and the JSON arrives key-sorted, so the same inputs give the same bytes.
 
-**Open question for `@wp-import`, routed through the lead:** when a product's `_fa_attributes` CSV cell is empty ("omitted when empty"), does SSI blank the existing meta or leave last week's value? If it leaves it, a product whose attributes all disappear upstream keeps a stale cell that this plugin cannot distinguish from a live one. The fix would be on the import side (write an explicit `{}`), and the unpacker already treats `{}` as "clear everything".
+The row marker has one cost that is not yet known. SSI rewrites `_product_attributes` for every product whose import maps `pa_*` columns. If that rewrite is byte-identical when nothing changed (it preserves entry order, `position` and `is_visible`: `attribute-engine-wpdb.php:157-165, 301-313`), the steady state stays at one query. If it is not, every product re-unpacks on every content import: still correct and convergent, but the first-pass cost recurs weekly. The staging measurement settles which, before a budget default is chosen.
+
+**What an empty cell does (answered 2026-09-16, from infra-dev's I-01 report of 2026-09-13).** A blank CSV cell writes `''` over the existing meta; only a column absent from the CSV leaves existing meta untouched. SSI's update is `SET pm.meta_value = import.<col> WHERE import.<col> IS NOT NULL` (`stages/core/update-postmeta.php:64-69`); that a blank cell loads as `''` and not `NULL` is I-01's finding and was not re-verified for this note. So `''` is a positive "the vendor sent nothing" signal and the second selection arm clears on it. No `{}` sentinel is needed from the importer.
+
+The remaining stale case is an absent column, which would freeze every product's cell at last week's value. That is not detectable from inside WordPress and has to be prevented where the CSV is built. The pipeline already treats the column as load-bearing in the other direction: `vendor_attributes` is a required export header (featherarms-pipeline #123), so a column lost upstream fails the pipeline instead of reaching the CSV as blanks that would wipe the catalogue. A product that drops out of the import altogether keeps its attributes, as it keeps every other field.
 
 ### Open set, with two suppressions
 
@@ -127,10 +143,10 @@ What local attributes do **not** give: layered-nav filters, sorting, or attribut
 ### Cost
 
 - Code: one pure unpacker (cell + rules + existing entries in, entries + sidecar out), one runner, one listener, one CLI command, tests. The listener and drain loop are the media pattern again, roughly 600-800 lines with tests. If the drain loop is extracted for reuse, that is its own refactor issue, not part of this one.
-- Runtime, first pass: about 49k products at two meta reads and three meta writes each, no HTTP. Estimated 5-10 minutes; unmeasured. The implementation issue measures it on local staging from `elapsed_ms` before any default budget is chosen, as #103 did for media.
-- Runtime, steady state: one selection query when nothing changed.
-- Storage: one more entry set inside an existing serialized row per product, plus two small meta rows (marker, sidecar). About 98k new postmeta rows, against 313k for per-key postmeta.
-- Risk carried: `_product_attributes` is a row SSI also writes. The design depends on SSI continuing to carry non-taxonomy entries through. A test pins the behaviour against a fixture of SSI's output, and the summary's `collision` and `invalid` counts make drift visible.
+- Runtime, first pass: about 49k products at two meta reads and four meta writes each, no HTTP. Estimated 5-10 minutes; unmeasured. The implementation issue measures it on local staging from `elapsed_ms` before any default budget is chosen, as #103 did for media.
+- Runtime, steady state: one selection query when nothing changed, **provided SSI's rewrite of `_product_attributes` is byte-stable** (see Idempotency). If it is not, the first-pass cost recurs on every content import. Unmeasured.
+- Storage: one more entry set inside an existing serialized row per product, plus three small meta rows (two markers, sidecar). About 147k new postmeta rows, against 313k for per-key postmeta.
+- Risk carried: `_product_attributes` is a row SSI also writes. The design depends on SSI continuing to carry non-taxonomy entries through. A test pins the behaviour against a fixture of SSI's output, the row marker re-selects any product whose row SSI changed, and the summary's `collision` and `invalid` counts make drift visible.
 
 ## Alternatives rejected
 
@@ -145,9 +161,8 @@ What local attributes do **not** give: layered-nav filters, sorting, or attribut
 ## Implementation issues to file
 
 1. **`AttributeUnpacker` pure core.** Cell + rules + existing `_product_attributes` in; new entries, sidecar list and counts out. Type table, label rule, `pa_*` shadow, denylist, collision rule, `|` handling. TDD against synthetic cells, including arrays and booleans that real data does not yet contain.
-2. **`AttributeUnpackRunner` + marker selection.** Both selection arms (stale cell; sidecar without cell), `ruleset_hash`, sidecar-scoped removal, direct meta write with cache invalidation.
+2. **`AttributeUnpackRunner` + marker selection.** Both markers (cell + rules; attributes row), both selection arms (stale inputs; sidecar without cell), sidecar-scoped removal, direct meta write with cache invalidation.
 3. **`AfterImportAttributes` listener.** Hook at priority 20, filters, drain and budgets, summary line and action. Wired in `fa-toolkit.php`; autoload test as for media.
 4. **`wp fa:attributes unpack` command** over the same runner: `--dry-run`, `--product`, `--force`.
-5. **Staging measurement.** First-pass `elapsed_ms` on local staging once a content CSV carrying `_fa_attributes` exists; decide default budgets; confirm the Additional information tab and Product Details block output on real products.
-6. **Question to `@wp-import` (via lead):** empty-cell behaviour for `Meta: _fa_attributes`, as above. Blocks nothing in 1-4; decides whether the second selection arm is sufficient.
-7. **Upstream, not this repo (pointer only, ifm#221):** float-mangled numerics, column-collision keys and truncated `other_features` values reach the storefront verbatim under this design.
+5. **Staging measurement.** First-pass `elapsed_ms` on local staging once a content CSV carrying `_fa_attributes` exists; whether a second, unchanged import re-selects anything (SSI row byte-stability); decide default budgets; confirm the Additional information tab and Product Details block output on real products.
+6. **Upstream, not this repo (pointer only, ifm#221):** float-mangled numerics, column-collision keys and truncated `other_features` values reach the storefront verbatim under this design.
