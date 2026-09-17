@@ -22,9 +22,11 @@ class FetchImportProductImageCommand {
 	/**
 	 * Known placeholder image hashes to reject.
 	 *
-	 * Regenerated 2026-08-02 from media-index/placeholder-hashes.txt — do not
-	 * hand-edit; see featherarms-operations-digitalocean#83 / stage-4b plan D4.
-	 * Authority: featherarms-infrastructure/infrastructure/migration/media-index/placeholder-hashes.txt
+	 * A copy of the authority below — do not hand-edit, and keep it identical
+	 * to the copy in class-scrapeproductmedia.php (issue #110). The pipeline's
+	 * CI asserts its file is a superset of both copies, so a hash added only
+	 * here fails that repository's gates.
+	 * Authority: featherarms-pipeline/src/featherarms_pipeline/stage2/placeholder-hashes.txt
 	 *
 	 * @var array
 	 */
