@@ -72,7 +72,7 @@ class Bard_Meta_BoxTest extends TestCase {
 
 		Functions\expect( 'wp_get_post_terms' )
 			->once()
-			->with( 123, 'pwb-brand' )
+			->with( 123, 'product_brand' )
 			->andReturn( array( $brand_term ) );
 
 		Functions\expect( 'esc_html' )
@@ -129,7 +129,7 @@ class Bard_Meta_BoxTest extends TestCase {
 
 		Functions\expect( 'wp_get_post_terms' )
 			->once()
-			->with( 456, 'pwb-brand' )
+			->with( 456, 'product_brand' )
 			->andReturn( array( $brand_term ) );
 
 		Functions\expect( 'esc_html' )
@@ -152,5 +152,72 @@ class Bard_Meta_BoxTest extends TestCase {
 		$this->assertStringContainsString( 'SKU-456', $output );
 		$this->assertStringContainsString( '999999999999', $output );
 		$this->assertStringContainsString( 'Brand Name', $output );
+	}
+
+	/**
+	 * Render the box for product 789 with a given brand lookup result.
+	 *
+	 * @param mixed $terms What wp_get_post_terms() returns.
+	 * @return string The rendered output.
+	 */
+	private function render_with_brand_terms( $terms ) {
+		$post             = Mockery::mock( 'WP_Post' );
+		$post->ID         = 789;
+		$post->post_title = 'Brandless Product';
+
+		Functions\when( 'get_post_meta' )->justReturn( 'VALUE-789' );
+		Functions\when( 'esc_html' )->returnArg();
+
+		// Which taxonomy is asked for is pinned by the two tests above. These
+		// tests are about what comes back, so they fail for that reason alone.
+		Functions\when( 'wp_get_post_terms' )->justReturn( $terms );
+
+		// The buffer is closed on the way out of a throw too, so a render that
+		// fatals reports its own error and not an unclosed buffer.
+		ob_start();
+
+		try {
+			( new Bard_Meta_Box() )->render_meta_box( $post );
+		} finally {
+			$output = ob_get_clean();
+		}
+
+		return $output;
+	}
+
+	/**
+	 * An unregistered taxonomy makes wp_get_post_terms() return a WP_Error.
+	 *
+	 * Indexing it was the fatal that took down every product edit screen on
+	 * vanguard: "Cannot use object of type WP_Error as array" at line 50.
+	 */
+	public function test_render_meta_box_survives_a_wp_error_brand_lookup() {
+		$output = $this->render_with_brand_terms( new \WP_Error( 'invalid_taxonomy', 'Invalid taxonomy.' ) );
+
+		$this->assertStringContainsString( 'Brandless Product', $output );
+		$this->assertMatchesRegularExpression( '#Brand: </br />#', $output );
+	}
+
+	/**
+	 * A product with no brand term, as every new auto-draft is, renders an empty brand.
+	 */
+	public function test_render_meta_box_survives_a_product_with_no_brand() {
+		// Warnings are promoted so "Undefined array key 0" fails the test
+		// instead of passing silently under PHP 8's warn-and-continue.
+		set_error_handler(
+			static function ( $severity, $message ) {
+				throw new \ErrorException( $message, 0, $severity );
+			},
+			E_WARNING
+		);
+
+		try {
+			$output = $this->render_with_brand_terms( array() );
+		} finally {
+			restore_error_handler();
+		}
+
+		$this->assertStringContainsString( 'Brandless Product', $output );
+		$this->assertMatchesRegularExpression( '#Brand: </br />#', $output );
 	}
 }
