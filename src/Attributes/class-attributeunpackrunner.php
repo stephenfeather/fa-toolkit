@@ -197,15 +197,17 @@ class AttributeUnpackRunner {
 			return $outcome;
 		}
 
-		if ( true !== $this->write( $product_id, $cell, $result['attributes'], $result['sidecar'] ) ) {
-			return 'write_failed';
-		}
+		$stored = $this->write( $product_id, $cell, $result['attributes'], $result['sidecar'] );
 
+		// The row is the first write, so by here it may have changed whatever
+		// happened to the sidecar and markers after it. Clean on every changed
+		// pass, failed or not, rather than leave a cached product behind a
+		// row that moved (PR #122 review).
 		if ( 'unchanged' !== $outcome ) {
 			clean_post_cache( $product_id );
 		}
 
-		return $outcome;
+		return true === $stored ? $outcome : 'write_failed';
 	}
 
 	/**

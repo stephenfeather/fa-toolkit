@@ -591,12 +591,12 @@ class AttributeUnpackRunnerTest extends TestCase {
 		$this->assertSame( array( '_product_attributes' ), array_column( $this->writes, 1 ) );
 		$this->assertSame( 1, $totals['write_failed'] );
 		$this->assertSame( 0, $totals['written'] );
-		$this->assertSame( array(), $this->cleaned );
 	}
 
 	/**
 	 * A marker write that does not store is a write failure too: the product
-	 * keeps a stale or missing marker and is selected again.
+	 * keeps a stale or missing marker and is selected again. The row had
+	 * already stored, so the product's cache is still cleaned (PR #122 review).
 	 */
 	public function test_run_counts_a_failed_marker_write() {
 		$this->seed( 5, array( '_fa_attributes' => self::CELL ) );
@@ -609,6 +609,7 @@ class AttributeUnpackRunnerTest extends TestCase {
 		$this->assertSame( 1, $totals['write_failed'] );
 		$this->assertSame( 0, $totals['written'] );
 		$this->assertArrayNotHasKey( '_fa_attributes_row_sha256', $this->meta[5] );
+		$this->assertSame( array( 5 ), $this->cleaned );
 	}
 
 	/**
