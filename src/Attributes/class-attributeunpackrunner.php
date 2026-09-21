@@ -125,6 +125,28 @@ class AttributeUnpackRunner {
 	}
 
 	/**
+	 * Count products with no `_fa_attributes` key at all.
+	 *
+	 * An unmapped import profile leaves the key absent rather than empty, so
+	 * this number is how "the column never landed" becomes visible instead of
+	 * reading as "no attributes for these products".
+	 *
+	 * @return int
+	 */
+	public function products_without_attributes_cell() {
+		global $wpdb;
+
+		$sql = "SELECT COUNT(*) FROM {$wpdb->posts} p
+			WHERE p.post_type = 'product' AND p.post_status IN ('publish', 'draft', 'private', 'pending')
+			AND NOT EXISTS (
+				SELECT 1 FROM {$wpdb->postmeta} m WHERE m.post_id = p.ID AND m.meta_key = '_fa_attributes'
+			)";
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		return (int) $wpdb->get_var( $sql );
+	}
+
+	/**
 	 * Run the unpacker over the given products.
 	 *
 	 * Per product: read the cell, the row and the sidecar; unpack; write the

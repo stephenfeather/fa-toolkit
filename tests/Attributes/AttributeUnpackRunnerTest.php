@@ -334,6 +334,26 @@ class AttributeUnpackRunnerTest extends TestCase {
 		$this->assertSame( array( 1, 2 ), $this->runner()->products_to_unpack( 0, array(), true ) );
 	}
 
+	/**
+	 * products_without_attributes_cell() counts products that carry no
+	 * `_fa_attributes` key at all, which is how an unmapped import profile
+	 * shows up in the listener's summary (#115).
+	 */
+	public function test_products_without_attributes_cell_counts_absent_keys() {
+		$this->wpdb->shouldReceive( 'get_var' )
+			->once()
+			->with(
+				Mockery::on(
+					fn( $sql ) => false !== strpos( $sql, "post_type = 'product'" )
+						&& false !== strpos( $sql, "meta_key = '_fa_attributes'" )
+						&& false !== strpos( $sql, 'NOT EXISTS' )
+				)
+			)
+			->andReturn( '41' );
+
+		$this->assertSame( 41, $this->runner()->products_without_attributes_cell() );
+	}
+
 	/*
 	 * ---- Per product ----
 	 */
