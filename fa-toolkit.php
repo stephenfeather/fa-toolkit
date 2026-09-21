@@ -108,6 +108,11 @@ new \FAToolkit\Media\RemoteAttachmentDeleteGuard();
 // Speedy Imports run finishes. Registers one action; inert until that fires.
 new \FAToolkit\Media\AfterImportMediaAttachments();
 
+// Attributes. Unpacks newly imported `_fa_attributes` into local product
+// attributes once a Super Speedy Imports run finishes, after the media pass
+// (#115). Registers one action; inert until that fires.
+new \FAToolkit\Attributes\AfterImportAttributes();
+
 // Media (WP-CLI dependent - only load if WP-CLI is active).
 if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\Media\Media_Fix_Ilab_Metadata();
