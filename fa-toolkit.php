@@ -119,6 +119,13 @@ if ( true === \FAToolkit\Utilities\Helpers::is_wp_cli() ) {
 	new \FAToolkit\Media\ProductThumbnailChecker();
 }
 
+// Shipping (operations #650). One package per shipping class, one method per
+// class with holds that remove every rate rather than ship wrong or free, and
+// the small-order fee. Each registers one hook; inert outside cart and checkout.
+new \FAToolkit\Shipping\CartPackageSplitter();
+new \FAToolkit\Shipping\PackageRateRules();
+new \FAToolkit\Shipping\SmallOrderFee();
+
 // Promotion.
 new \FAToolkit\Promotion\Promotions();
 new \FAToolkit\Promotion\Promotion_Meta_Box();
