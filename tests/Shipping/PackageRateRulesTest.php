@@ -369,6 +369,20 @@ class PackageRateRulesTest extends TestCase {
 	}
 
 	/**
+	 * A missing-weight line beside weighed lines adds a unit of its own rather
+	 * than vanishing into the weighed total: 60 lb is two units, plus one for
+	 * the line that could not be weighed (PR #125 review).
+	 */
+	public function test_hazmat_missing_weight_adds_a_unit_beside_weighed_items() {
+		$package = $this->package( 'Hazmat', array( $this->item( 1, '30', 2 ), $this->item( 2, '' ) ) );
+
+		$result = ( new PackageRateRules() )->filter( $this->rates( 40.0, 0 ), $package );
+
+		$this->assertSame( 120.0, $result['flat_rate:7']->cost );
+		$this->assertCount( 1, $this->logged );
+	}
+
+	/**
 	 * The hazmat unit is filterable, so a distributor's terms need no code change.
 	 */
 	public function test_the_hazmat_unit_is_filterable() {

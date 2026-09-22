@@ -181,6 +181,10 @@ class PackageRateRules {
 	/**
 	 * How many started hazmat units the package weighs.
 	 *
+	 * The weighed lines give ceil( pounds / unit ). Every line with no weight
+	 * adds one unit of its own on top, never zero: it cannot be weighed, so it
+	 * is charged as a parcel and logged (WD-4; PR #125 review).
+	 *
 	 * @param array $package The cart package.
 	 * @return int At least 1.
 	 */
@@ -207,10 +211,10 @@ class PackageRateRules {
 		}
 
 		if ( array() !== $missing ) {
-			$this->log( 'hazmat item missing weight, counted as one unit', array( 'products' => $missing ) );
+			$this->log( 'hazmat item missing weight, counted as one unit each', array( 'products' => $missing ) );
 		}
 
-		return max( 1, (int) ceil( $pounds / max( $unit, 0.001 ) ) );
+		return max( 1, (int) ceil( $pounds / max( $unit, 0.001 ) ) + count( $missing ) );
 	}
 
 	/**
